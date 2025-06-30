@@ -29,6 +29,11 @@ I am a passionate and driven software engineer with a strong foundation in web d
 - **Task Management API**: Built a RESTful API for task management with Python, Flask, and MySQL. Implemented user authentication and CRUD operations for tasks.
 - **Personal Portfolio Website**: Designed and developed this personal portfolio website using HTML, CSS, and JavaScript to showcase my projects and skills.
 
+## GitHub Stats
+
+[![Your GitHub Stats](https://github-readme-stats.vercel.app/api?username=CodewithD2&show_icons=true&theme=radical)](https://github.com/anuraghazra/github-readme-stats)
+[![Top Languages](https://github-readme-stats.vercel.app/api/top-langs/?username=CodewithD2&layout=compact&theme=radical)](https://github.com/anuraghazra/github-readme-stats)
+
 ## Contact
 
 - 📧 **Email**: diaa.atya@hotmail.com
