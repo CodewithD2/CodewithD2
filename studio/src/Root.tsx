@@ -8,6 +8,7 @@ import {SCRIPT_TEST_FRAMES, ScriptTest} from './ScriptTest';
 import {CastHistorical, CastRoles} from './CastSheet';
 import {ItemPoses, ItemsCatalog, ItemsTurn} from './ItemsSheet';
 import {DepthTurn, DepthWalk} from './DepthSheet';
+import {LightingCompare, LightingSheet} from './LightingSheet';
 import {BackdropsSheetA, BackdropsSheetB, BackdropsSheetC, BuildingsSheetA, BuildingsSheetB, BuildingsSheetNight} from './WorldSheet';
 import {TURN_TEST_FRAMES, TurnSheetA, TurnSheetB, TurnSheetC, TurnTest} from './Turnaround';
 
@@ -46,6 +47,8 @@ export const Root: React.FC = () => (
     <Composition id="BackdropsSheetA" component={BackdropsSheetA} durationInFrames={60} fps={30} width={1920} height={1080} />
     <Composition id="BackdropsSheetB" component={BackdropsSheetB} durationInFrames={60} fps={30} width={1920} height={1080} />
     <Composition id="BackdropsSheetC" component={BackdropsSheetC} durationInFrames={60} fps={30} width={1920} height={1080} />
+    <Composition id="LightingSheet" component={LightingSheet} durationInFrames={60} fps={30} width={1920} height={1080} />
+    <Composition id="LightingCompare" component={LightingCompare} durationInFrames={60} fps={30} width={1920} height={1080} />
     {/* لوحات الأشياء في الأيدي */}
     <Composition id="ItemsCatalog" component={ItemsCatalog} durationInFrames={60} fps={30} width={1920} height={1080} />
     <Composition id="ItemPoses" component={ItemPoses} durationInFrames={60} fps={30} width={1920} height={1080} />

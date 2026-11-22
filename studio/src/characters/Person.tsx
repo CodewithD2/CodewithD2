@@ -1,6 +1,7 @@
 import React from 'react';
 import {INK, mixColor} from '../lib/util';
 import {Held, HeldItem} from './items';
+import {CharLight, CharLightCtx} from './light';
 
 /*
  * شخصية بأسلوب كرتوني مبسّط: رأس مستدير كبير، عيون نقطية، خط خارجي سميك،
@@ -58,7 +59,8 @@ const FACE: Record<Face, {d: string; top: number}> = {
 };
 
 /** لون الظل: يميل للبنفسجي البارد بدل الأسود ليبقى حيوياً */
-const shadeOf = (c: string, k = 0.38) => (c.startsWith('#') && c.length === 7 ? mixColor(c, '#3a2244', k) : 'rgba(40,20,50,0.35)');
+let SHADOW_TINT = '#3a2244'; // يتغير حسب إضاءة المشهد أثناء رسم كل شخصية
+const shadeOf = (c: string, k = 0.38) => (c.startsWith('#') && c.length === 7 ? mixColor(c, SHADOW_TINT, k) : 'rgba(40,20,50,0.35)');
 const lightOf = (c: string, k = 0.35) => (c.startsWith('#') && c.length === 7 ? mixColor(c, '#fff4e0', k) : 'rgba(255,255,255,0.3)');
 export type Pose =
   | 'stand' | 'cross' | 'chin' | 'point' | 'pull' | 'armsUp' | 'stretch' | 'fist' | 'wave' | 'podium' | 'fists' | 'belly' | 'droop' | 'cower' | 'gesture'
@@ -104,6 +106,8 @@ export type PersonProps = {
   view?: View | number;
   /** شيء في اليد اليمنى للشخصية (يسار الشاشة في المنظر الأمامي) */
   holdR?: Held;
+  /** إضاءة المشهد (إن لم تُعطَ تُقرأ من CharLightCtx) */
+  light?: CharLight;
   /** شيء في اليد اليسرى */
   holdL?: Held;
   hairStyle?: HairStyle;
@@ -491,7 +495,11 @@ export const Person: React.FC<PersonProps> = ({
   view,
   holdR,
   holdL,
+  light: lightIn,
 }) => {
+  const ctxLight = React.useContext(CharLightCtx);
+  const L = lightIn ?? ctxLight;
+  SHADOW_TINT = L ? L.shadow : '#3a2244';
   // ===== الاتجاه =====
   const yawDeg = Math.max(0, Math.min(180, view === undefined ? (motion === 'walk' || motion === 'run' ? 90 : 0) : typeof view === 'number' ? view : VIEW_YAW[view]));
   const yr = (yawDeg * Math.PI) / 180;
@@ -533,6 +541,23 @@ export const Person: React.FC<PersonProps> = ({
   const hop = -jolt * 28;
 
   const uid = React.useId().replace(/[^a-zA-Z0-9]/g, '');
+  // ===== الإضاءة: جهة الضوء في إحداثيات الشخصية المحلية (تنعكس مع flip) =====
+  const fs = flip ? -1 : 1;
+  const ldir = (L?.dir ?? -1) * fs;
+  // مصادر الضوء النقطية: أقواها فقط (لون + شدة + جهة)
+  const pt = (() => {
+    let best: {color: string; k: number; dir: number} | null = null;
+    for (const p of L?.points ?? []) {
+      const dx = p.x - x;
+      const dy = p.y - (y - 150 * s);
+      const d = Math.hypot(dx, dy);
+      const k = Math.max(0, 1 - d / p.r);
+      if (k > 0.02 && (!best || k > best.k)) best = {color: p.color, k, dir: Math.sign(dx || 1) * fs};
+    }
+    return best;
+  })();
+  const shadeOn = shading !== 'none' || !!L;
+  const shadeMode = shading === 'none' ? 'cel' : shading;
   const B = BODY[build];
   const F = FACE[face];
   const dTop = F.top + 264; // إزاحة الشعر والقبعة حسب ارتفاع الرأس
@@ -865,7 +890,8 @@ export const Person: React.FC<PersonProps> = ({
       transform={`translate(${x} ${y}) rotate(${rot}) scale(${flip ? -s : s} ${s})`}
     >
       {/* ظل على الأرض */}
-      <ellipse cx={0} cy={2} rx={46} ry={9} fill="rgba(0,0,0,0.28)" />
+      <ellipse cx={L ? -ldir * 12 : 0} cy={2} rx={L ? 54 : 46} ry={9} fill={L ? L.shadow : '#000'} opacity={L ? 0.45 : 0.28} />
+      {pt && <ellipse cx={-pt.dir * 40 * pt.k} cy={3} rx={40 + 50 * pt.k} ry={8} fill="#000" opacity={0.25 * pt.k} />}
       {M.dust > 0 && <Dust frame={frame} phase={M.dustPhase} amount={M.dust} />}
       {legs}
       <g transform={`translate(${M.shakeX} ${bob + hop}) rotate(${lean} 0 -40) translate(0 -40) scale(${M.sqX} ${M.sqY}) translate(0 40)`}>
@@ -874,7 +900,7 @@ export const Person: React.FC<PersonProps> = ({
         {/* الذراع البعيدة خلف الجسم عند الالتفات */}
         {(
           <ArmCtx.Provider value={{cy, sy, slot: 'back'}}>
-            <ArmShade.Provider value={shading === 'none' ? null : shadeOf(robe)}>
+            <ArmShade.Provider value={shadeOn ? shadeOf(robe) : null}>
               <ItemCtx.Provider value={itemCtx}>{arms}</ItemCtx.Provider>
             </ArmShade.Provider>
           </ArmCtx.Provider>
@@ -951,10 +977,11 @@ export const Person: React.FC<PersonProps> = ({
             {outfit === 'suit' && <path d="M -22 -140 Q 0 -132 22 -140" fill="none" />}
           </g>
         )}
-        {shading !== 'none' && <Shade id={`b${uid}`} d={B.d} color={shadeOf(robe)} light={lightOf(robe)} mode={shading} dx={-16} dy={-6} neck />}
+        {shadeOn && <Shade id={`b${uid}`} d={B.d} color={shadeOf(robe)} light={lightOf(robe)} mode={shadeMode} dx={16 * ldir} dy={-6} neck />}
+        {L && <LightFX id={`bl${uid}`} d={B.d} L={L} ldir={ldir} pt={pt} />}
         </g>
         <ArmCtx.Provider value={{cy, sy, slot: 'mid'}}>
-          <ArmShade.Provider value={shading === 'none' ? null : shadeOf(robe)}>
+          <ArmShade.Provider value={shadeOn ? shadeOf(robe) : null}>
               <ItemCtx.Provider value={itemCtx}>{arms}</ItemCtx.Provider>
             </ArmShade.Provider>
         </ArmCtx.Provider>
@@ -964,8 +991,9 @@ export const Person: React.FC<PersonProps> = ({
           {bunBehind && bunBehind.z < 0 && <circle cx={bunBehind.x} cy={-268 + dTop} r={28} fill={hairColor} stroke={INK} strokeWidth={4} />}
           <path d={F.d} fill={skin} stroke={INK} strokeWidth={SW} strokeLinejoin="round" />
           {act === 'angry' && <path d={F.d} fill="#e0301e" opacity={(0.12 + 0.18 * energy) * (0.75 + 0.25 * Math.sin(frame / 4))} />}
-          {shading !== 'none' && <Shade id={`f${uid}`} d={F.d} color={shadeOf(skin, 0.34)} light={lightOf(skin)} mode={shading} dx={-14} dy={-12} highlight={[-26, F.top + 34]} />}
-          {shading === 'cel' &&
+          {shadeOn && <Shade id={`f${uid}`} d={F.d} color={shadeOf(skin, 0.34)} light={lightOf(skin)} mode={shadeMode} dx={14 * ldir} dy={-12} highlight={[26 * ldir, F.top + 34]} />}
+          {L && <LightFX id={`hl${uid}`} d={F.d} L={L} ldir={ldir} pt={pt} />}
+          {shadeMode === 'cel' && shadeOn &&
             [-36, 36].map((th) => {
               const p = onHead(th, 60);
               return p.z > 0.2 ? <ellipse key={th} cx={p.x} cy={-178} rx={11 * Math.min(1, p.z * 1.2)} ry={6} fill="#e0706a" opacity={0.28} /> : null;
@@ -1045,7 +1073,7 @@ export const Person: React.FC<PersonProps> = ({
         </g>
         {/* الأيدي المتقدمة أمام الوجه تُرسم بعد الرأس */}
         <ArmCtx.Provider value={{cy, sy, slot: 'front'}}>
-          <ArmShade.Provider value={shading === 'none' ? null : shadeOf(robe)}>
+          <ArmShade.Provider value={shadeOn ? shadeOf(robe) : null}>
             <ItemCtx.Provider value={itemCtx}>{arms}</ItemCtx.Provider>
           </ArmShade.Provider>
         </ArmCtx.Provider>
@@ -1480,3 +1508,30 @@ const HairRegion: React.FC<{id: string; kind: HairlineKind; yaw: number; faceD: 
     </g>
   );
 };
+
+/**
+ * طبقات الإضاءة فوق شكل (رأس أو جسم):
+ *  - صبغة الجو (لون ظل المشهد بشدة ambient)
+ *  - حافة ضوء رفيعة بلون الضوء الرئيسي في الجهة المواجهة له
+ *  - إن وُجد مصدر نقطي قريب: حافة دافئة من جهته + توهج خفيف
+ */
+const LightFX: React.FC<{id: string; d: string; L: CharLight; ldir: number; pt: {color: string; k: number; dir: number} | null}> = ({id, d, L, ldir, pt}) => (
+  <g>
+    <defs>
+      <mask id={`rim${id}`}>
+        <path d={d} fill="#fff" />
+        <path d={d} fill="#000" transform={`translate(${-ldir * 8} 5)`} />
+      </mask>
+      {pt && (
+        <mask id={`pt${id}`}>
+          <path d={d} fill="#fff" />
+          <path d={d} fill="#000" transform={`translate(${-pt.dir * 12} 3)`} />
+        </mask>
+      )}
+    </defs>
+    {L.ambient > 0 && <path d={d} fill={L.shadow} opacity={L.ambient} />}
+    {pt && <path d={d} fill={pt.color} opacity={0.22 * pt.k} />}
+    <path d={d} fill={L.key} mask={`url(#rim${id})`} opacity={L.rim * (pt ? 1 - pt.k * 0.6 : 1)} />
+    {pt && <path d={d} fill={pt.color} mask={`url(#pt${id})`} opacity={Math.min(1, 1.2 * pt.k)} />}
+  </g>
+);

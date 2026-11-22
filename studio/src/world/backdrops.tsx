@@ -7,6 +7,7 @@ import {Ship, Stars, Tent, Water} from '../lib/props';
 import {Art, CAM0, Cam, Layer, Sky, Stage} from '../lib/stage';
 import {INK, scatter} from '../lib/util';
 import {DepthSort, Sorted} from '../lib/depth';
+import {CharLightCtx, LIGHT_BY_TIME, PointLight} from '../characters/light';
 import {Qaitbay, Steamer} from '../episodes/suez1956/props';
 import {
   CairoHouse,
@@ -76,7 +77,7 @@ export const GROUND: Record<BackdropName, number> = {
 
 type L = {d: number; blur?: number; opacity?: number; el: React.ReactNode};
 /** طبقة اللعب: الأرضية + عناصر قريبة تُرتَّب بالعمق مع الشخصيات */
-type StageDef = {d: number; ground: React.ReactNode; props: {z: number; el: React.ReactNode}[]};
+type StageDef = {d: number; ground: React.ReactNode; props: {z: number; el: React.ReactNode}[]; lights?: PointLight[]};
 
 /* ---------- السماء المشتركة ---------- */
 const SkyLayer: React.FC<{f: number; clouds?: number}> = ({f, clouds = 3}) => {
@@ -201,6 +202,7 @@ const DEFS: Record<BackdropName, (W: World, f: number) => {layers: L[]; actorD: 
     actorD: 150,
     stage: {
       d: 250,
+      lights: W.lit > 0.2 ? [150, 900, 1650].map((x) => ({x, y: 915 - 270, color: W.P.warm, r: 460})) : [],
       ground: <Ground y={900} c="#c9b89a" lines="tiles" seed="a2" />,
       props: [
         ...[-200, 500, 1300, 2000].map((x, i) => ({z: 915, el: <PalmTree key={x} x={x} y={915} h={340} frame={f} seed={i} />})),
@@ -257,6 +259,7 @@ const DEFS: Record<BackdropName, (W: World, f: number) => {layers: L[]; actorD: 
     actorD: 150,
     stage: {
       d: 320,
+      lights: W.lit > 0.2 ? [260, 1580].map((x) => ({x, y: 915 - 280, color: W.P.warm, r: 460})) : [],
       ground: <Ground y={900} c="#c4b8a0" lines="tiles" seed="p2" />,
       props: [
         {z: 915, el: <Shop x={-120} y={915} s={1.05} sign="مقهى" seed="sh1" />},
@@ -514,6 +517,7 @@ const DEFS: Record<BackdropName, (W: World, f: number) => {layers: L[]; actorD: 
     actorD: 150,
     stage: {
       d: 300,
+      lights: [{x: 980, y: 860, color: '#ffa040', r: W.time === 'day' ? 260 : 620}],
       ground: <Ground y={900} c="#7a6a48" lines="sand" seed="mc2" />,
       props: [
         {z: 915, el: <Tent x={260} y={915} s={1.1} a={tinted(W, '#b3262c')} b={tinted(W, '#efe4cc')} />},
@@ -600,21 +604,24 @@ const DEFS: Record<BackdropName, (W: World, f: number) => {layers: L[]; actorD: 
 };
 
 /** خلفية جاهزة — الشخصيات (children) تُرسم على طبقة الممثلين بين الوسط والمقدمة */
-export const Backdrop: React.FC<{name: BackdropName; time: TimeOfDay; cam?: Cam; frame?: number; children?: React.ReactNode; grade?: boolean}> = ({
+export const Backdrop: React.FC<{name: BackdropName; time: TimeOfDay; cam?: Cam; frame?: number; children?: React.ReactNode; grade?: boolean; lighting?: boolean}> = ({
   name,
   time,
   cam = CAM0,
   frame,
   children,
   grade = true,
+  lighting = true,
 }) => {
   const cf = useCurrentFrame();
   const f = frame ?? cf;
   const W = worldFor(time);
   const def = DEFS[name](W, f);
   const indoor = name === 'palaceInterior';
+  const charLight = {...LIGHT_BY_TIME[time], dir: W.lightDir, points: def.stage?.lights ?? []};
   return (
     <WorldCtx.Provider value={W}>
+     <CharLightCtx.Provider value={lighting ? charLight : null}>
       <Sky background={`linear-gradient(${W.P.skyTop} 0%, ${W.P.skyMid} 55%, ${W.P.horizon} 100%)`} />
       <Stage cam={cam}>
         {!indoor && (
@@ -659,6 +666,7 @@ export const Backdrop: React.FC<{name: BackdropName; time: TimeOfDay; cam?: Cam;
         </Layer>
       </Stage>
       {grade && <ColorGrade p={W.P} lightAt={[(W.sun[0] / 1920) * 100, (W.sun[1] / 1080) * 100]} lightStrength={time === 'night' ? 0.12 : 0.18} />}
+     </CharLightCtx.Provider>
     </WorldCtx.Provider>
   );
 };
