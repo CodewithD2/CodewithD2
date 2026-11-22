@@ -10,6 +10,14 @@ npx remotion render src/index.ts ShipsOverland ../output/ships-overland-2.5d.mp4
 ```
 إن لم يستطع Remotion تحميل متصفحه، اضبط `REMOTION_BROWSER` على مسار Chrome/Chromium headless.
 
+## الأسلوب البصري
+- `src/lib/palette.ts` — لوحة ألوان لكل لقطة (سماء، أفق، ضباب، حافة الضوء، ضوء دافئ، تلوين نهائي). كل الألوان تُشتق منها، والطبقات البعيدة تذوب في لون الجو عبر `atmos()`.
+- `src/lib/fx.tsx` — المؤثرات: `Bloom` (توهج حقيقي بفلتر SVG)، `Halo`، `Embers` (شرر)، `Smoke` (دخان)، `Motes` (ذرات في الضوء)، `MistBand` (ضباب)، `Cloud` (سحب مرسومة)، `GodRays` (أشعة شمس)، `ColorGrade` (تلوين نهائي يوحّد اللقطة بما فيها الشخصيات).
+- `src/lib/epic.tsx` — عناصر ملحمية: `CityEpic` (مدينة على التلال بقبة كبرى وقناة مياه وسور بأبراج)، `Ridge` (تلال بتدرج وحافة ضوء)، `Cypress`، `Battlement` + `Walkway` (الشخصية تقف خلف الشرفات)، `Banner`، `Bombard`، `Campfire`، `TorchFX`.
+
+## قاعدة ترتيب العناصر
+داخل كل طبقة يُرسم من الخلف للأمام: الخلفية ← المشاعل/الرايات الخلفية ← السفن ← الحبال ← الشخصيات ← الواجهات الأمامية (الشرفات). العناصر المتناثرة (خيام، سفن) تُرتّب حسب y قبل الرسم.
+
 ## البنية
 - `src/lib/stage.tsx` — المحرك: `Stage` (الكاميرا + المنظور)، `Layer d={عمق}`، `camAt` لاستيفاء مفاتيح الكاميرا.
 - `src/characters/Person.tsx` — الشخصيات (تعابير: smug, shock, think, strain, idea… / أوضاع: cross, chin, point, pull…).
