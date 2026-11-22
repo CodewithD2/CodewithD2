@@ -3,6 +3,7 @@ import {Composition, continueRender, delayRender, staticFile} from 'remotion';
 import {DURATION_S, Episode} from './Episode';
 import {SUEZ_DURATION_S, SuezEpisode} from './episodes/suez1956/Episode';
 import {SheetBuild, SheetFaces, SheetWomen} from './CharacterSheet';
+import {MOTION_TEST_FRAMES, MotionTest} from './MotionTest';
 
 // تحميل خط أميري محلياً قبل التصيير
 const fontHandle = delayRender('Amiri font');
@@ -22,5 +23,7 @@ export const Root: React.FC = () => (
     <Composition id="SheetBuild" component={SheetBuild} durationInFrames={60} fps={30} width={1920} height={1080} />
     <Composition id="SheetFaces" component={SheetFaces} durationInFrames={60} fps={30} width={1920} height={1080} />
     <Composition id="SheetWomen" component={SheetWomen} durationInFrames={60} fps={30} width={1920} height={1080} />
+    {/* اختبار الحركة والتمثيل */}
+    <Composition id="MotionTest" component={MotionTest} durationInFrames={MOTION_TEST_FRAMES} fps={30} width={1920} height={1080} />
   </>
 );

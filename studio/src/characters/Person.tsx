@@ -6,7 +6,11 @@ import {INK, mixColor} from '../lib/util';
  * جسم صغير وأذرع مرنة. نقطة الأصل (0,0) عند القدمين، والطول ≈ 270 وحدة.
  */
 
-export type Expr = 'neutral' | 'smug' | 'shock' | 'think' | 'strain' | 'idea' | 'sleepy' | 'happy' | 'speak' | 'shout';
+export type Expr = 'neutral' | 'smug' | 'shock' | 'think' | 'strain' | 'idea' | 'sleepy' | 'happy' | 'speak' | 'shout' | 'angry' | 'laugh' | 'sad';
+/** نمط الحركة: still ثابت (السلوك القديم)، idle وقوف حي، walk مشي، run جري */
+export type Motion = 'still' | 'idle' | 'walk' | 'run';
+/** حالات تمثيل جاهزة تجمع التعبير والوضعية وحركة الجسم والمؤثرات */
+export type Act = 'angry' | 'laugh' | 'sad' | 'scared' | 'orate' | 'cheer';
 export type Hat = 'sultan' | 'vizier' | 'byzHelmet' | 'bork' | 'cap' | 'officerCap' | 'hijab' | 'crown' | 'none';
 export type Outfit = 'robe' | 'suit' | 'uniform' | 'dress' | 'skirt' | 'abaya';
 /** تسريحات الشعر */
@@ -52,7 +56,7 @@ const FACE: Record<Face, {d: string; top: number}> = {
 /** لون الظل: يميل للبنفسجي البارد بدل الأسود ليبقى حيوياً */
 const shadeOf = (c: string, k = 0.38) => (c.startsWith('#') && c.length === 7 ? mixColor(c, '#3a2244', k) : 'rgba(40,20,50,0.35)');
 const lightOf = (c: string, k = 0.35) => (c.startsWith('#') && c.length === 7 ? mixColor(c, '#fff4e0', k) : 'rgba(255,255,255,0.3)');
-export type Pose = 'stand' | 'cross' | 'chin' | 'point' | 'pull' | 'armsUp' | 'stretch' | 'fist' | 'wave' | 'podium';
+export type Pose = 'stand' | 'cross' | 'chin' | 'point' | 'pull' | 'armsUp' | 'stretch' | 'fist' | 'wave' | 'podium' | 'fists' | 'belly' | 'droop' | 'cower' | 'gesture';
 
 export type PersonProps = {
   x: number;
@@ -66,8 +70,8 @@ export type PersonProps = {
   robe: string;
   trim?: string;
   hat: Hat;
-  expr: Expr;
-  pose: Pose;
+  expr?: Expr;
+  pose?: Pose;
   beard?: string;
   /** لون الشعر (يظهر حين لا يغطي الرأسَ غطاء كامل) */
   hair?: string;
@@ -78,6 +82,14 @@ export type PersonProps = {
   build?: Build;
   face?: Face;
   shading?: Shading;
+  /** نمط الحركة (افتراضي still) */
+  motion?: Motion;
+  /** المسافة المقطوعة بالبكسل على الشاشة — تضبط إيقاع الخطوات فلا تنزلق القدمان. إن لم تُعطَ تُحسب من frame */
+  travel?: number;
+  /** شدة الحركة 0..1 (0.3 هادئ، 1 مبالغ) */
+  energy?: number;
+  /** حالة تمثيل جاهزة (تتجاوز expr و pose) */
+  act?: Act;
   hairStyle?: HairStyle;
   /** رموش (تلقائياً مع البنية الأنثوية) */
   lashes?: boolean;
@@ -124,6 +136,16 @@ const Eyes: React.FC<{expr: Expr; blink: boolean; look: [number, number]; skin: 
       <g stroke={INK} strokeWidth={5} strokeLinecap="round" fill="none">
         <path d={`M ${E[0] - 9} ${ey - 7} L ${E[0] + 6} ${ey} L ${E[0] - 9} ${ey + 7}`} />
         <path d={`M ${E[1] + 9} ${ey - 7} L ${E[1] - 6} ${ey} L ${E[1] + 9} ${ey + 7}`} />
+      </g>
+    );
+  }
+  if (expr === 'laugh') {
+    // عيون مغمضة من الضحك ^ ^
+    return (
+      <g stroke={INK} strokeWidth={5} strokeLinecap="round" fill="none">
+        {E.map((x) => (
+          <path key={x} d={`M ${x - 9} ${ey + 3} Q ${x} ${ey - 10} ${x + 9} ${ey + 3}`} />
+        ))}
       </g>
     );
   }
@@ -188,6 +210,9 @@ const Brows: React.FC<{expr: Expr}> = ({expr}) => {
     sleepy: [4, -2, 4, 2],
     happy: [-6, -2, -6, 2],
     speak: [-4, 2, -4, -2],
+    angry: [8, 13, 8, -13],
+    laugh: [-8, -3, -8, 3],
+    sad: [-4, -10, -4, 10],
     shout: [2, 8, 2, -8],
   };
   const [ly, ls, ry, rs] = b[expr];
@@ -229,6 +254,25 @@ const Mouth: React.FC<{expr: Expr; frame: number; lips?: string}> = ({expr, fram
     case 'idea':
     case 'happy':
       return <path d={`M -22 ${y - 8} Q 0 ${y + 22} 22 ${y - 8} Z`} fill={INK} />;
+    case 'angry':
+      // أسنان مضغوطة بفم مقلوب
+      return (
+        <g>
+          <path d={`M -20 ${y + 6} Q 0 ${y - 12} 20 ${y + 6} L 20 ${y + 10} Q 0 ${y - 4} -20 ${y + 10} Z`} fill="#fff" stroke={INK} strokeWidth={4} strokeLinejoin="round" />
+          {[-8, 0, 8].map((tx) => (
+            <line key={tx} x1={tx} y1={y - 2} x2={tx} y2={y + 6} stroke={INK} strokeWidth={2} />
+          ))}
+        </g>
+      );
+    case 'laugh':
+      return (
+        <g>
+          <path d={`M -26 ${y - 10} Q 0 ${y + 34} 26 ${y - 10} Z`} fill={INK} />
+          <path d={`M -14 ${y + 8} Q 0 ${y + 20} 14 ${y + 8}`} fill="#c0485a" />
+        </g>
+      );
+    case 'sad':
+      return <path d={`M -14 ${y + 4} Q 0 ${y - 8} 14 ${y + 4}`} stroke={INK} strokeWidth={5} fill="none" strokeLinecap="round" />;
     case 'speak': {
       // فم يتكلم: يفتح ويغلق بإيقاع غير منتظم
       const o = 3 + 9 * Math.abs(Math.sin(frame / 2.6) * Math.sin(frame / 7.3));
@@ -347,8 +391,8 @@ export const Person: React.FC<PersonProps> = ({
   robe,
   trim = '#d9a520',
   hat,
-  expr,
-  pose,
+  expr: exprIn = 'neutral',
+  pose: poseIn = 'stand',
   beard,
   hair,
   mustache,
@@ -363,14 +407,32 @@ export const Person: React.FC<PersonProps> = ({
   earrings,
   scarf,
   skirt,
-  look = [0, 0],
+  look: lookIn = [0, 0],
   jolt = 0,
+  motion = 'still',
+  travel,
+  energy = 0.5,
+  act,
 }) => {
+  // ===== حالات التمثيل تحدد التعبير والوضعية =====
+  const ACTS: Record<Act, {expr: Expr; pose: Pose}> = {
+    angry: {expr: 'angry', pose: 'fists'},
+    laugh: {expr: 'laugh', pose: 'belly'},
+    sad: {expr: 'sad', pose: 'droop'},
+    scared: {expr: 'shock', pose: 'cower'},
+    orate: {expr: 'speak', pose: 'gesture'},
+    cheer: {expr: 'happy', pose: 'armsUp'},
+  };
+  const expr: Expr = act ? ACTS[act].expr : exprIn;
+  const pose: Pose = act ? ACTS[act].pose : poseIn;
+  const M = computeMotion({motion, travel, frame, s, energy, act, seed});
+  const look: [number, number] = act === 'sad' ? [0, 1] : lookIn;
+
   // رمش كل ثلاث ثوانٍ تقريباً، مع اختلاف التوقيت بين الشخصيات
   const blink = (frame + seed * 37) % 97 < 4;
   // تنفّس / ارتداد خفيف
-  const bob = pose === 'pull' ? Math.sin((frame + seed * 9) / 5) * 4 : Math.sin((frame + seed * 13) / 18) * 2.5;
-  const lean = pose === 'pull' ? 14 + Math.sin((frame + seed * 9) / 5) * 4 : 0;
+  const bob = (pose === 'pull' ? Math.sin((frame + seed * 9) / 5) * 4 : motion === 'still' && !act ? Math.sin((frame + seed * 13) / 18) * 2.5 : 0) + M.bodyY;
+  const lean = (pose === 'pull' ? 14 + Math.sin((frame + seed * 9) / 5) * 4 : 0) + M.tilt;
   const hop = -jolt * 28;
 
   const uid = React.useId().replace(/[^a-zA-Z0-9]/g, '');
@@ -380,7 +442,77 @@ export const Person: React.FC<PersonProps> = ({
   const sh: [number, number] = [-B.sh, -122];
   const sh2: [number, number] = [B.sh, -122];
   let arms: React.ReactNode;
-  switch (pose) {
+  const swingArms = (motion === 'walk' || motion === 'run') && pose === 'stand' && !act;
+  switch (swingArms ? ('__swing' as Pose) : pose) {
+    case '__swing' as Pose: {
+      // الذراعان تتأرجحان عكس الرجلين؛ في الجري مثنيتان
+      const L = 70;
+      const handAt = (shx: number, a: number, bend: number): [number, number] => [shx + Math.sin(a) * L * (1 - bend * 0.35), -122 + Math.cos(a) * L * (1 - bend * 0.55) - bend * 18];
+      const bend = motion === 'run' ? 1 : 0;
+      const a1 = (-M.swing * 0.9 * Math.PI) / 180;
+      const a2 = (M.swing * 0.9 * Math.PI) / 180;
+      const h1 = handAt(-B.sh + 4, a1, bend);
+      const h2 = handAt(B.sh - 4, a2, bend);
+      arms = (
+        <>
+          <Arm from={sh} mid={[(sh[0] + h1[0]) / 2 - 10 + bend * 14 * Math.sign(a1 || 1), (sh[1] + h1[1]) / 2 + bend * 8]} to={h1} robe={robe} skin={skin} />
+          <Arm from={sh2} mid={[(sh2[0] + h2[0]) / 2 + 10 + bend * 14 * Math.sign(a2 || 1), (sh2[1] + h2[1]) / 2 + bend * 8]} to={h2} robe={robe} skin={skin} />
+        </>
+      );
+      break;
+    }
+    case 'fists': {
+      // قبضتان مشدودتان بجانب الجسم وترتجفان
+      const t = Math.sin(frame * 1.7) * 3 * M.sc;
+      arms = (
+        <>
+          <Arm from={sh} mid={[-B.sh - 22, -96]} to={[-B.sh - 8 + t, -70]} robe={robe} skin={skin} />
+          <Arm from={sh2} mid={[B.sh + 22, -96]} to={[B.sh + 8 - t, -70]} robe={robe} skin={skin} />
+        </>
+      );
+      break;
+    }
+    case 'belly': {
+      // يمسك بطنه من الضحك
+      const t = Math.sin(frame / 3) * 3;
+      arms = (
+        <>
+          <Arm from={sh} mid={[-B.sh - 18, -96]} to={[-16, -78 + t]} robe={robe} skin={skin} />
+          <Arm from={sh2} mid={[B.sh + 18, -96]} to={[16, -74 - t]} robe={robe} skin={skin} />
+        </>
+      );
+      break;
+    }
+    case 'droop':
+      arms = (
+        <>
+          <Arm from={sh} mid={[-B.sh - 4, -84]} to={[-B.sh + 12, -46]} robe={robe} skin={skin} />
+          <Arm from={sh2} mid={[B.sh + 4, -84]} to={[B.sh - 12, -46]} robe={robe} skin={skin} />
+        </>
+      );
+      break;
+    case 'cower': {
+      // يحمي وجهه بيديه
+      const t = Math.sin(frame * 2.2) * 2 * M.sc;
+      arms = (
+        <>
+          <Arm from={sh} mid={[-B.sh - 30, -150]} to={[-30 + t, -196]} robe={robe} skin={skin} />
+          <Arm from={sh2} mid={[B.sh + 30, -150]} to={[30 - t, -200]} robe={robe} skin={skin} />
+        </>
+      );
+      break;
+    }
+    case 'gesture': {
+      // خطيب: اليد تضرب الهواء مع إيقاع الكلام
+      const beat = Math.max(0, Math.sin(frame / 7)) ** 2;
+      arms = (
+        <>
+          <Arm from={sh} mid={[-B.sh - 20, -90]} to={[-B.sh - 6, -64]} robe={robe} skin={skin} />
+          <Arm from={sh2} mid={[B.sh + 50, -150 + beat * 30]} to={[B.sh + 74, -190 + beat * 70]} robe={robe} skin={skin} />
+        </>
+      );
+      break;
+    }
     case 'cross':
       arms = (
         <>
@@ -480,28 +612,25 @@ export const Person: React.FC<PersonProps> = ({
   const isFemale = build === 'female' || build === 'femaleFull';
   const showLashes = lashes ?? isFemale;
   const hijabColor = scarf ?? trim;
+  const LEG = LEGS[build];
   const legs = longDress ? (
     <g fill={INK}>
-      <ellipse cx={-15} cy={-2} rx={14} ry={7} />
-      <ellipse cx={15} cy={-2} rx={14} ry={7} />
+      <ellipse cx={-15 + M.legA * 0.5} cy={-2 - M.liftA * 0.4} rx={14} ry={7} />
+      <ellipse cx={15 + M.legB * 0.5} cy={-2 - M.liftB * 0.4} rx={14} ry={7} />
     </g>
-  ) : isFemale && pose !== 'pull' ? (
+  ) : pose === 'pull' ? (
     <g fill={INK}>
-      <rect x={-20} y={-44} width={13} height={46} rx={6} />
-      <rect x={7} y={-44} width={13} height={46} rx={6} />
+      <rect x={-6} y={-44} width={15} height={48} rx={6} transform="rotate(28 0 -40)" />
+      <rect x={-6} y={-44} width={15} height={48} rx={6} transform="rotate(-18 0 -40)" />
     </g>
-  ) :
-    pose === 'pull' ? (
-      <g fill={INK}>
-        <rect x={-6} y={-44} width={15} height={48} rx={6} transform="rotate(28 0 -40)" />
-        <rect x={-6} y={-44} width={15} height={48} rx={6} transform="rotate(-18 0 -40)" />
-      </g>
-    ) : (
-      <g fill={INK}>
-        <rect x={build === 'slim' ? -20 : build === 'normal' ? -24 : -30} y={-44} width={build === 'slim' ? 14 : build === 'normal' ? 16 : 20} height={46} rx={6} />
-        <rect x={build === 'slim' ? 6 : build === 'normal' ? 8 : 10} y={-44} width={build === 'slim' ? 14 : build === 'normal' ? 16 : 20} height={46} rx={6} />
-      </g>
-    );
+  ) : (
+    <g fill={INK}>
+      <Leg hipX={-LEG.hip} w={LEG.w} angle={M.legA} lift={M.liftA} />
+      <Leg hipX={LEG.hip} w={LEG.w} angle={M.legB} lift={M.liftB} />
+    </g>
+  );
+  // تأرجح طرف الفستان مع المشي
+  const hemSway = longDress ? M.swing * 0.35 : 0;
 
   return (
     <g
@@ -509,8 +638,9 @@ export const Person: React.FC<PersonProps> = ({
     >
       {/* ظل على الأرض */}
       <ellipse cx={0} cy={2} rx={46} ry={9} fill="rgba(0,0,0,0.28)" />
+      {M.dust > 0 && <Dust frame={frame} phase={M.dustPhase} amount={M.dust} />}
       {legs}
-      <g transform={`translate(0 ${bob + hop}) rotate(${lean} 0 -40)`}>
+      <g transform={`translate(${M.shakeX} ${bob + hop}) rotate(${lean} 0 -40) translate(0 -40) scale(${M.sqX} ${M.sqY}) translate(0 40)`}>
         {/* شعر خلفي / الجزء الخلفي من الحجاب — قبل الجسم والرأس */}
         <g transform={`translate(0 ${dTop})`}>
           {hat === 'hijab' && (
@@ -536,7 +666,7 @@ export const Person: React.FC<PersonProps> = ({
           <path
             d={
               longDress
-                ? `M ${B.belt[0]} ${(B.beltY ?? -78) + 4} Q ${B.belt[0] - 20} -40 -62 -6 Q 0 4 62 -6 Q ${-B.belt[0] + 20} -40 ${-B.belt[0]} ${(B.beltY ?? -78) + 4} Z`
+                ? `M ${B.belt[0]} ${(B.beltY ?? -78) + 4} Q ${B.belt[0] - 20} -40 ${-62 + hemSway} -6 Q ${hemSway} ${4 + Math.abs(hemSway) * 0.2} ${62 + hemSway} -6 Q ${-B.belt[0] + 20} -40 ${-B.belt[0]} ${(B.beltY ?? -78) + 4} Z`
                 : `M ${B.belt[0]} ${(B.beltY ?? -78) + 4} Q ${B.belt[0] - 16} -50 -56 -20 Q 0 -10 56 -20 Q ${-B.belt[0] + 16} -50 ${-B.belt[0]} ${(B.beltY ?? -78) + 4} Z`
             }
             fill={outfit === 'skirt' ? skirt ?? trim : robe}
@@ -584,8 +714,9 @@ export const Person: React.FC<PersonProps> = ({
         {shading !== 'none' && <Shade id={`b${uid}`} d={B.d} color={shadeOf(robe)} light={lightOf(robe)} mode={shading} dx={-16} dy={-6} neck />}
         <ArmShade.Provider value={shading === 'none' ? null : shadeOf(robe)}>{arms}</ArmShade.Provider>
         {/* الرأس */}
-        <g transform={`rotate(${pose === 'pull' ? 6 : 0} 0 -200)`}>
+        <g transform={`rotate(${(pose === 'pull' ? 6 : 0) + M.headTilt} 0 -140)`}>
           <path d={F.d} fill={skin} stroke={INK} strokeWidth={SW} strokeLinejoin="round" />
+          {act === 'angry' && <path d={F.d} fill="#e0301e" opacity={(0.12 + 0.18 * energy) * (0.75 + 0.25 * Math.sin(frame / 4))} />}
           {shading !== 'none' && <Shade id={`f${uid}`} d={F.d} color={shadeOf(skin, 0.34)} light={lightOf(skin)} mode={shading} dx={-14} dy={-12} highlight={[-26, F.top + 34]} />}
           {shading === 'cel' &&
             [-38, 38].map((cx) => <ellipse key={cx} cx={cx} cy={-178} rx={11} ry={6} fill="#e0706a" opacity={0.28} />)}
@@ -618,6 +749,7 @@ export const Person: React.FC<PersonProps> = ({
           <g transform={`translate(0 ${dTop})`}>
             <HatShape hat={hat} trim={hat === 'hijab' ? hijabColor : trim} />
           </g>
+          {act && <ActFX act={act} frame={frame} energy={energy} top={F.top} />}
         </g>
       </g>
     </g>
@@ -729,5 +861,232 @@ const FrontHair: React.FC<{style: HairStyle; color: string}> = ({style, color}) 
     default:
       // ponytail / braid: غرة مشدودة للخلف
       return <path d="M -63 -206 Q -64 -268 0 -270 Q 64 -268 63 -206 Q 50 -244 10 -246 Q -40 -244 -63 -206 Z" {...st} />;
+  }
+};
+
+/* ===================== محرك الحركة ===================== */
+
+/** أرجل كل بنية: نصف المسافة بين الوركين والعرض */
+const LEGS: Record<Build, {hip: number; w: number}> = {
+  normal: {hip: 16, w: 16},
+  broad: {hip: 20, w: 20},
+  belly: {hip: 20, w: 20},
+  slim: {hip: 13, w: 14},
+  female: {hip: 13.5, w: 13},
+  femaleFull: {hip: 16, w: 15},
+};
+
+/** رِجل بسيطة تتأرجح من الورك (بلا ركبة) مع قدم بيضاوية */
+const Leg: React.FC<{hipX: number; w: number; angle: number; lift: number}> = ({hipX, w, angle, lift}) => (
+  <g transform={`translate(${hipX} ${-44 - lift}) rotate(${angle})`}>
+    <rect x={-w / 2} y={0} width={w} height={44} rx={w / 2.4} />
+    <ellipse cx={3} cy={44} rx={w * 0.8} ry={6.5} />
+  </g>
+);
+
+type MotionState = {
+  sc: number; // مضاعف الشدة
+  swing: number; // زاوية تأرجح الأرجل (درجات)
+  legA: number;
+  legB: number;
+  liftA: number;
+  liftB: number;
+  bodyY: number;
+  tilt: number;
+  shakeX: number;
+  sqX: number;
+  sqY: number;
+  headTilt: number;
+  dust: number; // 0..1 كمية الغبار
+  dustPhase: number;
+};
+
+/**
+ * يحسب كل قيم الحركة لإطار معيّن: إيقاع الخطوات من المسافة المقطوعة،
+ * الارتداد، الميل، الضغط والمط، تأخير الرأس، وحركات التمثيل.
+ */
+const computeMotion = ({
+  motion,
+  travel,
+  frame,
+  s,
+  energy,
+  act,
+  seed,
+}: {
+  motion: Motion;
+  travel?: number;
+  frame: number;
+  s: number;
+  energy: number;
+  act?: Act;
+  seed: number;
+}): MotionState => {
+  const sc = 0.5 + energy; // 0.8 هادئ … 1.5 مبالغ
+  const m: MotionState = {sc, swing: 0, legA: 0, legB: 0, liftA: 0, liftB: 0, bodyY: 0, tilt: 0, shakeX: 0, sqX: 1, sqY: 1, headTilt: 0, dust: 0, dustPhase: 0};
+
+  if (motion === 'walk' || motion === 'run') {
+    const run = motion === 'run';
+    const cycle = run ? 230 : 150; // طول دورة الخطوتين بوحدات الشخصية
+    const dist = (travel ?? frame * (run ? 11 : 4.2) * s) / s;
+    const ph = (dist / cycle) * Math.PI * 2 + seed;
+    const sn = Math.sin(ph);
+    const cs = Math.cos(ph);
+    m.swing = sn * (run ? 36 : 18) * sc;
+    m.legA = -m.swing;
+    m.legB = m.swing;
+    // الرجل المتقدمة ترتفع قليلاً في منتصف تأرجحها
+    m.liftA = Math.max(0, cs) * (run ? 14 : 6) * sc;
+    m.liftB = Math.max(0, -cs) * (run ? 14 : 6) * sc;
+    const passing = 1 - Math.abs(sn); // 1 حين تتجاور الرجلان
+    m.bodyY = -passing * (run ? 12 : 4) * sc;
+    m.tilt = (run ? 10 : 3) * sc * 0.8 + sn * (run ? 2 : 1.5);
+    const contact = Math.abs(sn) ** 6; // لحظة ملامسة الأرض
+    m.sqY = 1 - contact * (run ? 0.07 : 0.03) * sc;
+    m.sqX = 1 + contact * (run ? 0.05 : 0.02) * sc;
+    m.headTilt = -sn * 2 * sc - (run ? 3 : 0);
+    if (run) {
+      m.dust = Math.min(1, energy + 0.3);
+      m.dustPhase = ph;
+    }
+  } else if (motion === 'idle' || act) {
+    // نقل الوزن ببطء + تنفّس
+    const w = Math.sin(frame / 40 + seed);
+    m.legA = w * 2 * sc;
+    m.legB = w * 1 * sc;
+    m.tilt = w * 1.2 * sc;
+    m.bodyY = Math.sin(frame / 22 + seed) * 1.6;
+    m.sqY = 1 + Math.sin(frame / 22 + seed) * 0.008;
+  }
+
+  switch (act) {
+    case 'angry': {
+      m.shakeX = Math.sin(frame * 2.3) * 1.6 * sc * energy;
+      // ضربة قدم كل ٢٦ إطاراً
+      const c = ((frame + seed * 7) % 26) / 26;
+      const up = c < 0.6 ? Math.sin((c / 0.6) * Math.PI) : 0;
+      m.legB = -8 * up * sc;
+      m.liftB = 18 * up * sc;
+      const slam = c >= 0.6 && c < 0.75 ? 1 - (c - 0.6) / 0.15 : 0;
+      m.sqY = 1 - 0.07 * slam * sc;
+      m.sqX = 1 + 0.05 * slam * sc;
+      m.tilt = 6 * sc;
+      m.headTilt = -3 * sc + Math.sin(frame * 1.1) * 1.5 * energy;
+      m.dust = slam > 0 ? slam * energy : 0;
+      m.dustPhase = Math.PI / 2;
+      break;
+    }
+    case 'laugh': {
+      const b = Math.abs(Math.sin(frame / 3.2));
+      m.bodyY = -b * 7 * sc;
+      m.sqY = 1 + b * 0.03 * sc;
+      m.sqX = 1 - b * 0.02 * sc;
+      m.tilt = -5 * sc;
+      m.headTilt = -6 * sc + Math.sin(frame / 3.2) * 2 * sc;
+      break;
+    }
+    case 'sad': {
+      m.bodyY = 5 * sc + Math.sin(frame / 30) * 1.5;
+      m.tilt = 4 * sc;
+      m.headTilt = 9 * sc;
+      m.sqY = 0.97;
+      break;
+    }
+    case 'scared': {
+      m.shakeX = Math.sin(frame * 3.1) * 2.4 * sc;
+      m.sqY = 0.93 - 0.02 * energy;
+      m.sqX = 1.03;
+      m.bodyY = 4;
+      m.tilt = -4 * sc;
+      break;
+    }
+    case 'orate': {
+      const beat = Math.max(0, Math.sin(frame / 7)) ** 2;
+      m.tilt = 2 + beat * 5 * sc;
+      m.headTilt = beat * 3 * sc;
+      m.bodyY = -beat * 3 * sc;
+      break;
+    }
+    case 'cheer': {
+      const j = Math.abs(Math.sin(frame / 6.5));
+      m.bodyY = -j * 34 * sc;
+      m.liftA = m.liftB = j * 30 * sc;
+      m.legA = -6 * j;
+      m.legB = 6 * j;
+      const land = j < 0.18 ? 1 - j / 0.18 : 0;
+      m.sqY = 1 - land * 0.08 * sc + j * 0.04;
+      m.sqX = 1 + land * 0.06 * sc;
+      break;
+    }
+  }
+  return m;
+};
+
+/** غبار عند ملامسة الأرض في الجري أو ضرب القدم */
+const Dust: React.FC<{frame: number; phase: number; amount: number}> = ({frame, phase, amount}) => {
+  const c = (((phase / Math.PI) % 1) + 1) % 1;
+  return (
+    <g opacity={0.55 * amount}>
+      {[0, 1, 2].map((i) => {
+        const a = (c + i * 0.18) % 1;
+        return <circle key={i} cx={-20 - a * 50 - i * 12} cy={-4 - a * 18} r={6 + a * 16} fill="#c9b9a0" opacity={1 - a} />;
+      })}
+    </g>
+  );
+};
+
+/** مؤثرات التمثيل: علامة الغضب، البخار، العرق، … */
+const ActFX: React.FC<{act: Act; frame: number; energy: number; top: number}> = ({act, frame, energy, top}) => {
+  switch (act) {
+    case 'angry': {
+      const p = 1 + Math.sin(frame / 3) * 0.15;
+      return (
+        <g>
+          {/* 💢 */}
+          <g transform={`translate(56 ${top + 30}) scale(${p * (0.7 + 0.5 * energy)})`} stroke="#d8231a" strokeWidth={6} strokeLinecap="round" fill="none">
+            <path d="M -14 -4 Q -6 -6 -4 -14" />
+            <path d="M 4 -14 Q 6 -6 14 -4" />
+            <path d="M 14 4 Q 6 6 4 14" />
+            <path d="M -4 14 Q -6 6 -14 4" />
+          </g>
+          {energy > 0.5 &&
+            [-1, 1].map((side) =>
+              [0, 1, 2].map((i) => {
+                const a = ((frame / 18 + i / 3) % 1 + 1) % 1;
+                return <circle key={`${side}-${i}`} cx={side * (58 + a * 30)} cy={top + 20 - a * 60} r={8 + a * 12} fill="#f4f4f4" stroke="#1b1a22" strokeWidth={2} opacity={(1 - a) * 0.9} />;
+              }),
+            )}
+        </g>
+      );
+    }
+    case 'scared':
+      return (
+        <g>
+          {[0, 1, 2].map((i) => {
+            const a = ((frame / 14 + i / 3) % 1 + 1) % 1;
+            const side = i % 2 ? 1 : -1;
+            return (
+              <path
+                key={i}
+                d={`M ${side * (66 + a * 30)} ${top + 40 + a * 30} q 7 12 0 17 q -7 -5 0 -17 Z`}
+                fill="#7fc8ff"
+                stroke="#1b1a22"
+                strokeWidth={2.5}
+                opacity={1 - a}
+              />
+            );
+          })}
+        </g>
+      );
+    case 'sad':
+      return energy > 0.6 ? (
+        <g stroke="#6a86b8" strokeWidth={4} strokeLinecap="round" opacity={0.7}>
+          {[-40, -10, 20, 50].map((x, i) => (
+            <line key={x} x1={x} y1={top - 40 + ((frame * 3 + i * 17) % 40)} x2={x - 4} y2={top - 28 + ((frame * 3 + i * 17) % 40)} />
+          ))}
+        </g>
+      ) : null;
+    default:
+      return null;
   }
 };
