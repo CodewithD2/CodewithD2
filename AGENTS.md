@@ -414,6 +414,11 @@ const scene = useScene(SCRIPT, {cast: CAST, words, wordOffset: wordOffsetForShot
   - `hold` (لا تلتفت للكاميرا تلقائياً عند الوقوف) · `release`
   - `take <item> [right|left] [text=…]` · `drop [right|left|both]` · `give [right|left] to <id>`
 - **التلقائي:** المدة من المسافة والسرعة (السرعة × مقياس الشخصية)؛ `travel` لإيقاع الخطوات؛ الحركة الأفقية → جانبي باتجاه الحركة (التفات عبر الأمام عند تغيير الجهة)؛ الحركة في العمق تحافظ على الاتجاه الحالي (فـ `turn back | walk to y=…` = ابتعاد بالظهر)؛ عند الوقوف التفات ناعم للكاميرا ما لم يُستخدم `hold`؛ `for` تعيد الحالة السابقة بعد المدة.
+- **الكاميرا (`camera:` اسم محجوز — `lib/camscript.ts`):**
+  - `follow <id> [dx= dy= lag=0.35 blend=0.6] [y] [for 2s]` متابعة ناعمة متأخرة قليلاً (متوسط موضع الشخصية في نافذة `lag`)، `y` لمتابعة رأسية أيضاً · `unfollow [blend=]`
+  - `move to x= y= z= ry= rx= rz= fov= zoom= [dur=1s]` · `zoom 1.4 [dur=1s]` (يكبّر طبقة الممثلين بالمعامل بالضبط عبر dolly؛ الخلفيات تكبر أقل = parallax) · `shake [amp=10] [for 0.6s]` · `reset [1s]` · `wait 1s`
+  - `scene.cam(frame)` يعيد `Cam` جاهزة: `<Backdrop cam={scene.cam(f)}>` أو `<Stage cam={scene.cam(f)}>`. عمق طبقة الممثلين `opts.camDepth` (افتراضي 150 = طبقة الممثلين في `Backdrop`).
+  - `@after camera` يعمل. اختبار: `CameraTest` (فيديو) و`CameraSheet` (لوحة إطارات) — `src/CameraTest.tsx`.
 - اختبار: Composition `ScriptTest` (`src/ScriptTest.tsx`) تعرض السكريبت والسطر المنفَّذ. مثال حقيقي: `TEAM_SCRIPT` في `episodes/suez1956/ShotsB.tsx`.
 
 ## ١١.٥ الحشود الكبيرة (`Crowd` في `episodes/suez1956/props.tsx`)

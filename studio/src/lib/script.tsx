@@ -2,6 +2,8 @@ import React from 'react';
 import {useCurrentFrame} from 'remotion';
 import {Act, Expr, Person, PersonProps, Pose, VIEW_YAW, View} from '../characters/Person';
 import {Held, ITEM_MODE, ItemId} from '../characters/items';
+import {makeCamTimeline} from './camscript';
+import {CAM0, Cam} from './stage';
 
 /* =====================================================================
  * سكريبت الحركة — تكتب التمثيل كنص، والمحرك يحسب كل إطار.
@@ -18,6 +20,8 @@ import {Held, ITEM_MODE, ItemId} from '../characters/items';
 export type Word = {t: number; d: number; text: string};
 export type CastMember = Omit<PersonProps, 'x' | 'y' | 'frame'> & {x?: number; y?: number; s?: number; autoFront?: boolean};
 export type SceneOpts = {
+  /** عمق طبقة الممثلين (d) — تحتاجه الكاميرا للمتابعة والتكبير. افتراضي 150 (مثل Backdrop) */
+  camDepth?: number;
   fps?: number;
   cast: Record<string, CastMember>;
   /** توقيت كلمات التعليق (من narrate.py → *.words.json) */
@@ -106,6 +110,8 @@ export type Scene = {
   fps: number;
   lines: {line: number; t: number; text: string}[];
   at: (id: string, frame: number) => ActorState;
+  /** الكاميرا من أسطر `camera:` (CAM0 إن لم تُستخدم) */
+  cam: (frame: number) => Cam;
 };
 
 export const buildScene = (script: string, opts: SceneOpts): Scene => {
@@ -113,6 +119,8 @@ export const buildScene = (script: string, opts: SceneOpts): Scene => {
   const cast = opts.cast;
   const tl: Record<string, ActorTL> = {};
   const lines: Scene['lines'] = [];
+  const camTL = makeCamTimeline(opts.camDepth ?? 150);
+  let camCursor = 0;
 
   const actor = (id: string, line: number) => {
     if (!cast[id]) throw new ScriptError(line, `شخصية غير معرّفة: ${id} (المتاح: ${Object.keys(cast).join('، ')})`);
@@ -199,14 +207,13 @@ export const buildScene = (script: string, opts: SceneOpts): Scene => {
     const m = text.match(/^@(\S+(?:\s+\S+)?)\s+([A-Za-z_][\w]*)\s*:\s*(.+)$/) ?? text.match(/^@("[^"]+"(?:#\d+)?(?:[+-][\d.]+[sf]?)?)\s+([A-Za-z_][\w]*)\s*:\s*(.+)$/);
     if (!m) throw new ScriptError(line, 'الصيغة: @<زمن> <شخصية>: <أمر> | <أمر> …');
     const [, when, id, body] = m;
-    const a = actor(id, line);
-
     // ---- الزمن ----
     let t: number;
     if (when.startsWith('after')) {
       const other = when.split(/\s+/)[1];
-      if (!other || !tl[other]) throw new ScriptError(line, `@after تحتاج شخصية سبق ذكرها: ${other}`);
-      t = tl[other].cursor;
+      if (other === 'camera') t = camCursor;
+      else if (!other || !tl[other]) throw new ScriptError(line, `@after تحتاج شخصية سبق ذكرها: ${other}`);
+      else t = tl[other].cursor;
     } else if (when.startsWith('"')) {
       const mm = when.match(/^"([^"]+)"(?:#(\d+))?([+-][\d.]+[sf]?)?$/);
       if (!mm) throw new ScriptError(line, `صيغة كلمة غير مفهومة: ${when}`);
@@ -234,6 +241,14 @@ export const buildScene = (script: string, opts: SceneOpts): Scene => {
     }
     prevT = t;
     lines.push({line, t, text});
+    if (id === 'camera') {
+      const fail = (msg: string): never => {
+        throw new ScriptError(line, msg);
+      };
+      camCursor = Math.max(camCursor, camTL.run(body, t, fail, (tok) => parseSeconds(tok, fps, line), (x) => !!cast[x]));
+      return;
+    }
+    const a = actor(id, line);
 
     // ---- الأوامر بالتتابع ----
     let cur = t;
@@ -429,7 +444,8 @@ export const buildScene = (script: string, opts: SceneOpts): Scene => {
     };
   };
 
-  return {cast, fps, lines, at};
+  const cam = (frame: number): Cam => (camTL.used() ? camTL.at(frame / fps, (id, tt) => at(id, tt * fps)) : CAM0);
+  return {cast, fps, lines, at, cam};
 };
 
 /** يبني المشهد مرة واحدة (يُعاد فقط إن تغيّر النص) ويحوّل أي خطأ إلى رسالة واضحة */
@@ -439,7 +455,7 @@ export const useScene = (script: string, opts: SceneOpts): Scene => {
       return buildScene(script, opts);
     } catch (e) {
       const err = e instanceof ScriptError ? e : new ScriptError(0, String(e));
-      return {error: err, cast: opts.cast, fps: opts.fps ?? 30, lines: [], at: () => ({x: 0, y: 0, s: 1, flip: false, view: 0, motion: 'idle', travel: 0, energy: 0.5, visible: false})};
+      return {error: err, cast: opts.cast, fps: opts.fps ?? 30, lines: [], cam: () => CAM0, at: () => ({x: 0, y: 0, s: 1, flip: false, view: 0, motion: 'idle', travel: 0, energy: 0.5, visible: false})};
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [script]);
