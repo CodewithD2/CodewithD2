@@ -1,4 +1,5 @@
 import React from 'react';
+import {roleBase} from '../cast';
 import {useCurrentFrame} from 'remotion';
 import {Person} from '../characters/Person';
 import {Battlement, Banner, CityEpic, Ridge, TorchFX, Walkway} from '../lib/epic';
@@ -94,9 +95,7 @@ export const Shot1Night: React.FC = () => {
               s={0.95}
               frame={f}
               seed={1}
-              robe="#7a2430"
-              trim="#d9b13a"
-              hat="byzHelmet"
+              {...roleBase('byzGuard')}
               expr={smug ? 'smug' : 'neutral'}
               pose={smug ? 'cross' : 'stand'}
               flip

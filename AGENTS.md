@@ -167,6 +167,7 @@ studio/
     │       ├── props.tsx   #   Crowd، Bourse، Mics، Searchlights، AlexSkyline، Qaitbay، Palm، CanalHQ، Steamer، Car، Radio، RadioWaves، Confetti، EgyptFlag
     │       ├── ShotsA.tsx  #   NASSER (مظهر الشخصية) + SuezShot1 (الحشود) + SuezShot2 (كلمة السر)
     │       └── ShotsB.tsx  #   SuezShot3 (الإسماعيلية) + SuezShot4 (الإعلان والاحتفال)
+    ├── cast/               # مكتبة الشخصيات: define.ts، historical.ts، roles.ts، index.ts (look/extra/roleBase/castOf)
     ├── characters/Person.tsx
     ├── lib/
     │   ├── EpisodeBase.tsx # هيكل عام لأي حلقة: لقطات + crossfade + صوت + drone + ترجمة + FilmLook + fade
@@ -327,6 +328,22 @@ studio/
 - مدة الـ Composition: `DURATION_S = 31` × 30fps.
 
 ---
+
+## ١١.٣ مكتبة الشخصيات (البند ٤) — `src/cast/`
+مصدر واحد لمظهر كل شخصية في كل الحلقات. **لا تكتب مظهر شخصية داخل ملف لقطة** — أضفها للمكتبة.
+- `historical.ts`: شخصيات تاريخية حقيقية (`defineCharacter`: `id`، `name` بالعربية، `era`، `ref` = المرجع البصري للدقة التاريخية، `look`، `variants`). الحالية: `mehmed2` (+`older`)، `halilPasha`، `constantine11`، `nasser` (+`officer1952`، `sixties`)، `mahmoudYounis`. أسلوبها كاريكاتير مبسّط ومحترم.
+- `roles.ts`: أدوار عامة (`defineRole`: `base` + `vary` = قوائم يُختار منها حتمياً حسب seed): `byzGuard`، `janissary`، `ottomanWorker`، `egyptOfficer`، `egyptCivilian`، `woman1950s`، `womanHijab`، `fellah`، `protester`.
+- الاستخدام (`src/cast/index.ts`):
+  ```tsx
+  <Person {...look('nasser')} ... />                       // المظهر الأساسي
+  <Person {...look('nasser', {variant: 'sixties', shading: 'cel'})} ... />
+  <Person {...roleBase('byzGuard')} ... />                  // الشكل الأساسي للدور
+  <Person {...extra('janissary', 3)} ... />                 // شكل متنوع (نفس seed = نفس الشكل)
+  const CAST = castOf({younis: 'mahmoudYounis', o1: ['egyptOfficer', 1]}, {shading: 'cel'});  // لسكريبت الحركة
+  ```
+- المكتبة لا تفرض `shading` — اختر الأسلوب عند الاستخدام (الحلقتان الحاليتان مسطّحتان عدا فريق الإسماعيلية).
+- لوحات المكتبة (صور ثابتة تُحدَّث تلقائياً): Compositions `CastHistorical` و`CastRoles` (`src/CastSheet.tsx`).
+- في نصوص SVG العربية تجنّب الأقواس () — تنعكس بسبب اتجاه النص؛ استخدم «—».
 
 ## ١١.٤ سكريبت الحركة (البند ٣) — `src/lib/script.tsx`
 اكتب التمثيل كنص داخل ملف اللقطة، والمحرك يحسب كل إطار (موضع، مسافة الخطوات، الاتجاه، الالتفات، التمثيل):

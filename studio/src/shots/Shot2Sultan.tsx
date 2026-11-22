@@ -1,4 +1,5 @@
 import React from 'react';
+import {extra, look} from '../cast';
 import {useCurrentFrame} from 'remotion';
 import {Person} from '../characters/Person';
 import {Banner, Bombard, Campfire, CityEpic, Ridge} from '../lib/epic';
@@ -102,11 +103,7 @@ export const Shot2Sultan: React.FC = () => {
               y={902}
               frame={f}
               seed={2}
-              robe="#b3262c"
-              trim="#e0b43a"
-              hat="sultan"
-              beard="#3a2416"
-              skin="#efc29b"
+              {...look('mehmed2')}
               expr={sultanExpr}
               pose={sultanPose}
               look={f < IDEA ? [-0.6, -1] : [1, 0]}
@@ -118,11 +115,7 @@ export const Shot2Sultan: React.FC = () => {
               s={0.9}
               frame={f}
               seed={5}
-              robe="#2f5f8f"
-              trim="#c9c2a8"
-              hat="vizier"
-              beard="#9c968c"
-              skin="#e6b48d"
+              {...look('halilPasha')}
               flip
               expr={f < VIZ_SHOCK ? 'neutral' : 'shock'}
               pose={f < VIZ_SHOCK ? 'stand' : 'armsUp'}
@@ -161,7 +154,7 @@ export const Shot2Sultan: React.FC = () => {
                   <path d="M -320 140 Q 0 -60 320 140 L 320 300 L -320 300 Z" fill="#8bbf6a" stroke={INK} strokeWidth={5} />
                   <Ship x={-40 + Math.sin(f / 10) * 6} y={40} s={0.48} rot={-8} frame={f} />
                   {[110, 160, 210].map((px, i) => (
-                    <Person key={px} x={px} y={92 + i * 10} s={0.22} frame={f} seed={i} robe="#d98b2b" trim="#7a4a26" hat="cap" expr="strain" pose="pull" />
+                    <Person key={px} x={px} y={92 + i * 10} s={0.22} frame={f} {...extra('ottomanWorker', i, {robe: '#d98b2b'})} expr="strain" pose="pull" />
                   ))}
                 </g>
               </g>

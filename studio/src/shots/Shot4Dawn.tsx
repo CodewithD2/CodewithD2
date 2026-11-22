@@ -1,4 +1,5 @@
 import React from 'react';
+import {extra, roleBase} from '../cast';
 import {Easing, interpolate, useCurrentFrame} from 'remotion';
 import {Person} from '../characters/Person';
 import {Battlement, Cypress, Ridge, Walkway} from '../lib/epic';
@@ -115,7 +116,7 @@ export const Shot4Dawn: React.FC = () => {
               <rect key={i} x={900 + i * 70} y={672} width={40} height={30} fill={atmos('#6e5a66', H(P.haze), 0.3)} stroke={INK} strokeWidth={4} />
             ))}
             {[1050, 1300, 1700, 2100].map((x, i) => (
-              <Person key={x} x={x} y={712} s={0.4} frame={f} seed={20 + i} robe="#7a2430" trim="#d9b13a" hat="byzHelmet" skin="#e8b994" expr={f > NOTICE + 20 + i * 6 ? 'shock' : 'sleepy'} pose={f > NOTICE + 20 + i * 6 ? 'armsUp' : 'stand'} flip />
+              <Person key={x} x={x} y={712} s={0.4} frame={f} {...extra('byzGuard', 20 + i)} expr={f > NOTICE + 20 + i * 6 ? 'shock' : 'sleepy'} pose={f > NOTICE + 20 + i * 6 ? 'armsUp' : 'stand'} flip />
             ))}
             {Array.from({length: 26}, (_, i) => (
               <rect key={`f${i}`} x={900 + i * 70} y={690} width={40} height={30} fill={atmos('#6e5a66', H(P.haze), 0.3)} />
@@ -132,10 +133,7 @@ export const Shot4Dawn: React.FC = () => {
               s={0.95}
               frame={f}
               seed={1}
-              robe="#7a2430"
-              trim="#d9b13a"
-              hat="byzHelmet"
-              skin="#e8b994"
+              {...roleBase('byzGuard')}
               flip={shocked}
               expr={shocked ? 'shock' : 'sleepy'}
               pose={shocked ? (f > NOTICE + 30 ? 'armsUp' : 'stand') : 'stretch'}

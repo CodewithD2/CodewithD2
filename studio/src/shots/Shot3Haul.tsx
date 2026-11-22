@@ -1,4 +1,5 @@
 import React from 'react';
+import {extra, roleBase} from '../cast';
 import {useCurrentFrame} from 'remotion';
 import {Person} from '../characters/Person';
 import {Cypress, Ridge, TorchFX} from '../lib/epic';
@@ -99,10 +100,7 @@ export const Shot3Haul: React.FC = () => {
                 rot={slopeDeg(x)}
                 frame={f}
                 seed={i + 3}
-                robe={['#d98b2b', '#6b8f3a', '#b85a2e', '#3f7fa8', '#9a6b3c', '#c9502f'][i]}
-                trim="#4a2e18"
-                hat="cap"
-                skin={i % 2 ? '#d9a27a' : '#efc29b'}
+                {...extra('ottomanWorker', i + 3)}
                 expr="strain"
                 pose="pull"
               />
@@ -115,10 +113,7 @@ export const Shot3Haul: React.FC = () => {
               frame={f}
               seed={9}
               flip
-              robe="#2c5f8a"
-              trim="#c0262d"
-              hat="bork"
-              beard="#2a1a10"
+              {...roleBase('janissary')}
               expr={Math.floor(f / 24) % 2 ? 'idea' : 'happy'}
               pose="point"
               look={[1, 0]}

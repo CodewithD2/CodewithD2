@@ -1,6 +1,7 @@
 import React from 'react';
+import {look} from '../../cast';
 import {useCurrentFrame} from 'remotion';
-import {Person, PersonProps} from '../../characters/Person';
+import {Person} from '../../characters/Person';
 import {Cloud, ColorGrade, Halo, Motes, MistBand} from '../../lib/fx';
 import {atmos} from '../../lib/palette';
 import {Stars, Water} from '../../lib/props';
@@ -10,17 +11,8 @@ import {ALEX_DUSK, SPEECH} from './palettes';
 import {AlexSkyline, Bourse, Crowd, EgyptFlag, Mics, Palm, Qaitbay, RadioWaves, Searchlights} from './props';
 
 /** مظهر عبد الناصر الثابت في كل اللقطات */
-export const NASSER: Omit<PersonProps, 'x' | 'y' | 'frame' | 'expr' | 'pose'> = {
-  robe: '#3a3e4a',
-  trim: '#3a3e4a',
-  outfit: 'suit',
-  tie: '#5a1e28',
-  hair: '#1a1512',
-  mustache: '#1a1512',
-  skin: '#c98f68',
-  hat: 'none',
-  seed: 4,
-};
+/** مظهر عبد الناصر من مكتبة الشخصيات (src/cast) */
+export const NASSER = look('nasser');
 
 /* ======================= اللقطة ١ — الحشود في المنشية ======================= */
 export const SuezShot1: React.FC = () => {

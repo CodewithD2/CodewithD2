@@ -1,8 +1,9 @@
 import React from 'react';
+import {castOf} from '../../cast';
 import {useCurrentFrame} from 'remotion';
 import {Person} from '../../characters/Person';
 import {wordOffsetForShot} from '../../lib/EpisodeBase';
-import {Actor, CastMember, ScriptErrorOverlay, useScene} from '../../lib/script';
+import {Actor, ScriptErrorOverlay, useScene} from '../../lib/script';
 import words from './words.json';
 import {Ridge} from '../../lib/epic';
 import {Cloud, ColorGrade, Halo, MistBand, Motes} from '../../lib/fx';
@@ -16,12 +17,11 @@ import {AlexSkyline, Bourse, CanalHQ, Car, Confetti, Crowd, EgyptFlag, Mics, Pal
 
 /* ======================= اللقطة ٣ — الإسماعيلية: تسلّم مكاتب الشركة ======================= */
 
-const TEAM: Record<string, CastMember> = {
-  younis: {robe: '#2e3440', outfit: 'suit', hat: 'none', hair: '#1a1512', tie: '#7a1e28', skin: '#d9a27a', face: 'jaw', shading: 'cel'},
-  officer1: {robe: '#6b6a5a', outfit: 'uniform', hat: 'officerCap', hair: '#1a1512', skin: '#c98f68', trim: '#d9b13a', build: 'broad', shading: 'cel'},
-  engineer: {robe: '#3a3e4a', outfit: 'suit', hat: 'none', hair: '#2a2018', tie: '#1e3a5a', skin: '#e2b48c', mustache: '#2a2018', build: 'slim', face: 'long', shading: 'cel'},
-  officer2: {robe: '#6b6a5a', outfit: 'uniform', hat: 'officerCap', hair: '#1a1512', skin: '#b87d58', trim: '#d9b13a', shading: 'cel'},
-};
+// فريق التسلّم من مكتبة الشخصيات: محمود يونس + أدوار عامة متنوعة
+const TEAM = castOf(
+  {younis: 'mahmoudYounis', officer1: ['egyptOfficer', 1], engineer: ['egyptCivilian', 7], officer2: ['egyptOfficer', 4]},
+  {shading: 'cel'},
+);
 
 // الفريق ينزل من السيارات، ويتحرك عند كلمة «فوراً» في التعليق
 const TEAM_SCRIPT = `
