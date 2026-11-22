@@ -472,6 +472,10 @@ export const Actor: React.FC<{scene: Scene; id: string; frameOffset?: number}> =
   );
 };
 
+/** عمق الشخصية لترتيب DepthSort = موضع قدميها في الإطار */
+(Actor as unknown as {depthOf: (p: {scene: Scene; id: string; frameOffset?: number}, f: number) => number}).depthOf = (p, f) =>
+  p.scene.at(p.id, f + (p.frameOffset ?? 0)).y;
+
 /** رسالة خطأ واضحة فوق اللقطة (تظهر في Remotion Studio بدل أن ينكسر المشهد بصمت) */
 export const ScriptErrorOverlay: React.FC<{scene: Scene}> = ({scene}) =>
   scene.error ? (

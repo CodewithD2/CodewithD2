@@ -50,7 +50,7 @@ const CATALOG: {item: ItemId; who: Look; pose: Pose; left?: boolean; held?: Held
   {item: 'mic', who: look('nasser'), pose: 'present', expr: 'speak'},
   {item: 'torch', who: extra('ottomanWorker', 1), pose: 'raise'},
   {item: 'lantern', who: extra('fellah', 1), pose: 'carry'},
-  {item: 'phone', who: extra('egyptCivilian', 5), pose: 'chin', left: true, expr: 'speak'},
+  {item: 'phone', who: extra('egyptCivilian', 5), pose: 'phone', left: true, expr: 'speak'},
   {item: 'tea', who: extra('womanHijab', 1), pose: 'present'},
   {item: 'briefcase', who: extra('egyptCivilian', 8), pose: 'carry'},
 ];

@@ -6,6 +6,7 @@ import {atmos} from '../lib/palette';
 import {Ship, Stars, Tent, Water} from '../lib/props';
 import {Art, CAM0, Cam, Layer, Sky, Stage} from '../lib/stage';
 import {INK, scatter} from '../lib/util';
+import {DepthSort, Sorted} from '../lib/depth';
 import {Qaitbay, Steamer} from '../episodes/suez1956/props';
 import {
   CairoHouse,
@@ -74,6 +75,8 @@ export const GROUND: Record<BackdropName, number> = {
 };
 
 type L = {d: number; blur?: number; opacity?: number; el: React.ReactNode};
+/** طبقة اللعب: الأرضية + عناصر قريبة تُرتَّب بالعمق مع الشخصيات */
+type StageDef = {d: number; ground: React.ReactNode; props: {z: number; el: React.ReactNode}[]};
 
 /* ---------- السماء المشتركة ---------- */
 const SkyLayer: React.FC<{f: number; clouds?: number}> = ({f, clouds = 3}) => {
@@ -137,9 +140,17 @@ const Ground: React.FC<{y: number; c: string; lines?: 'cobble' | 'tiles' | 'sand
 };
 
 /* ---------- تعريف الخلفيات ---------- */
-const DEFS: Record<BackdropName, (W: World, f: number) => {layers: L[]; actorD: number}> = {
+const DEFS: Record<BackdropName, (W: World, f: number) => {layers: L[]; actorD: number; stage?: StageDef}> = {
   cairoMamlukStreet: (W, f) => ({
     actorD: 150,
+    stage: {
+      d: 300,
+      ground: <Ground y={900} c="#a89070" lines="cobble" seed="c2" />,
+      props: [
+        {z: 920, el: <SouqStall x={170} y={920} s={1.1} seed="s1" />},
+        {z: 920, el: <SouqStall x={1760} y={920} s={1.1} seed="s2" />},
+      ],
+    },
     layers: [
       {
         d: 2000,
@@ -169,16 +180,6 @@ const DEFS: Record<BackdropName, (W: World, f: number) => {layers: L[]; actorD: 
         ),
       },
       {
-        d: 300,
-        el: (
-          <>
-            <Ground y={900} c="#a89070" lines="cobble" seed="c2" />
-            <SouqStall x={170} y={920} s={1.1} seed="s1" />
-            <SouqStall x={1760} y={920} s={1.1} seed="s2" />
-          </>
-        ),
-      },
-      {
         d: -260,
         blur: 7,
         el: (
@@ -198,6 +199,25 @@ const DEFS: Record<BackdropName, (W: World, f: number) => {layers: L[]; actorD: 
 
   alexCorniche: (W, f) => ({
     actorD: 150,
+    stage: {
+      d: 250,
+      ground: <Ground y={900} c="#c9b89a" lines="tiles" seed="a2" />,
+      props: [
+        ...[-200, 500, 1300, 2000].map((x, i) => ({z: 915, el: <PalmTree key={x} x={x} y={915} h={340} frame={f} seed={i} />})),
+        ...[150, 900, 1650].map((x) => ({z: 916, el: <StreetLamp key={x} x={x} y={915} s={1.1} />})),
+        {
+          z: 1040,
+          el: (
+            <g stroke={INK} strokeWidth={3}>
+              <rect x={-1400} y={985} width={4700} height={10} fill={tinted(W, '#e8e0d0')} />
+              {Array.from({length: 60}, (_, i) => (
+                <rect key={i} x={-1300 + i * 80} y={995} width={12} height={40} fill={tinted(W, '#e8e0d0')} />
+              ))}
+            </g>
+          ),
+        },
+      ],
+    },
     layers: [
       {
         d: 2300,
@@ -230,31 +250,22 @@ const DEFS: Record<BackdropName, (W: World, f: number) => {layers: L[]; actorD: 
           </>
         ),
       },
-      {
-        d: 250,
-        el: (
-          <>
-            <Ground y={900} c="#c9b89a" lines="tiles" seed="a2" />
-            {[-200, 500, 1300, 2000].map((x, i) => (
-              <PalmTree key={x} x={x} y={915} h={340} frame={f} seed={i} />
-            ))}
-            {[150, 900, 1650].map((x) => (
-              <StreetLamp key={x} x={x} y={915} s={1.1} />
-            ))}
-            <g stroke={INK} strokeWidth={3}>
-              <rect x={-1400} y={985} width={4700} height={10} fill={tinted(W, '#e8e0d0')} />
-              {Array.from({length: 60}, (_, i) => (
-                <rect key={i} x={-1300 + i * 80} y={995} width={12} height={40} fill={tinted(W, '#e8e0d0')} />
-              ))}
-            </g>
-          </>
-        ),
-      },
     ],
   }),
 
   cityPlaza1950s: (W, f) => ({
     actorD: 150,
+    stage: {
+      d: 320,
+      ground: <Ground y={900} c="#c4b8a0" lines="tiles" seed="p2" />,
+      props: [
+        {z: 915, el: <Shop x={-120} y={915} s={1.05} sign="مقهى" seed="sh1" />},
+        {z: 915, el: <Shop x={2020} y={915} s={1.05} sign="مكتبة" seed="sh2" c="#d4bc98" />},
+        {z: 915, el: <Kiosk x={420} y={915} s={1} />},
+        ...[260, 1580].map((x) => ({z: 916, el: <StreetLamp key={x} x={x} y={915} s={1.15} />})),
+        ...[1300, 1760].map((x) => ({z: 915, el: <RoundTree key={x} x={x} y={915} h={260} />})),
+      ],
+    },
     layers: [
       {
         d: 1900,
@@ -275,23 +286,6 @@ const DEFS: Record<BackdropName, (W: World, f: number) => {layers: L[]; actorD: 
             <EuroApartment x={-250} y={860} s={1} floors={6} seed="pa1" />
             <GovBuilding x={900} y={860} s={0.95} />
             <EuroApartment x={2050} y={860} s={1} floors={6} seed="pa2" c="#d8c0a0" />
-          </>
-        ),
-      },
-      {
-        d: 320,
-        el: (
-          <>
-            <Ground y={900} c="#c4b8a0" lines="tiles" seed="p2" />
-            <Shop x={-120} y={915} s={1.05} sign="مقهى" seed="sh1" />
-            <Shop x={2020} y={915} s={1.05} sign="مكتبة" seed="sh2" c="#d4bc98" />
-            <Kiosk x={420} y={915} s={1} />
-            {[260, 1580].map((x) => (
-              <StreetLamp key={x} x={x} y={915} s={1.15} />
-            ))}
-            {[1300, 1760].map((x) => (
-              <RoundTree key={x} x={x} y={915} h={260} />
-            ))}
           </>
         ),
       },
@@ -518,6 +512,15 @@ const DEFS: Record<BackdropName, (W: World, f: number) => {layers: L[]; actorD: 
 
   militaryCamp: (W, f) => ({
     actorD: 150,
+    stage: {
+      d: 300,
+      ground: <Ground y={900} c="#7a6a48" lines="sand" seed="mc2" />,
+      props: [
+        {z: 915, el: <Tent x={260} y={915} s={1.1} a={tinted(W, '#b3262c')} b={tinted(W, '#efe4cc')} />},
+        {z: 915, el: <Tent x={1680} y={915} s={1.1} a={tinted(W, '#2f6f4a')} b={tinted(W, '#efe4cc')} />},
+        {z: 916, el: <Campfire id={`mc-fire-${W.time}`} x={980} y={915} frame={f} s={0.9} smoke={W.P.smoke} warm={W.P.warm} />},
+      ],
+    },
     layers: [
       {
         d: 2000,
@@ -542,17 +545,6 @@ const DEFS: Record<BackdropName, (W: World, f: number) => {layers: L[]; actorD: 
               .map((t) => (
                 <Tent key={t.i} x={t.x} y={t.y} s={0.55 + t.r * 0.2} a={tinted(W, t.i % 3 ? '#b3262c' : '#2f6f4a')} b={tinted(W, '#e9dcc0')} />
               ))}
-          </>
-        ),
-      },
-      {
-        d: 300,
-        el: (
-          <>
-            <Ground y={900} c="#7a6a48" lines="sand" seed="mc2" />
-            <Tent x={260} y={915} s={1.1} a={tinted(W, '#b3262c')} b={tinted(W, '#efe4cc')} />
-            <Tent x={1680} y={915} s={1.1} a={tinted(W, '#2f6f4a')} b={tinted(W, '#efe4cc')} />
-            <Campfire id={`mc-fire-${W.time}`} x={980} y={915} frame={f} s={0.9} smoke={W.P.smoke} warm={W.P.warm} />
           </>
         ),
       },
@@ -637,10 +629,28 @@ export const Backdrop: React.FC<{name: BackdropName; time: TimeOfDay; cam?: Cam;
             <Art>{l.el}</Art>
           </Layer>
         ))}
-        {children && (
-          <Layer d={def.actorD}>
-            <Art>{children}</Art>
+        {def.stage ? (
+          <Layer d={def.stage.d}>
+            <Art>
+              {def.stage.ground}
+              <DepthSort frame={f}>
+                {def.stage.props.map((p, i) => (
+                  <Sorted key={`p${i}`} z={p.z}>
+                    {p.el}
+                  </Sorted>
+                ))}
+                {children}
+              </DepthSort>
+            </Art>
           </Layer>
+        ) : (
+          children && (
+            <Layer d={def.actorD}>
+              <Art>
+                <DepthSort frame={f}>{children}</DepthSort>
+              </Art>
+            </Layer>
+          )
         )}
         <Layer d={-320} blur={3}>
           <Art>

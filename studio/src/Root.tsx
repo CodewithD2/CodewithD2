@@ -7,6 +7,7 @@ import {MOTION_TEST_FRAMES, MotionTest} from './MotionTest';
 import {SCRIPT_TEST_FRAMES, ScriptTest} from './ScriptTest';
 import {CastHistorical, CastRoles} from './CastSheet';
 import {ItemPoses, ItemsCatalog, ItemsTurn} from './ItemsSheet';
+import {DepthTurn, DepthWalk} from './DepthSheet';
 import {BackdropsSheetA, BackdropsSheetB, BackdropsSheetC, BuildingsSheetA, BuildingsSheetB, BuildingsSheetNight} from './WorldSheet';
 import {TURN_TEST_FRAMES, TurnSheetA, TurnSheetB, TurnSheetC, TurnTest} from './Turnaround';
 
@@ -49,6 +50,9 @@ export const Root: React.FC = () => (
     <Composition id="ItemsCatalog" component={ItemsCatalog} durationInFrames={60} fps={30} width={1920} height={1080} />
     <Composition id="ItemPoses" component={ItemPoses} durationInFrames={60} fps={30} width={1920} height={1080} />
     <Composition id="ItemsTurn" component={ItemsTurn} durationInFrames={60} fps={30} width={1920} height={1080} />
+    {/* لوحات ترتيب العمق */}
+    <Composition id="DepthTurn" component={DepthTurn} durationInFrames={60} fps={30} width={1920} height={1080} />
+    <Composition id="DepthWalk" component={DepthWalk} durationInFrames={60} fps={30} width={1920} height={1080} />
     {/* اختبار سكريبت الحركة */}
     <Composition id="ScriptTest" component={ScriptTest} durationInFrames={SCRIPT_TEST_FRAMES} fps={30} width={1920} height={1080} />
   </>

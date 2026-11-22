@@ -319,7 +319,15 @@ export const ItemShape: React.FC<{item: Held; frame: number}> = ({item, frame}) 
  * يضع الشيء عند اليد: at = موضع اليد، dir = زاوية الساعد (راديان، 0 = لليمين)
  * angleOverride لزوايا ثابتة في وضعيات معينة (مثل aim: البندقية أفقية)
  */
-export const HeldItem: React.FC<{item: Held; at: [number, number]; dir: number; frame: number; angleOverride?: number; frontDy?: number}> = ({item, at, dir, frame, angleOverride, frontDy = 0}) => {
+export const HeldItem: React.FC<{item: Held; at: [number, number]; dir: number; frame: number; angleOverride?: number; frontDy?: number; squash?: number}> = ({
+  item,
+  at,
+  dir,
+  frame,
+  angleOverride,
+  frontDy = 0,
+  squash = 1,
+}) => {
   const mode = ITEM_MODE[heldId(item)];
   let rot = 0;
   let dx = 0;
@@ -331,7 +339,7 @@ export const HeldItem: React.FC<{item: Held; at: [number, number]; dir: number; 
     dx = 0;
   }
   return (
-    <g transform={`translate(${at[0] + dx} ${at[1] + dy}) rotate(${rot})`}>
+    <g transform={`translate(${at[0] + dx} ${at[1] + dy}) rotate(${rot}) scale(${mode === 'front' ? squash : 1} 1)`}>
       <ItemShape item={item} frame={frame} />
     </g>
   );

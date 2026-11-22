@@ -63,7 +63,7 @@ const lightOf = (c: string, k = 0.35) => (c.startsWith('#') && c.length === 7 ? 
 export type Pose =
   | 'stand' | 'cross' | 'chin' | 'point' | 'pull' | 'armsUp' | 'stretch' | 'fist' | 'wave' | 'podium' | 'fists' | 'belly' | 'droop' | 'cower' | 'gesture'
   /* وضعيات مع الأشياء */
-  | 'raise' | 'swing' | 'read' | 'present' | 'aim' | 'shoulder' | 'carry';
+  | 'raise' | 'swing' | 'read' | 'present' | 'aim' | 'shoulder' | 'carry' | 'phone';
 
 export type PersonProps = {
   x: number;
@@ -124,37 +124,46 @@ const SW = 5; // سُمك الخط الخارجي
 
 const ArmShade = React.createContext<string | null>(null);
 /** إسقاط الذراعين حسب الاتجاه + أي ذراع يُرسم الآن (البعيدة قبل الجسم، القريبة بعده) */
-type ArmCtxT = {cy: number; sy: number; draw: 'all' | 'far' | 'near'};
+/**
+ * ترتيب الرسم بالعمق: كل ذراع تُرسم في واحدة من ثلاث خانات حسب عمقها بعد الدوران:
+ *   back  = قبل الجسم (الذراع البعيدة)
+ *   mid   = بعد الجسم وقبل الرأس (الوضع العادي)
+ *   front = بعد الرأس (اليد متقدمة أمام الوجه)
+ */
+type ArmSlot = 'back' | 'mid' | 'front';
+type ArmCtxT = {cy: number; sy: number; slot: ArmSlot};
+/** نقطة ذراع: [x, y] أو [x, y, z] حيث z = التقدم نحو الكاميرا في المنظر الأمامي */
+type Pt = [number, number] | [number, number, number];
+const FRONT_DEPTH = 40; // خارج صورة الرأس: يد أعمق من هذا تُرسم بعد الرأس
+const HEAD_R = 66; // نصف قطر كرة الرأس (مركزها 0,−200)
 /** الأشياء الممسوكة: R لليد اليمنى (الذراع ذات x<0 في الأمامي)، L لليسرى، وزوايا ثابتة لبعض الوضعيات */
 type ItemCtxT = {R?: Held; L?: Held; ovR?: number; ovL?: number; frame: number; frontDy?: number};
 const ItemCtx = React.createContext<ItemCtxT>({frame: 0});
-const ArmCtx = React.createContext<ArmCtxT>({cy: 1, sy: 0, draw: 'all'});
+const ArmCtx = React.createContext<ArmCtxT>({cy: 1, sy: 0, slot: 'mid'});
 
-const Arm: React.FC<{from: [number, number]; mid: [number, number]; to: [number, number]; robe: string; skin: string; raw?: boolean; nearSide?: boolean}> = ({
-  from: from0,
-  mid: mid0,
-  to: to0,
-  robe,
-  skin,
-  raw,
-  nearSide,
-}) => {
+const Arm: React.FC<{from: Pt; mid: Pt; to: Pt; robe: string; skin: string}> = ({from: from0, mid: mid0, to: to0, robe, skin}) => {
   const shade = React.useContext(ArmShade);
-  const {cy, sy, draw} = React.useContext(ArmCtx);
+  const {cy, sy, slot} = React.useContext(ArmCtx);
   const items = React.useContext(ItemCtx);
-  // الذراع اليسرى على الشاشة (x<0) هي القريبة حين تنظر الشخصية لليمين
-  const near = nearSide ?? from0[0] < 0;
-  if (draw === 'far' && near) return null;
-  if (draw === 'near' && !near) return null;
-  const P = (p: [number, number]): [number, number] => {
-    if (raw) return p;
-    // الامتداد الجانبي في الأمام يصير امتداداً للأمام في الجانب، ويُعكس في الخلف
-    const dx = p[0] - from0[0];
-    return [from0[0] * cy + dx * cy + Math.abs(dx) * sy * 0.9 + (near ? 4 : -4) * sy, p[1]];
-  };
-  const from = raw ? from0 : ([from0[0] * cy + (near ? 4 : -4) * sy, from0[1]] as [number, number]);
-  const mid = P(mid0);
-  const to = P(to0);
+  // اليد اليمنى للشخصية = الذراع ذات x<0 في المنظر الأمامي
+  const right = from0[0] < 0;
+  // z الافتراضي للنقاط ثنائية الأبعاد: الامتداد الجانبي يُعتبر متقدماً قليلاً (فيُقرأ للأمام في الجانب)
+  const Z = (p: Pt) => (p.length === 3 ? p[2] : Math.abs(p[0] - from0[0]) * 0.6);
+  const rot = (p: Pt, z: number): [number, number, number] => [p[0] * cy + z * sy, p[1], -p[0] * sy + z * cy];
+  const F = rot(from0, 0);
+  const Mi = rot(mid0, Z(mid0));
+  const T = rot(to0, Z(to0));
+  // الخانة حسب العمق: إن كانت اليد داخل صورة الرأس نقارنها بسطح كرة الرأس عند تلك النقطة
+  const hdx = T[0];
+  const hdy = T[1] + 200;
+  const r2 = HEAD_R * HEAD_R - hdx * hdx - hdy * hdy;
+  const inFront = r2 > 0 ? T[2] > Math.sqrt(r2) : T[2] > FRONT_DEPTH;
+  const mySlot: ArmSlot = inFront ? 'front' : (F[2] + T[2]) / 2 < -8 ? 'back' : 'mid';
+  if (mySlot !== slot) return null;
+  const from: [number, number] = [F[0], F[1]];
+  const mid: [number, number] = [Mi[0], Mi[1]];
+  const to: [number, number] = [T[0], T[1]];
+  const near = right;
   const d = `M ${from[0]} ${from[1]} Q ${mid[0]} ${mid[1]} ${to[0]} ${to[1]}`;
   return (
     <g>
@@ -169,6 +178,7 @@ const Arm: React.FC<{from: [number, number]; mid: [number, number]; to: [number,
           frame={items.frame}
           angleOverride={near ? items.ovR : items.ovL}
           frontDy={items.frontDy}
+          squash={Math.max(0.3, Math.abs(cy))}
         />
       )}
       <circle cx={to[0]} cy={to[1]} r={11} fill={skin} stroke={INK} strokeWidth={SW - 1} />
@@ -506,7 +516,7 @@ export const Person: React.FC<PersonProps> = ({
     L: holdL,
     frame,
     ovR: poseIn === 'aim' ? 90 : poseIn === 'shoulder' ? -20 : undefined,
-    frontDy: poseIn === 'read' ? 78 : poseIn === 'present' ? 24 : 0,
+    frontDy: poseIn === 'read' ? 60 : poseIn === 'present' ? 24 : 0,
   };
 
   // رمش كل ثلاث ثوانٍ تقريباً، مع اختلاف التوقيت بين الشخصيات
@@ -532,21 +542,19 @@ export const Person: React.FC<PersonProps> = ({
       const bend = motion === 'run' ? 1 : 0;
       const a1 = (-M.swing * 0.9 * Math.PI) / 180;
       const a2 = (M.swing * 0.9 * Math.PI) / 180;
-      // التأرجح جانبي في الأمام، وأمامي-خلفي في الجانب
-      const fwd = Math.max(Math.abs(cy), sy);
-      const swingArm = (shx: number, a: number, nearSide: boolean) => {
-        const sx = shx * cy + (nearSide ? 4 : -4) * sy;
+      // تأرجح أمامي-خلفي حقيقي (z)، مع قليل من الحركة الجانبية ليُقرأ المشي من الأمام أيضاً
+      const swingArm = (shx: number, a: number) => {
         const h = handAt(0, a, bend);
-        const hand: [number, number] = [sx + h[0] * fwd, h[1]];
-        const elbow: [number, number] = [(sx + hand[0]) / 2 - bend * 16 * Math.sign(h[0] || 1) * fwd, (-122 + hand[1]) / 2 + bend * 10];
-        return {from: [sx, -122] as [number, number], mid: elbow, to: hand};
+        const hand: Pt = [shx + h[0] * 0.35, h[1], h[0]];
+        const elbow: Pt = [shx + h[0] * 0.15, (-122 + h[1]) / 2 + bend * 10, h[0] * 0.5 - bend * 16];
+        return {from: [shx, -122] as Pt, mid: elbow, to: hand};
       };
-      const A1 = swingArm(-B.sh + 4, a1, true);
-      const A2 = swingArm(B.sh - 4, a2, false);
+      const A1 = swingArm(-B.sh + 4, a1);
+      const A2 = swingArm(B.sh - 4, a2);
       arms = (
         <>
-          <Arm from={A1.from} mid={A1.mid} to={A1.to} robe={robe} skin={skin} raw nearSide />
-          <Arm from={A2.from} mid={A2.mid} to={A2.to} robe={robe} skin={skin} raw nearSide={false} />
+          <Arm from={A1.from} mid={A1.mid} to={A1.to} robe={robe} skin={skin} />
+          <Arm from={A2.from} mid={A2.mid} to={A2.to} robe={robe} skin={skin} />
         </>
       );
       break;
@@ -566,8 +574,8 @@ export const Person: React.FC<PersonProps> = ({
       const ease = (t: number) => 1 - (1 - t) * (1 - t);
       const a = p < 0.6 ? 0.3 + (-2.8 - 0.3) * ease(p / 0.6) : p < 0.75 ? -2.8 + (1.0 + 2.8) * ((p - 0.6) / 0.15) : 1.0 + (0.3 - 1.0) * ((p - 0.75) / 0.25);
       const L = 72;
-      const hand: [number, number] = [sh[0] + Math.sin(a) * L, -122 + Math.cos(a) * L];
-      const elbow: [number, number] = [sh[0] + Math.sin(a) * L * 0.5 - 14, -122 + Math.cos(a) * L * 0.5 + 6];
+      const hand: Pt = [sh[0] + Math.sin(a) * L, -122 + Math.cos(a) * L, 26];
+      const elbow: Pt = [sh[0] + Math.sin(a) * L * 0.5 - 14, -122 + Math.cos(a) * L * 0.5 + 6, 14];
       const strike = p >= 0.6 && p < 0.8;
       arms = (
         <>
@@ -581,7 +589,7 @@ export const Person: React.FC<PersonProps> = ({
               strokeLinecap="round"
             />
           )}
-          <Arm from={sh} mid={elbow} to={hand} robe={robe} skin={skin} raw={sy < 0.3 && cy > 0} nearSide />
+          <Arm from={sh} mid={elbow} to={hand} robe={robe} skin={skin} />
           <Arm from={sh2} mid={[56, -90]} to={[40, -64]} robe={robe} skin={skin} />
         </>
       );
@@ -591,8 +599,8 @@ export const Person: React.FC<PersonProps> = ({
       // يمسك الورقة أمام صدره بيديه ويقرأ
       arms = (
         <>
-          <Arm from={sh} mid={[sh[0] - 6, -100]} to={[-14, -146]} robe={robe} skin={skin} />
-          <Arm from={sh2} mid={[sh2[0] + 6, -100]} to={[14, -146]} robe={robe} skin={skin} />
+          <Arm from={sh} mid={[sh[0] - 6, -100, 30]} to={[-14, -146, 56]} robe={robe} skin={skin} />
+          <Arm from={sh2} mid={[sh2[0] + 6, -100, 30]} to={[14, -146, 56]} robe={robe} skin={skin} />
         </>
       );
       break;
@@ -600,7 +608,7 @@ export const Person: React.FC<PersonProps> = ({
       // يمد الشيء للأمام ويعرضه
       arms = (
         <>
-          <Arm from={sh} mid={[sh[0] - 46, -100]} to={[sh[0] - 86, -118]} robe={robe} skin={skin} />
+          <Arm from={sh} mid={[sh[0] - 40, -104, 40]} to={[sh[0] - 70, -128, 72]} robe={robe} skin={skin} />
           <Arm from={sh2} mid={[56, -80]} to={[46, -52]} robe={robe} skin={skin} />
         </>
       );
@@ -609,8 +617,8 @@ export const Person: React.FC<PersonProps> = ({
       // يصوّب البندقية للأمام
       arms = (
         <>
-          <Arm from={sh} mid={[-20, -120]} to={[-4, -150]} robe={robe} skin={skin} />
-          <Arm from={sh2} mid={[60, -130]} to={[74, -154]} robe={robe} skin={skin} />
+          <Arm from={sh} mid={[-20, -120, 30]} to={[-4, -150, 44]} robe={robe} skin={skin} />
+          <Arm from={sh2} mid={[60, -130, 40]} to={[74, -154, 62]} robe={robe} skin={skin} />
         </>
       );
       break;
@@ -620,6 +628,15 @@ export const Person: React.FC<PersonProps> = ({
         <>
           <Arm from={sh} mid={[sh[0] - 20, -110]} to={[sh[0] + 2, -150]} robe={robe} skin={skin} />
           <Arm from={sh2} mid={[56, -80]} to={[46, -52]} robe={robe} skin={skin} />
+        </>
+      );
+      break;
+    case 'phone':
+      // اليد اليسرى عند الأذن (سماعة هاتف)
+      arms = (
+        <>
+          <Arm from={sh} mid={[-56, -80]} to={[-46, -52]} robe={robe} skin={skin} />
+          <Arm from={sh2} mid={[64, -140, 18]} to={[60, -194, 32]} robe={robe} skin={skin} />
         </>
       );
       break;
@@ -667,8 +684,8 @@ export const Person: React.FC<PersonProps> = ({
       const t = Math.sin(frame * 2.2) * 2 * M.sc;
       arms = (
         <>
-          <Arm from={sh} mid={[-B.sh - 30, -150]} to={[-30 + t, -196]} robe={robe} skin={skin} />
-          <Arm from={sh2} mid={[B.sh + 30, -150]} to={[30 - t, -200]} robe={robe} skin={skin} />
+          <Arm from={sh} mid={[-B.sh - 30, -150, 30]} to={[-30 + t, -196, 62]} robe={robe} skin={skin} />
+          <Arm from={sh2} mid={[B.sh + 30, -150, 30]} to={[30 - t, -200, 62]} robe={robe} skin={skin} />
         </>
       );
       break;
@@ -687,8 +704,8 @@ export const Person: React.FC<PersonProps> = ({
     case 'cross':
       arms = (
         <>
-          <Arm from={sh} mid={[-30, -80]} to={[26, -96]} robe={robe} skin={skin} />
-          <Arm from={sh2} mid={[30, -76]} to={[-24, -92]} robe={robe} skin={skin} />
+          <Arm from={sh} mid={[-30, -80, 30]} to={[26, -96, 36]} robe={robe} skin={skin} />
+          <Arm from={sh2} mid={[30, -76, 30]} to={[-24, -92, 36]} robe={robe} skin={skin} />
         </>
       );
       break;
@@ -696,7 +713,7 @@ export const Person: React.FC<PersonProps> = ({
       arms = (
         <>
           <Arm from={sh} mid={[-54, -70]} to={[-30, -84]} robe={robe} skin={skin} />
-          <Arm from={sh2} mid={[52, -100]} to={[14, -152]} robe={robe} skin={skin} />
+          <Arm from={sh2} mid={[52, -100, 20]} to={[14, -152, 52]} robe={robe} skin={skin} />
         </>
       );
       break;
@@ -849,8 +866,8 @@ export const Person: React.FC<PersonProps> = ({
         {/* شعر خلفي / الجزء الخلفي من الحجاب: خلف الجسم، إلا في المنظر الخلفي فيغطي الظهر */}
         {!backOnTop && backLayer}
         {/* الذراع البعيدة خلف الجسم عند الالتفات */}
-        {sy > 0.3 && (
-          <ArmCtx.Provider value={{cy, sy, draw: 'far'}}>
+        {(
+          <ArmCtx.Provider value={{cy, sy, slot: 'back'}}>
             <ArmShade.Provider value={shading === 'none' ? null : shadeOf(robe)}>
               <ItemCtx.Provider value={itemCtx}>{arms}</ItemCtx.Provider>
             </ArmShade.Provider>
@@ -930,7 +947,7 @@ export const Person: React.FC<PersonProps> = ({
         )}
         {shading !== 'none' && <Shade id={`b${uid}`} d={B.d} color={shadeOf(robe)} light={lightOf(robe)} mode={shading} dx={-16} dy={-6} neck />}
         </g>
-        <ArmCtx.Provider value={{cy, sy, draw: sy > 0.3 ? 'near' : 'all'}}>
+        <ArmCtx.Provider value={{cy, sy, slot: 'mid'}}>
           <ArmShade.Provider value={shading === 'none' ? null : shadeOf(robe)}>
               <ItemCtx.Provider value={itemCtx}>{arms}</ItemCtx.Provider>
             </ArmShade.Provider>
@@ -1020,6 +1037,12 @@ export const Person: React.FC<PersonProps> = ({
           )}
           {act && <ActFX act={act} frame={frame} energy={energy} top={F.top} />}
         </g>
+        {/* الأيدي المتقدمة أمام الوجه تُرسم بعد الرأس */}
+        <ArmCtx.Provider value={{cy, sy, slot: 'front'}}>
+          <ArmShade.Provider value={shading === 'none' ? null : shadeOf(robe)}>
+            <ItemCtx.Provider value={itemCtx}>{arms}</ItemCtx.Provider>
+          </ArmShade.Provider>
+        </ArmCtx.Provider>
       </g>
     </g>
   );
