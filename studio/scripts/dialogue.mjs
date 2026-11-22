@@ -1,6 +1,13 @@
 // يجمع كل جمل `say` من المشاهد المعرّفة بـ defineScene(...) ويكتب قائمة بالناقص منها
 // ثم يستدعي narrator/dialogue.py لتوليدها. الاستخدام (من studio/):  npm run dialogue  [-- --list]
 import {build} from 'esbuild';
+
+// ⛔ موقوف بقرار صاحب المشروع: أصوات الحوار سيسجّلها بنفسه. لا تولّد أصواتاً تلقائياً.
+// لا تُشغَّل إلا بعد موافقة صريحة منه، بإضافة --confirm.
+if (!process.argv.includes('--confirm') && !process.argv.includes('--list')) {
+  console.error('⛔ توليد أصوات الحوار موقوف: صاحب المشروع سيسجّل الأصوات بنفسه.\n   لا تشغّله إلا بعد سؤاله وموافقته الصريحة، ثم: npm run dialogue -- --confirm');
+  process.exit(1);
+}
 import {execFileSync} from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
