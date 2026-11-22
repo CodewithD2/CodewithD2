@@ -6,6 +6,7 @@ import {SheetBuild, SheetFaces, SheetWomen} from './CharacterSheet';
 import {MOTION_TEST_FRAMES, MotionTest} from './MotionTest';
 import {SCRIPT_TEST_FRAMES, ScriptTest} from './ScriptTest';
 import {CastHistorical, CastRoles} from './CastSheet';
+import {BackdropsSheetA, BackdropsSheetB, BackdropsSheetC, BuildingsSheetA, BuildingsSheetB, BuildingsSheetNight} from './WorldSheet';
 import {TURN_TEST_FRAMES, TurnSheetA, TurnSheetB, TurnSheetC, TurnTest} from './Turnaround';
 
 // تحميل خط أميري محلياً قبل التصيير
@@ -36,6 +37,13 @@ export const Root: React.FC = () => (
     {/* لوحات مكتبة الشخصيات */}
     <Composition id="CastHistorical" component={CastHistorical} durationInFrames={30} fps={30} width={1920} height={1080} />
     <Composition id="CastRoles" component={CastRoles} durationInFrames={30} fps={30} width={1920} height={1080} />
+    {/* لوحات مكتبة المباني */}
+    <Composition id="BuildingsSheetA" component={BuildingsSheetA} durationInFrames={30} fps={30} width={1920} height={1080} />
+    <Composition id="BuildingsSheetB" component={BuildingsSheetB} durationInFrames={30} fps={30} width={1920} height={1080} />
+    <Composition id="BuildingsSheetNight" component={BuildingsSheetNight} durationInFrames={30} fps={30} width={1920} height={1080} />
+    <Composition id="BackdropsSheetA" component={BackdropsSheetA} durationInFrames={60} fps={30} width={1920} height={1080} />
+    <Composition id="BackdropsSheetB" component={BackdropsSheetB} durationInFrames={60} fps={30} width={1920} height={1080} />
+    <Composition id="BackdropsSheetC" component={BackdropsSheetC} durationInFrames={60} fps={30} width={1920} height={1080} />
     {/* اختبار سكريبت الحركة */}
     <Composition id="ScriptTest" component={ScriptTest} durationInFrames={SCRIPT_TEST_FRAMES} fps={30} width={1920} height={1080} />
   </>

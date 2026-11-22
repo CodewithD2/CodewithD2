@@ -164,6 +164,7 @@ studio/
     │       ├── props.tsx   #   Crowd، Bourse، Mics، Searchlights، AlexSkyline، Qaitbay، Palm، CanalHQ، Steamer، Car، Radio، RadioWaves، Confetti، EgyptFlag
     │       ├── ShotsA.tsx  #   NASSER (مظهر الشخصية) + SuezShot1 (الحشود) + SuezShot2 (كلمة السر)
     │       └── ShotsB.tsx  #   SuezShot3 (الإسماعيلية) + SuezShot4 (الإعلان والاحتفال)
+    ├── world/              # مكتبة المباني والخلفيات: lighting.ts، kit.tsx، buildings.tsx، backdrops.tsx
     ├── cast/               # مكتبة الشخصيات: define.ts، historical.ts، roles.ts، index.ts (look/extra/roleBase/castOf)
     ├── characters/Person.tsx
     ├── lib/
@@ -341,6 +342,21 @@ studio/
 - المكتبة لا تفرض `shading` — اختر الأسلوب عند الاستخدام (الحلقتان الحاليتان مسطّحتان عدا فريق الإسماعيلية).
 - لوحات المكتبة (صور ثابتة تُحدَّث تلقائياً): Compositions `CastHistorical` و`CastRoles` (`src/CastSheet.tsx`).
 - في نصوص SVG العربية تجنّب الأقواس () — تنعكس بسبب اتجاه النص؛ استخدم «—».
+
+## ١١.٣ب مكتبة المباني والخلفيات (البند ٤ب) — `src/world/`
+- **`lighting.ts`:** `TimeOfDay = 'dawn'|'day'|'dusk'|'night'`، `worldFor(time)` → `{P (لوحة)، lit (إضاءة النوافذ 0..1)، tint (صبغ المواد)، lightDir (جهة الضوء)، sun (موقع الشمس/القمر)}`، و`WorldCtx` يمررها لكل المباني. `tinted/shadeOf/lightOf(W, color)` تحسب لون المادة وظلها وضوءها للوقت.
+- **`kit.tsx` (أدوات الرسم):** `Wall` (ملمس: stone/brick/plaster/wood/mud/ablaq + وجه جانبي للعمق + ظل أرضي AO)، `Cornice`، `Win` (غائرة، تضيء ليلاً حتمياً حسب seed)، `Door`، `Dome` (تدرج + أضلاع + حافة ضوء + هلال/صليب)، `Minaret` (ottoman/mamluk)، `Mashrabiya`، `Awning`، `Balcony`، `TileRoof`. كل أداة تقبل `D` (مفصّل) أو تُرسم مبسّطة.
+- **`buildings.tsx` (18 مبنى، كلها `<X x y s D seed c />`، الأصل منتصف القاعدة):** `OttomanMosque`، `ByzChurch`، `OttomanHouse`، `WallTower`، `Khan`، `CairoHouse`، `MamlukMosque`، `CityGate`، `SouqStall`، `EuroApartment` (floors)، `GovBuilding`، `Shop` (sign)، `Kiosk`، `StreetLamp`، `MudHouse`، `Pyramid`، `Warehouse`، `Lighthouse` (frame)، + طبيعة `PalmTree`، `RoundTree`.
+  - **المستويان:** `D={false}` مبسّط مسطّح للبعيد والحشود، `D` (افتراضي) مفصّل بظل وضوء وملمس. القاعدة: الطبقات البعيدة (d ≥ 1400) مبسّطة + `Haze`، القريبة مفصّلة.
+  - يجب أن تكون المباني داخل `WorldCtx.Provider` (تلقائي داخل `Backdrop`)؛ خارجها تُستخدم إضاءة النهار.
+- **`backdrops.tsx` (9 خلفيات × 4 أوقات):** `cairoMamlukStreet`، `alexCorniche`، `cityPlaza1950s`، `nileCountryside`، `desertPyramids`، `harbor`، `palaceInterior` (داخلي بلا سماء)، `militaryCamp`، `besiegedWalls`.
+  ```tsx
+  <Backdrop name="cairoMamlukStreet" time="dusk" cam={cam}>
+    <Actor scene={scene} id="ali" />     {/* SVG للشخصيات — تُرسم على طبقة الممثلين */}
+  </Backdrop>
+  ```
+  الأرضية التي تقف عليها الشخصيات: `GROUND[name]` (≈930). كل خلفية: سماء مشتركة (شمس/قمر/نجوم/سحب/أشعة حسب الوقت) + 3–5 طبقات عمق + ذرات + `ColorGrade`.
+- لوحات المراجعة (صور ثابتة): `BuildingsSheetA/B` (كل مبنى مبسّط | مفصّل)، `BuildingsSheetNight`، `BackdropsSheetA/B/C` (كل خلفية في الأوقات الأربعة) — `src/WorldSheet.tsx`.
 
 ## ١١.٤ سكريبت الحركة (البند ٣) — `src/lib/script.tsx`
 اكتب التمثيل كنص داخل ملف اللقطة، والمحرك يحسب كل إطار (موضع، مسافة الخطوات، الاتجاه، الالتفات، التمثيل):
