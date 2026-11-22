@@ -375,16 +375,8 @@ const HatShape: React.FC<{hat: Hat; trim: string; cy?: number; sy?: number}> = (
         </g>
       );
     case 'hijab':
-      // الجزء الأمامي من الحجاب: إطار حول الوجه (الجزء الخلفي يُرسم قبل الرأس)
-      return (
-        <path
-          d="M -68 -192 Q -72 -280 0 -284 Q 72 -280 68 -192 Q 64 -252 0 -258 Q -64 -252 -68 -192 Z"
-          fill={trim}
-          stroke={INK}
-          strokeWidth={SW}
-          strokeLinejoin="round"
-        />
-      );
+      // الحجاب يُرسم كمنطقة خط شعر (HAIRLINE.hijab) + الجزء الخلفي المنسدل
+      return null;
     case 'crown':
       return (
         <g stroke={INK} strokeWidth={4} strokeLinejoin="round">
@@ -706,6 +698,18 @@ export const Person: React.FC<PersonProps> = ({
   const coverX = -66 + 156 * coverK;
   const coverY = -192 + 44 * coverK;
   const backOnTop = cy < -0.2;
+
+  // ===== منطقة الشعر =====
+  const hairKind: HairlineKind | null =
+    hat === 'hijab' ? 'hijab' : hair ? (hairStyle === 'bun' || hairStyle === 'ponytail' || hairStyle === 'braid' ? 'pulled' : hairStyle) : hat !== 'none' && hat !== 'sultan' && hat !== 'vizier' && hat !== 'crown' ? 'short' : null;
+  const hairColor = hat === 'hijab' ? hijabColor : hair ?? '#2a1d16';
+  const bunBehind = hairStyle === 'bun' && hair && hat !== 'hijab' ? onHead(180, 46) : null;
+  const hairRegion = hairKind ? (
+    <g>
+      <HairRegion id={`h${uid}`} kind={hairKind} yaw={yawDeg} faceD={F.d} color={hairColor} dTop={dTop} />
+      {bunBehind && bunBehind.z >= 0 && <circle cx={bunBehind.x} cy={-268 + dTop} r={28} fill={hairColor} stroke={INK} strokeWidth={4} />}
+    </g>
+  ) : null;
   const backLayer = (
     <g transform={`translate(${-sy * 14} ${dTop})`}>
       {hat === 'hijab' && (
@@ -818,6 +822,7 @@ export const Person: React.FC<PersonProps> = ({
         {backOnTop && backLayer}
         {/* الرأس */}
         <g transform={`rotate(${(pose === 'pull' ? 6 : 0) + M.headTilt} 0 -140)`}>
+          {bunBehind && bunBehind.z < 0 && <circle cx={bunBehind.x} cy={-268 + dTop} r={28} fill={hairColor} stroke={INK} strokeWidth={4} />}
           <path d={F.d} fill={skin} stroke={INK} strokeWidth={SW} strokeLinejoin="round" />
           {act === 'angry' && <path d={F.d} fill="#e0301e" opacity={(0.12 + 0.18 * energy) * (0.75 + 0.25 * Math.sin(frame / 4))} />}
           {shading !== 'none' && <Shade id={`f${uid}`} d={F.d} color={shadeOf(skin, 0.34)} light={lightOf(skin)} mode={shading} dx={-14} dy={-12} highlight={[-26, F.top + 34]} />}
@@ -826,22 +831,6 @@ export const Person: React.FC<PersonProps> = ({
               const p = onHead(th, 60);
               return p.z > 0.2 ? <ellipse key={th} cx={p.x} cy={-178} rx={11 * Math.min(1, p.z * 1.2)} ry={6} fill="#e0706a" opacity={0.28} /> : null;
             })}
-          {/* مؤخرة الرأس: شعر أو حجاب يغطيها تدريجياً مع الالتفات */}
-          {coverK > 0.02 && (hat === 'hijab' || hair || (hat !== 'none' && hat !== 'sultan' && hat !== 'vizier')) && (
-            <g>
-              <defs>
-                <clipPath id={`hc${uid}`}>
-                  <path d={F.d} />
-                </clipPath>
-              </defs>
-              <path
-                clipPath={`url(#hc${uid})`}
-                d={`M -100 -300 L ${coverX} -300 L ${coverX} -246 Q ${coverX + 14 * sy} ${(-246 + coverY) / 2} ${coverX - 8} ${coverY} L -100 ${coverY} Z`}
-                fill={hat === 'hijab' ? hijabColor : hair ?? '#2a1d16'}
-              />
-              <path d={F.d} fill="none" stroke={INK} strokeWidth={SW} strokeLinejoin="round" />
-            </g>
-          )}
           {/* الأذنان: تظهران عند الالتفات */}
           {yawDeg > 12 &&
             hat !== 'hijab' &&
@@ -866,12 +855,6 @@ export const Person: React.FC<PersonProps> = ({
               />
             </g>
           )}
-          {hair && (hat === 'none' || hat === 'officerCap' || hat === 'crown') && cy > -0.4 && (
-            <g transform={`translate(${sy * 12} ${dTop}) scale(${1 - 0.12 * sy} 1)`}>
-              <FrontHair style={hairStyle} color={hair} />
-            </g>
-          )}
-          {hair && hairStyle === 'bun' && cy <= -0.4 && <circle cx={0} cy={-276 + dTop} r={28} fill={hair} stroke={INK} strokeWidth={4} />}
           {/* الملامح: كل عين وحاجب على حدة حسب موقعه على كرة الرأس */}
           {[0, 1].map((i) => {
             const p = onHead(i ? 19 : -19, 56);
@@ -912,22 +895,11 @@ export const Person: React.FC<PersonProps> = ({
               strokeWidth={3}
             />
           )}
-          {!(hat === 'hijab' && cy < -0.3) && (
-            <g transform={`translate(${sy * (hat === 'hijab' ? 24 : 5)} ${dTop}) scale(${1 - (hat === 'hijab' ? 0.4 : 0.08) * sy} 1)`}>
-              <HatShape hat={hat} trim={hat === 'hijab' ? hijabColor : trim} cy={cy} sy={sy} />
-            </g>
-          )}
-          {hat === 'hijab' && cy < -0.3 && (
-            <g>
-            <path
-              transform={`translate(${-sy * 14} ${dTop})`}
-              d="M -80 -200 Q -84 -294 0 -296 Q 84 -294 80 -200 Q 84 -128 62 -104 Q 0 -90 -62 -104 Q -84 -128 -80 -200 Z"
-              fill={hijabColor}
-              stroke={INK}
-              strokeWidth={SW}
-              strokeLinejoin="round"
-            />
-            <path transform={`translate(${-sy * 14} ${dTop})`} d="M -30 -270 Q -10 -190 -24 -110 M 26 -262 Q 14 -190 28 -112" fill="none" stroke={INK} strokeWidth={3} opacity={0.35} />
+          {/* الشعر/الحجاب: منطقة واحدة فوق خط شعر يلتف حول الرأس — تُحسب لكل زاوية */}
+          {hairRegion}
+          {hat !== 'hijab' && (
+            <g transform={`translate(${sy * 5} ${dTop}) scale(${1 - 0.08 * sy} 1)`}>
+              <HatShape hat={hat} trim={trim} cy={cy} sy={sy} />
             </g>
           )}
           {act && <ActFX act={act} frame={frame} energy={energy} top={F.top} />}
@@ -1293,4 +1265,73 @@ export const yawAt = (frame: number, keys: {f: number; view: View | number}[]): 
     }
   }
   return ks[ks.length - 1].y;
+};
+
+/* ===================== خط الشعر حول الرأس ===================== */
+export type HairlineKind = 'short' | 'bob' | 'long' | 'pulled' | 'hijab';
+
+/**
+ * ارتفاع خط الشعر (y) حسب الزاوية حول الرأس: 0 = منتصف الجبهة، 90 = فوق الأذن، 180 = مؤخرة الرأس.
+ * كل ما فوق الخط شعر. القيم الأصغر = أعلى.
+ */
+const HAIRLINE: Record<HairlineKind, {pts: [number, number][]; vol: number}> = {
+  short: {pts: [[0, -238], [40, -233], [68, -214], [90, -202], [130, -186], [180, -176]], vol: 1.05},
+  pulled: {pts: [[0, -242], [40, -236], [68, -218], [90, -206], [130, -190], [180, -180]], vol: 1.04},
+  bob: {pts: [[0, -232], [32, -228], [58, -204], [74, -168], [92, -146], [180, -146]], vol: 1.1},
+  long: {pts: [[0, -236], [30, -232], [56, -208], [72, -170], [92, -140], [180, -140]], vol: 1.1},
+  hijab: {pts: [[0, -250], [28, -244], [48, -212], [62, -160], [76, -112], [180, -100]], vol: 1.13},
+};
+
+const hairlineY = (kind: HairlineKind, theta: number) => {
+  let t = Math.abs(((theta + 540) % 360) - 180); // 0..180
+  const pts = HAIRLINE[kind].pts;
+  for (let i = 1; i < pts.length; i++) {
+    if (t <= pts[i][0]) {
+      const k = (t - pts[i - 1][0]) / (pts[i][0] - pts[i - 1][0]);
+      const e = k * k * (3 - 2 * k);
+      return pts[i - 1][1] + (pts[i][1] - pts[i - 1][1]) * e;
+    }
+  }
+  return pts[pts.length - 1][1];
+};
+
+/**
+ * منطقة الشعر المرئية لزاوية معينة: لكل x على نصف الكرة المواجه للكاميرا نحسب
+ * زاوية النقطة حول الرأس ثم ارتفاع خط الشعر عندها — فيلتف الشعر بسلاسة مع الالتفات.
+ */
+const HairRegion: React.FC<{id: string; kind: HairlineKind; yaw: number; faceD: string; color: string; dTop: number}> = ({id, kind, yaw, faceD, color, dTop}) => {
+  const R = 66;
+  const N = 36;
+  const pts: [number, number][] = [];
+  for (let i = 0; i <= N; i++) {
+    const x = -R + (2 * R * i) / N;
+    const a = (Math.asin(Math.max(-1, Math.min(1, x / R))) * 180) / Math.PI;
+    pts.push([x, hairlineY(kind, a - yaw) + dTop * 0.3]);
+  }
+  const line = pts.map((p, i) => `${i ? 'L' : 'M'} ${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' ');
+  const region = `M -120 -420 L -120 ${pts[0][1]} L ${line.slice(2)} L 120 ${pts[N][1]} L 120 -420 Z`;
+  const vol = HAIRLINE[kind].vol;
+  const volT = `translate(0 -200) scale(${vol}) translate(0 200)`;
+  return (
+    <g>
+      <defs>
+        <clipPath id={`hv${id}`}>
+          <path d={faceD} transform={volT} />
+        </clipPath>
+        <clipPath id={`hr${id}`}>
+          <path d={region} />
+        </clipPath>
+      </defs>
+      <g clipPath={`url(#hv${id})`}>
+        <path d={region} fill={color} />
+        <path d={line} fill="none" stroke={INK} strokeWidth={4} strokeLinejoin="round" />
+      </g>
+      {/* حافة حجم الشعر — لا تُرسم للحجاب لأن الطرف المنسدل يرسم حدوده */}
+      {kind !== 'hijab' && (
+        <g clipPath={`url(#hr${id})`}>
+          <path d={faceD} transform={volT} fill="none" stroke={INK} strokeWidth={4.5} strokeLinejoin="round" />
+        </g>
+      )}
+    </g>
+  );
 };
