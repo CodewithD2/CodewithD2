@@ -1,5 +1,6 @@
 import {random} from 'remotion';
 import type {PersonProps} from '../characters/Person';
+import type {Voice} from '../lib/dialogue';
 
 /** المظهر فقط (بدون موضع/إطار/تمثيل) */
 export type Look = Omit<PersonProps, 'x' | 'y' | 'frame' | 'expr' | 'pose' | 'act' | 'motion' | 'travel' | 'view' | 'flip' | 'rot' | 'jolt' | 'look'>;
@@ -13,6 +14,8 @@ export type Character = {
   /** المرجع البصري الذي بُني عليه الشكل (للدقة التاريخية) */
   ref?: string;
   look: Look;
+  /** صوت الشخصية في الحوار (edge-tts) — ثابت في كل الحلقات */
+  voice?: Voice;
   /** نسخ بديلة: تُدمج فوق المظهر الأساسي */
   variants?: Record<string, Partial<Look>>;
 };
@@ -26,6 +29,8 @@ export type Role = {
   name: string;
   era?: string;
   base: Look;
+  /** أصوات الدور: يُختار منها حسب seed (نفس seed = نفس الصوت دائماً) */
+  voices?: Voice[];
   vary: {[K in keyof Look]?: Look[K][]};
 };
 
@@ -42,3 +47,7 @@ export const roleLook = (r: Role, seed: number | string): Look => {
   out.seed = typeof seed === 'number' ? seed : Math.floor(random(`${r.id}-${seed}`) * 100);
   return out;
 };
+
+/** صوت فرد من دور حسب seed */
+export const roleVoice = (r: Role, seed: number | string): Voice | undefined =>
+  r.voices?.length ? r.voices[Math.floor(random(`${r.id}-${seed}-voice`) * r.voices.length)] : undefined;

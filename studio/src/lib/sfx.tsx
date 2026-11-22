@@ -39,8 +39,17 @@ export const footsteps = (id: string, frames: number, fps: number, at: (f: numbe
 };
 
 /** يشغّل كل أصوات المشهد — ضعه مرة واحدة في اللقطة (خارج <svg>) */
-export const SceneAudio: React.FC<{scene: Scene; volume?: number; steps?: number}> = ({scene, volume = 1, steps = 1}) => (
+export const SceneAudio: React.FC<{scene: Scene; volume?: number; steps?: number; voices?: number}> = ({scene, volume = 1, steps = 1, voices = 1}) => (
   <>
+    {/* جمل الحوار (المولَّدة فقط — الناقص يولَّد بـ npm run dialogue) */}
+    {scene
+      .dialogue()
+      .filter((l) => l.ready && voices > 0)
+      .map((l, i) => (
+        <Sequence key={'dlg' + i} from={Math.max(0, Math.round(l.t * scene.fps))} durationInFrames={Math.ceil((l.t1 - l.t + 0.3) * scene.fps)} layout="none">
+          <Audio src={staticFile(`dlg/${l.clip}.mp3`)} volume={l.vol * voices} />
+        </Sequence>
+      ))}
     {scene.sfx().map((e, i) => {
       const from = Math.max(0, Math.round(e.t * scene.fps));
       const loop = SFX_LOOPS.has(e.name);

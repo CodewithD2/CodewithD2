@@ -5,6 +5,7 @@ import {Held, ITEM_MODE, ItemId} from '../characters/items';
 import {makeCamTimeline} from './camscript';
 import {CAM0, Cam} from './stage';
 import {SfxEvent, SFX_NAMES, footsteps} from './sfx';
+import {BubbleStyle, ClipInfo, SpeechBubble, DEFAULT_VOICE, DEFAULT_VOICE_F, Voice, clipId, clipInfo, estimateClip, mouthAt} from './dialogue';
 
 /* =====================================================================
  * سكريبت الحركة — تكتب التمثيل كنص، والمحرك يحسب كل إطار.
@@ -19,7 +20,15 @@ import {SfxEvent, SFX_NAMES, footsteps} from './sfx';
  * ===================================================================== */
 
 export type Word = {t: number; d: number; text: string};
-export type CastMember = Omit<PersonProps, 'x' | 'y' | 'frame'> & {x?: number; y?: number; s?: number; autoFront?: boolean};
+export type CastMember = Omit<PersonProps, 'x' | 'y' | 'frame'> & {x?: number; y?: number; s?: number; autoFront?: boolean; voice?: Voice};
+
+/** مشهد مُعرَّف (سكريبت + ممثلون) — يجده `npm run dialogue` تلقائياً لتوليد أصوات الحوار */
+export type SceneDef = {__scene: true; name: string; script: string; cast: Record<string, CastMember>};
+export const defineScene = (name: string, script: string, cast: Record<string, CastMember>): SceneDef => ({__scene: true, name, script, cast});
+
+/** جملة حوار في المشهد */
+export type Line = {t: number; t1: number; who: string; text: string; voice: Voice; clip: string; ready: boolean; vol: number};
+type Say = {t0: number; t1: number; text: string; style: BubbleStyle; info: ClipInfo};
 export type SceneOpts = {
   /** عمق طبقة الممثلين (d) — تحتاجه الكاميرا للمتابعة والتكبير. افتراضي 150 (مثل Backdrop) */
   camDepth?: number;
@@ -29,6 +38,8 @@ export type SceneOpts = {
   words?: Word[];
   /** ثوانٍ تُضاف لتوقيت الكلمة لتحويله لزمن اللقطة (انظر wordOffsetForShot) */
   wordOffset?: number;
+  /** لا تفشل عند غياب توقيت الكلمات (تستعمله أداة توليد الحوار) */
+  lenient?: boolean;
 };
 
 const SPEED: Record<string, number> = {slow: 95, normal: 150, fast: 215}; // بكسل/ثانية عند s=1
@@ -53,6 +64,8 @@ type ActorTL = {
   holdL: Step<Held | undefined>[];
   jumps: {t0: number; t1: number; h: number}[];
   steps: Step<boolean>[];
+  says: Say[];
+  voice: Step<Voice>[];
   cursor: number; // متى تنتهي آخر أوامر الشخصية
 };
 
@@ -71,6 +84,8 @@ export type ActorState = {
   visible: boolean;
   holdR?: Held;
   holdL?: Held;
+  /** فتحة الفم أثناء الكلام 0..1 (undefined = لا يتكلم) */
+  talk?: number;
 };
 
 export class ScriptError extends Error {
@@ -116,6 +131,10 @@ export type Scene = {
   cam: (frame: number) => Cam;
   /** كل الأصوات بالترتيب الزمني: أوامر sfx + القفز + ضربات السيف + الخطوات التلقائية */
   sfx: () => SfxEvent[];
+  /** جمل الحوار بالترتيب الزمني */
+  dialogue: () => Line[];
+  /** الفقاعة الحالية للشخصية */
+  speech: (id: string, frame: number) => {text: string; style: BubbleStyle; age: number; left: number} | null;
 };
 
 export const buildScene = (script: string, opts: SceneOpts): Scene => {
@@ -126,6 +145,7 @@ export const buildScene = (script: string, opts: SceneOpts): Scene => {
   const camTL = makeCamTimeline(opts.camDepth ?? 150);
   let camCursor = 0;
   const sfxList: SfxEvent[] = [];
+  const lineList: Line[] = [];
   const addSfx = (line: number, t: number, name: string, kv: Record<string, string>, forDur?: number, who?: string) => {
     if (!SFX_NAMES.includes(name)) throw new ScriptError(line, `صوت غير معروف: ${name}. المتاح: ${SFX_NAMES.join(' ')}`);
     sfxList.push({t: t + (kv.delay ? parseSeconds(kv.delay, fps, line) : 0), name, vol: kv.vol ? +kv.vol : 1, dur: forDur, who});
@@ -149,6 +169,8 @@ export const buildScene = (script: string, opts: SceneOpts): Scene => {
         holdL: [{t: 0, v: c.holdL}],
         jumps: [],
         steps: [{t: 0, v: true}],
+        says: [],
+        voice: [{t: 0, v: c.voice ?? (c.build === 'female' || c.build === 'femaleFull' ? DEFAULT_VOICE_F : DEFAULT_VOICE)}],
         cursor: 0,
       };
     }
@@ -227,9 +249,10 @@ export const buildScene = (script: string, opts: SceneOpts): Scene => {
     } else if (when.startsWith('"')) {
       const mm = when.match(/^"([^"]+)"(?:#(\d+))?([+-][\d.]+[sf]?)?$/);
       if (!mm) throw new ScriptError(line, `صيغة كلمة غير مفهومة: ${when}`);
-      if (!opts.words) throw new ScriptError(line, 'لا توجد توقيتات كلمات (words) لهذه اللقطة');
+      if (!opts.words && !opts.lenient) throw new ScriptError(line, 'لا توجد توقيتات كلمات (words) لهذه اللقطة');
+      const words = opts.words ?? [];
       const target = mm[1].split(/\s+/).map(normAr).filter(Boolean);
-      const ws = opts.words.map((w) => normAr(w.text));
+      const ws = words.map((w) => normAr(w.text));
       let hit = -1;
       let seen = 0;
       const need = mm[2] ? +mm[2] : 1;
@@ -242,8 +265,9 @@ export const buildScene = (script: string, opts: SceneOpts): Scene => {
           }
         }
       }
-      if (hit < 0) throw new ScriptError(line, `الكلمة غير موجودة في التعليق: "${mm[1]}"`);
-      t = opts.words[hit].t + (opts.wordOffset ?? 0) + (mm[3] ? parseSeconds(mm[3], fps, line) : 0);
+      if (hit < 0 && opts.lenient) hit = -2;
+      else if (hit < 0) throw new ScriptError(line, `الكلمة غير موجودة في التعليق: "${mm[1]}"`);
+      t = hit === -2 ? 0 : words[hit].t + (opts.wordOffset ?? 0) + (mm[3] ? parseSeconds(mm[3], fps, line) : 0);
     } else if (when.startsWith('+')) {
       t = prevT + parseSeconds(when.slice(1), fps, line);
     } else {
@@ -408,6 +432,33 @@ export const buildScene = (script: string, opts: SceneOpts): Scene => {
           b.cursor = Math.max(b.cursor, cur + 0.15);
           break;
         }
+        case 'say': {
+          // say "النص" [style=say|shout|think|whisper|none] [vol=1] [nowait] [act=orate]
+          const text = pos.find((p) => p !== 'nowait' && p !== 'for');
+          if (!text) throw new ScriptError(line, 'say "النص بين علامتي تنصيص"');
+          const style = (kv.style ?? 'say') as BubbleStyle;
+          if (!['say', 'shout', 'think', 'whisper', 'none'].includes(style)) throw new ScriptError(line, `style غير معروف: ${style} (say shout think whisper none)`);
+          const v = stepAt(a.voice, cur, DEFAULT_VOICE);
+          const id2 = clipId(text, v);
+          const real = clipInfo(id2);
+          const info = style === 'think' ? estimateClip(text) : (real ?? estimateClip(text));
+          const dur = forDur ?? info.dur;
+          a.says.push({t0: cur, t1: cur + dur, text, style, info});
+          if (style !== 'think') lineList.push({t: cur, t1: cur + dur, who: id, text, voice: v, clip: id2, ready: !!real, vol: kv.vol ? +kv.vol : 1});
+          if (kv.act) {
+            const prevAct = stepAt(a.act, cur, undefined);
+            a.act.push({t: cur, v: kv.act as Act});
+            a.act.push({t: cur + dur, v: prevAct});
+          }
+          if (!pos.includes('nowait')) cur += dur + 0.15;
+          break;
+        }
+        case 'voice': {
+          // voice <name> [rate=-5%] [pitch=-4Hz]
+          if (!pos[0]) throw new ScriptError(line, 'voice <اسم صوت edge-tts مثل ar-EG-ShakirNeural> [rate=] [pitch=]');
+          a.voice.push({t: cur, v: {name: pos[0], rate: kv.rate, pitch: kv.pitch}});
+          break;
+        }
         case 'sfx':
           // sfx <name> [vol=0.8] [delay=0.2s] [for 3s] — `for` للأصوات الممتدة (أمواج، هتاف…)
           addSfx(line, cur, pos[0], kv, forDur, id);
@@ -433,7 +484,7 @@ export const buildScene = (script: string, opts: SceneOpts): Scene => {
         default:
           throw new ScriptError(
             line,
-            `أمر غير معروف: ${cmd}. المتاح: enter walk run move stop wait turn face look act expr pose energy jump take drop give sfx steps hold release show hide exit`,
+            `أمر غير معروف: ${cmd}. المتاح: enter walk run move stop wait turn face look act expr pose energy jump take drop give say voice sfx steps hold release show hide exit`,
           );
       }
     }
@@ -463,8 +514,20 @@ export const buildScene = (script: string, opts: SceneOpts): Scene => {
       visible: stepAt(a.visible, t, true),
       holdR: stepAt(a.holdR, t, undefined),
       holdL: stepAt(a.holdL, t, undefined),
+      talk: (() => {
+        const sy = a.says.find((q) => t >= q.t0 && t <= q.t1 && q.style !== 'think');
+        return sy ? mouthAt(sy.info, t - sy.t0) : undefined;
+      })(),
     };
   };
+  const speech: Scene['speech'] = (id, frame) => {
+    const a = tl[id];
+    if (!a) return null;
+    const t = frame / fps;
+    const sy = a.says.find((q) => t >= q.t0 && t <= q.t1 + 0.35);
+    return sy ? {text: sy.text, style: sy.style, age: t - sy.t0, left: sy.t1 + 0.35 - t} : null;
+  };
+  const dialogue = () => [...lineList].sort((x, y) => x.t - y.t);
 
   let sfxCache: SfxEvent[] | undefined;
   const sfx = (): SfxEvent[] => {
@@ -478,7 +541,7 @@ export const buildScene = (script: string, opts: SceneOpts): Scene => {
     return sfxCache;
   };
   const cam = (frame: number): Cam => (camTL.used() ? camTL.at(frame / fps, (id, tt) => at(id, tt * fps)) : CAM0);
-  return {cast, fps, lines, at, cam, sfx};
+  return {cast, fps, lines, at, cam, sfx, dialogue, speech};
 };
 
 /** يبني المشهد مرة واحدة (يُعاد فقط إن تغيّر النص) ويحوّل أي خطأ إلى رسالة واضحة */
@@ -488,7 +551,7 @@ export const useScene = (script: string, opts: SceneOpts): Scene => {
       return buildScene(script, opts);
     } catch (e) {
       const err = e instanceof ScriptError ? e : new ScriptError(0, String(e));
-      return {error: err, cast: opts.cast, fps: opts.fps ?? 30, lines: [], cam: () => CAM0, sfx: () => [], at: () => ({x: 0, y: 0, s: 1, flip: false, view: 0, motion: 'idle', travel: 0, energy: 0.5, visible: false})};
+      return {error: err, cast: opts.cast, fps: opts.fps ?? 30, lines: [], cam: () => CAM0, sfx: () => [], dialogue: () => [], speech: () => null, at: () => ({x: 0, y: 0, s: 1, flip: false, view: 0, motion: 'idle', travel: 0, energy: 0.5, visible: false})};
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [script]);
@@ -516,10 +579,31 @@ export const Actor: React.FC<{scene: Scene; id: string; frameOffset?: number}> =
       energy={st.energy}
       holdR={st.holdR}
       holdL={st.holdL}
+      talk={st.talk}
       frame={f}
     />
   );
 };
+
+/**
+ * فقاعات الكلام لكل الشخصيات — ضعها بعد الممثلين داخل نفس <svg>/<Art>/Backdrop
+ * (تُرسم فوق الجميع حتى داخل DepthSort).
+ */
+export const Bubbles: React.FC<{scene: Scene; frameOffset?: number; ids?: string[]}> = ({scene, frameOffset = 0, ids}) => {
+  const f = useCurrentFrame() + frameOffset;
+  return (
+    <g>
+      {(ids ?? Object.keys(scene.cast)).map((id) => {
+        const sp = scene.speech(id, f);
+        if (!sp) return null;
+        const st = scene.at(id, f);
+        if (!st.visible) return null;
+        return <SpeechBubble key={id} text={sp.text} style={sp.style} headX={st.x} headTop={st.y - 290 * st.s} s={st.s} age={sp.age} left={sp.left} side={st.flip ? -1 : 1} />;
+      })}
+    </g>
+  );
+};
+(Bubbles as unknown as {depthOf: () => number}).depthOf = () => 1e9;
 
 /** عمق الشخصية لترتيب DepthSort = موضع قدميها في الإطار */
 (Actor as unknown as {depthOf: (p: {scene: Scene; id: string; frameOffset?: number}, f: number) => number}).depthOf = (p, f) =>

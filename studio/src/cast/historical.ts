@@ -10,6 +10,7 @@ export const mehmed2 = defineCharacter({
   name: 'السلطان محمد الثاني (الفاتح)',
   era: '1432–1481',
   ref: 'المنمنمات العثمانية: عمامة بيضاء ضخمة بقاووق أحمر، قفطان أحمر بحواف ذهبية، لحية داكنة',
+  voice: {name: 'ar-AE-HamdanNeural', pitch: '-6Hz'},
   look: {robe: '#b3262c', trim: '#e0b43a', hat: 'sultan', beard: '#3a2416', skin: '#efc29b'},
   variants: {
     older: {beard: '#6a5a4a', build: 'belly', face: 'wide'},
@@ -21,6 +22,7 @@ export const halilPasha = defineCharacter({
   name: 'خليل باشا (الصدر الأعظم)',
   era: '؟–1453',
   ref: 'وزير عثماني: عمامة أصغر بقلنسوة زرقاء، قفطان أزرق، لحية رمادية',
+  voice: {name: 'ar-OM-AbdullahNeural', rate: '-12%', pitch: '-10Hz'},
   look: {robe: '#2f5f8f', trim: '#c9c2a8', hat: 'vizier', beard: '#9c968c', skin: '#e6b48d'},
 });
 
@@ -29,6 +31,7 @@ export const constantine11 = defineCharacter({
   name: 'الإمبراطور قسطنطين الحادي عشر',
   era: '1405–1453',
   ref: 'آخر أباطرة بيزنطة: تاج ذهبي، ثوب أرجواني إمبراطوري، لحية',
+  voice: {name: 'ar-LB-RamiNeural', rate: '-8%', pitch: '-4Hz'},
   look: {robe: '#5a2a6a', trim: '#e0b43a', hat: 'crown', beard: '#4a3426', skin: '#e8b994', face: 'long'},
 });
 
@@ -37,6 +40,7 @@ export const nasser = defineCharacter({
   name: 'جمال عبد الناصر',
   era: '1918–1970',
   ref: 'صور 1956: بدلة داكنة، ربطة عنق داكنة، شعر أسود مصفف للخلف، شارب كثيف',
+  voice: {name: 'ar-EG-ShakirNeural', rate: '-6%', pitch: '-8Hz'},
   look: {robe: '#3a3e4a', trim: '#3a3e4a', outfit: 'suit', tie: '#5a1e28', hair: '#1a1512', mustache: '#1a1512', skin: '#c98f68', hat: 'none', seed: 4},
   variants: {
     officer1952: {outfit: 'uniform', robe: '#6b6a5a', trim: '#d9b13a', hat: 'officerCap'},
@@ -49,6 +53,7 @@ export const mahmoudYounis = defineCharacter({
   name: 'المهندس محمود يونس',
   era: '1911–1976',
   ref: 'قائد فريق تسلّم شركة القناة 1956: بدلة مدنية داكنة، فك قوي',
+  voice: {name: 'ar-QA-MoazNeural', rate: '-4%'},
   look: {robe: '#2e3440', outfit: 'suit', hat: 'none', hair: '#1a1512', tie: '#7a1e28', skin: '#d9a27a', face: 'jaw'},
 });
 

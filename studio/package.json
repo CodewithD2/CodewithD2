@@ -3,7 +3,8 @@
   "private": true,
   "scripts": {
     "studio": "remotion studio",
-    "render": "remotion render"
+    "render": "remotion render",
+    "dialogue": "node scripts/dialogue.mjs"
   },
   "dependencies": {
     "@remotion/cli": "4.0.540",

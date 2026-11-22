@@ -75,6 +75,8 @@ export type PersonProps = {
   rot?: number;
   frame: number;
   seed?: number;
+  /** فتحة الفم أثناء الكلام 0..1 (من سكريبت الحوار) — تتجاوز فم التعبير مع إبقاء العينين والحاجبين */
+  talk?: number;
   skin?: string;
   robe: string;
   trim?: string;
@@ -293,7 +295,20 @@ const Brows: React.FC<{expr: Expr; only?: 0 | 1}> = ({expr, only}) => {
   );
 };
 
-const Mouth: React.FC<{expr: Expr; frame: number; lips?: string}> = ({expr, frame, lips}) => {
+const Mouth: React.FC<{expr: Expr; frame: number; lips?: string; talk?: number}> = ({expr, frame, lips, talk}) => {
+  if (talk !== undefined && expr !== 'laugh') {
+    // كلام متزامن مع الصوت: الفم يفتح بقدر talk ويُغلق بين الكلمات
+    const y0 = -172;
+    if (talk < 0.08) return <line x1={-10} y1={y0 + 2} x2={10} y2={y0 + 2} stroke={lips ?? INK} strokeWidth={5} strokeLinecap="round" />;
+    const ry = 2 + 11 * talk;
+    const rx = 10 + 4 * (1 - talk);
+    return (
+      <g>
+        <ellipse cx={0} cy={y0 + 2} rx={rx} ry={ry} fill={INK} />
+        {talk > 0.45 && <ellipse cx={0} cy={y0 + 2 + ry * 0.55} rx={rx * 0.55} ry={ry * 0.3} fill="#c0485a" />}
+      </g>
+    );
+  }
   const y = -172;
   if (lips && (expr === 'neutral' || expr === 'think')) {
     return (
@@ -466,6 +481,7 @@ export const Person: React.FC<PersonProps> = ({
   rot = 0,
   frame,
   seed = 0,
+  talk,
   skin = '#f2c6a0',
   robe,
   trim = '#d9a520',
@@ -1051,7 +1067,7 @@ export const Person: React.FC<PersonProps> = ({
           {onHead(0, 60).z > -0.12 && (
             <g transform={`translate(${onHead(0, 58).x} 0) scale(${Math.max(0.42, onHead(0).z)} 1)`}>
               {mustache && <path d="M -30 -186 Q -14 -198 0 -190 Q 14 -198 30 -186 Q 16 -176 0 -182 Q -16 -176 -30 -186 Z" fill={mustache} stroke={INK} strokeWidth={3} />}
-              <Mouth expr={expr} frame={frame} lips={lips} />
+              <Mouth expr={expr} frame={frame} lips={lips} talk={talk} />
             </g>
           )}
           {expr === 'strain' && cy > -0.2 && (
