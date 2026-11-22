@@ -319,13 +319,14 @@ export const ItemShape: React.FC<{item: Held; frame: number}> = ({item, frame}) 
  * يضع الشيء عند اليد: at = موضع اليد، dir = زاوية الساعد (راديان، 0 = لليمين)
  * angleOverride لزوايا ثابتة في وضعيات معينة (مثل aim: البندقية أفقية)
  */
-export const HeldItem: React.FC<{item: Held; at: [number, number]; dir: number; frame: number; angleOverride?: number; frontDy?: number; squash?: number}> = ({
+export const HeldItem: React.FC<{item: Held; at: [number, number]; dir: number; frame: number; angleOverride?: number; frontDy?: number; frontDx?: number; squash?: number}> = ({
   item,
   at,
   dir,
   frame,
   angleOverride,
   frontDy = 0,
+  frontDx = 0,
   squash = 1,
 }) => {
   const mode = ITEM_MODE[heldId(item)];
@@ -336,7 +337,7 @@ export const HeldItem: React.FC<{item: Held; at: [number, number]; dir: number; 
   else if (mode === 'along') rot = (dir * 180) / Math.PI + 90; // −y المحلي يتبع اتجاه الساعد
   else if (mode === 'front') {
     dy = -6 + frontDy;
-    dx = 0;
+    dx = frontDx;
   }
   return (
     <g transform={`translate(${at[0] + dx} ${at[1] + dy}) rotate(${rot}) scale(${mode === 'front' ? squash : 1} 1)`}>

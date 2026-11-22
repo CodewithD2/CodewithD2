@@ -137,7 +137,7 @@ type Pt = [number, number] | [number, number, number];
 const FRONT_DEPTH = 40; // خارج صورة الرأس: يد أعمق من هذا تُرسم بعد الرأس
 const HEAD_R = 66; // نصف قطر كرة الرأس (مركزها 0,−200)
 /** الأشياء الممسوكة: R لليد اليمنى (الذراع ذات x<0 في الأمامي)، L لليسرى، وزوايا ثابتة لبعض الوضعيات */
-type ItemCtxT = {R?: Held; L?: Held; ovR?: number; ovL?: number; frame: number; frontDy?: number};
+type ItemCtxT = {R?: Held; L?: Held; ovR?: number; ovL?: number; frame: number; frontDy?: number; frontDx?: number};
 const ItemCtx = React.createContext<ItemCtxT>({frame: 0});
 const ArmCtx = React.createContext<ArmCtxT>({cy: 1, sy: 0, slot: 'mid'});
 
@@ -157,7 +157,10 @@ const Arm: React.FC<{from: Pt; mid: Pt; to: Pt; robe: string; skin: string}> = (
   const hdx = T[0];
   const hdy = T[1] + 200;
   const r2 = HEAD_R * HEAD_R - hdx * hdx - hdy * hdy;
-  const inFront = r2 > 0 ? T[2] > Math.sqrt(r2) : T[2] > FRONT_DEPTH;
+  // خارج صورة الرأس: اليد المرفوعة فوق مستوى الرأس (بجانبه أو فوقه) تُرسم بعده ما لم تكن خلفه بوضوح،
+  // وإلا فلا تُرسم بعده إلا إن تقدمت بوضوح (حتى لا تغطي الذراعان اللحية والذقن)
+  // (من الخلف تبقى الذراع المرفوعة خلف مؤخرة الرأس لأن سطحه أقرب للكاميرا منها)
+  const inFront = r2 > 0 ? T[2] > Math.sqrt(r2) : T[2] > (T[1] < -200 && cy > -0.2 ? -10 : FRONT_DEPTH);
   const mySlot: ArmSlot = inFront ? 'front' : (F[2] + T[2]) / 2 < -8 ? 'back' : 'mid';
   if (mySlot !== slot) return null;
   const from: [number, number] = [F[0], F[1]];
@@ -178,6 +181,7 @@ const Arm: React.FC<{from: Pt; mid: Pt; to: Pt; robe: string; skin: string}> = (
           frame={items.frame}
           angleOverride={near ? items.ovR : items.ovL}
           frontDy={items.frontDy}
+          frontDx={near ? items.frontDx : 0}
           squash={Math.max(0.3, Math.abs(cy))}
         />
       )}
@@ -516,7 +520,9 @@ export const Person: React.FC<PersonProps> = ({
     L: holdL,
     frame,
     ovR: poseIn === 'aim' ? 90 : poseIn === 'shoulder' ? -20 : undefined,
-    frontDy: poseIn === 'read' ? 60 : poseIn === 'present' ? 24 : 0,
+    frontDy: poseIn === 'read' ? 54 : poseIn === 'present' ? 24 : 0,
+    // في القراءة: الورقة في المنتصف بين اليدين (الإزاحة تدور مع الالتفات)
+    frontDx: poseIn === 'read' ? 50 * cy : 0,
   };
 
   // رمش كل ثلاث ثوانٍ تقريباً، مع اختلاف التوقيت بين الشخصيات
@@ -599,8 +605,8 @@ export const Person: React.FC<PersonProps> = ({
       // يمسك الورقة أمام صدره بيديه ويقرأ
       arms = (
         <>
-          <Arm from={sh} mid={[sh[0] - 6, -100, 30]} to={[-14, -146, 56]} robe={robe} skin={skin} />
-          <Arm from={sh2} mid={[sh2[0] + 6, -100, 30]} to={[14, -146, 56]} robe={robe} skin={skin} />
+          <Arm from={sh} mid={[sh[0] - 10, -86, 30]} to={[-50, -108, 56]} robe={robe} skin={skin} />
+          <Arm from={sh2} mid={[sh2[0] + 10, -86, 30]} to={[50, -108, 56]} robe={robe} skin={skin} />
         </>
       );
       break;
