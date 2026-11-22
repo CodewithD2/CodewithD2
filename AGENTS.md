@@ -93,10 +93,7 @@ export REMOTION_BROWSER=/opt/pw-browsers/chromium_headless_shell-1243/chrome-hea
 `registry.npmjs.org` يجب أن يكون متاحاً. خط Amiri جُلب أصلاً من حزمة npm `@fontsource/amiri@5.1.1` (ملفات `files/amiri-arabic-{400,700}-normal.woff2`) ونُسخ إلى المشروع — لا حاجة لتكراره.
 
 ### ٤.٥ الرفع إلى GitHub
-فرع العمل: `claude/inspiring-maxwell-kcpkyq`. آخر محاولات الـ push فشلت بـ **403** لأن تطبيق Claude على GitHub لا يملك صلاحية `Contents: Read & Write` على `CodewithD2/CodewithD2`. نسخة احتياطية كاملة (`output/CodewithD2-work.bundle` و`output/CodewithD2-project.zip`) أُرسلت لصاحب المشروع. إن لم تجد الـ commits على الـ remote، اطلب منه الـ bundle:
-```bash
-git fetch CodewithD2-work.bundle claude/inspiring-maxwell-kcpkyq:claude/inspiring-maxwell-kcpkyq
-```
+فرع العمل: `claude/inspiring-maxwell-kcpkyq` (مرفوع على `origin`). ارفع بـ `git push -u origin claude/inspiring-maxwell-kcpkyq`. إن فشل بـ **403** فتطبيق Claude على GitHub يحتاج صلاحية `Contents: Read & Write` على المستودع؛ في هذه الحالة أرسل لصاحب المشروع نسخة `git bundle` من الفرع.
 
 ---
 
