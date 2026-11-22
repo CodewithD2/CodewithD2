@@ -8,6 +8,7 @@
 """
 import argparse
 import asyncio
+import json
 import os
 import re
 from pathlib import Path
@@ -49,7 +50,16 @@ async def narrate(src: Path, out_dir: Path, voice: str, rate: str, pitch: str):
             elif chunk["type"] in ("WordBoundary", "SentenceBoundary"):
                 sub.feed(chunk)
     srt.write_text(sub.get_srt(), encoding="utf-8")
-    print(f"✔ {mp3}\n✔ {srt}")
+
+    # تمريرة ثانية لتوقيت كل كلمة (لمزامنة التمثيل مع كلمات التعليق)
+    words = []
+    comm_w = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch, boundary="WordBoundary", proxy=proxy())
+    async for chunk in comm_w.stream():
+        if chunk["type"] == "WordBoundary":
+            words.append({"t": round(chunk["offset"] / 1e7, 3), "d": round(chunk["duration"] / 1e7, 3), "text": chunk["text"]})
+    wj = out_dir / f"{src.stem}.words.json"
+    wj.write_text(json.dumps(words, ensure_ascii=False, indent=1), encoding="utf-8")
+    print(f"✔ {mp3}\n✔ {srt}\n✔ {wj} ({len(words)} كلمة)")
 
 
 async def list_voices():

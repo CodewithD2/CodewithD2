@@ -1,6 +1,9 @@
 import React from 'react';
 import {useCurrentFrame} from 'remotion';
 import {Person} from '../../characters/Person';
+import {wordOffsetForShot} from '../../lib/EpisodeBase';
+import {Actor, CastMember, ScriptErrorOverlay, useScene} from '../../lib/script';
+import words from './words.json';
 import {Ridge} from '../../lib/epic';
 import {Cloud, ColorGrade, Halo, MistBand, Motes} from '../../lib/fx';
 import {atmos} from '../../lib/palette';
@@ -12,23 +15,41 @@ import {CANAL_NIGHT, CELEBRATE} from './palettes';
 import {AlexSkyline, Bourse, CanalHQ, Car, Confetti, Crowd, EgyptFlag, Mics, Palm, Qaitbay, Radio, Searchlights, Steamer} from './props';
 
 /* ======================= اللقطة ٣ — الإسماعيلية: تسلّم مكاتب الشركة ======================= */
+
+const TEAM: Record<string, CastMember> = {
+  younis: {robe: '#2e3440', outfit: 'suit', hat: 'none', hair: '#1a1512', tie: '#7a1e28', skin: '#d9a27a', face: 'jaw', shading: 'cel'},
+  officer1: {robe: '#6b6a5a', outfit: 'uniform', hat: 'officerCap', hair: '#1a1512', skin: '#c98f68', trim: '#d9b13a', build: 'broad', shading: 'cel'},
+  engineer: {robe: '#3a3e4a', outfit: 'suit', hat: 'none', hair: '#2a2018', tie: '#1e3a5a', skin: '#e2b48c', mustache: '#2a2018', build: 'slim', face: 'long', shading: 'cel'},
+  officer2: {robe: '#6b6a5a', outfit: 'uniform', hat: 'officerCap', hair: '#1a1512', skin: '#b87d58', trim: '#d9b13a', shading: 'cel'},
+};
+
+// الفريق ينزل من السيارات، ويتحرك عند كلمة «فوراً» في التعليق
+const TEAM_SCRIPT = `
+@0s            younis:   hide
+@0s            officer1: hide
+@0s            engineer: hide
+@0s            officer2: hide
+@1.9s          younis:   enter x=470 y=915 s=0.7 view=threeQuarter
+@2.0s          officer1: enter x=330 y=915 s=0.7 view=threeQuarter
+@2.1s          engineer: enter x=190 y=915 s=0.7 view=threeQuarter
+@2.2s          officer2: enter x=40 y=915 s=0.7 view=threeQuarter
+@"فوراً"        younis:   walk to 920 speed=fast | pose point for 1s
+@"فوراً"+0.15s  officer1: walk to 790 speed=fast
+@"فوراً"+0.3s   engineer: walk to 660
+@"فوراً"+0.45s  officer2: walk to 540 speed=fast
+@after younis  younis:   turn threeQuarterBack | hold
+`;
+
 export const SuezShot3: React.FC = () => {
   const f = useCurrentFrame();
   const P = CANAL_NIGHT;
-  const arrive = easeInOut(prog(f, 0, 90)); // السيارات تصل وتتوقف
-  const walk = prog(f, 80, 200); // الفريق يمشي نحو المبنى
+  const arrive = easeInOut(prog(f, 0, 58)); // السيارات تصل وتتوقف قبل «فوراً»
+  const scene = useScene(TEAM_SCRIPT, {cast: TEAM, words, wordOffset: wordOffsetForShot(18.22, 2)});
   const cam = camAt(f, [
     {f: 0, x: -380, y: 40, z: 0, ry: -4, rx: 1, fov: 48},
     {f: 90, x: 0, y: 0, z: 120, ry: 0, fov: 45},
     {f: 200, x: 220, y: -90, z: 260, ry: 3, rx: -2, fov: 42},
   ]);
-
-  const team = [
-    {robe: '#2e3440', outfit: 'suit' as const, hat: 'none' as const, hair: '#1a1512', tie: '#7a1e28', skin: '#d9a27a'},
-    {robe: '#6b6a5a', outfit: 'uniform' as const, hat: 'officerCap' as const, hair: '#1a1512', skin: '#c98f68', trim: '#d9b13a'},
-    {robe: '#3a3e4a', outfit: 'suit' as const, hat: 'none' as const, hair: '#2a2018', tie: '#1e3a5a', skin: '#e2b48c', mustache: '#2a2018'},
-    {robe: '#6b6a5a', outfit: 'uniform' as const, hat: 'officerCap' as const, hair: '#1a1512', skin: '#b87d58', trim: '#d9b13a'},
-  ];
 
   return (
     <>
@@ -87,31 +108,9 @@ export const SuezShot3: React.FC = () => {
             <Car id="car3a" x={lerp(-900, 380, arrive)} y={905} s={0.95} body="#3f5a4c" frame={f * (1 - arrive)} />
             <Car id="car3b" x={lerp(-1500, -180, arrive)} y={912} s={0.9} body="#5a4a62" frame={f * (1 - arrive)} />
             <Radio id="r3" x={lerp(-900, 380, arrive) + 40} y={826} s={0.42} frame={f} glow="#ffe39a" />
-            {team.map((m, i) => {
-              const start = 440 + i * 150;
-              const x = lerp(start, start + 700, walk);
-              return (
-                <Person
-                  key={i}
-                  x={f < 80 ? -2000 : x}
-                  y={915}
-                  s={0.7}
-                  frame={f}
-                  seed={i + 11}
-                  robe={m.robe}
-                  trim={m.trim ?? m.robe}
-                  outfit={m.outfit}
-                  hat={m.hat}
-                  hair={m.hair}
-                  tie={m.tie}
-                  mustache={m.mustache}
-                  skin={m.skin}
-                  expr={i === 0 && walk > 0.5 ? 'smug' : 'neutral'}
-                  pose={i === 0 ? 'point' : 'stand'}
-                  look={[1, -0.2]}
-                />
-              );
-            })}
+            {['officer2', 'engineer', 'officer1', 'younis'].map((id) => (
+              <Actor key={id} scene={scene} id={id} />
+            ))}
           </Art>
         </Layer>
         {/* ٦: سعف نخيل قريب خارج التركيز */}
@@ -130,6 +129,7 @@ export const SuezShot3: React.FC = () => {
       </Stage>
       <ColorGrade p={P} lightAt={[60, 55]} lightStrength={0.18} />
       <PlaceTag frame={f} text="الإسماعيلية — مقر شركة القناة" />
+      <ScriptErrorOverlay scene={scene} />
     </>
   );
 };

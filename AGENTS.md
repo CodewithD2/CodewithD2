@@ -328,6 +328,34 @@ studio/
 
 ---
 
+## ١١.٤ سكريبت الحركة (البند ٣) — `src/lib/script.tsx`
+اكتب التمثيل كنص داخل ملف اللقطة، والمحرك يحسب كل إطار (موضع، مسافة الخطوات، الاتجاه، الالتفات، التمثيل):
+```tsx
+const CAST: Record<string, CastMember> = {ali: {...مظهر Person..., shading: 'cel'}};
+const SCRIPT = `
+@0s         ali:  enter x=-150 y=960 s=1.1 | walk to 640
+@"فوراً"     ali:  act angry energy=0.9 for 2s
+@after ali  ali:  turn back | walk to x=700 y=800 s=0.75 speed=slow
+`;
+const scene = useScene(SCRIPT, {cast: CAST, words, wordOffset: wordOffsetForShot(at, index)});
+// داخل <svg>/<Art>:
+<Actor scene={scene} id="ali" />
+// فوق اللقطة (رسالة خطأ واضحة برقم السطر في Studio):
+<ScriptErrorOverlay scene={scene} />
+```
+- **الصيغة:** `@<زمن> <شخصية>: <أمر> | <أمر> …` — أوامر السطر تُنفَّذ بالتتابع. الأسطر التي تبدأ بـ `#` تعليقات.
+- **الزمن:** `@2s` `@2.5` `@45f` `@+1s` (بعد السطر السابق) `@after <id>` (حين تنهي الشخصية أوامرها) `@"كلمة"` أو `@"كلمتان معاً"+0.3s` أو `@"كلمة"#2` (المرة الثانية).
+- **مزامنة الكلمات:** `narrate.py` يحفظ `<name>.words.json` (توقيت كل كلمة عبر WordBoundary). المطابقة تتجاهل التشكيل والهمزات والتاء المربوطة والترقيم. `wordOffsetForShot(at, index)` (في `EpisodeBase.tsx`) يحوّل زمن التعليق لزمن اللقطة.
+- **الأوامر:**
+  - `enter x= y= s= view= face=left|right` · `hide` · `show` · `exit`
+  - `walk to <x>` أو `walk to x= y= s=` · `run to …` · `move to …` (انزلاق بلا خطوات) · خيارات: `speed=slow|normal|fast|<px/s>` `dur=2s` `view=back`
+  - `stop` · `wait 1s` · `jump height=70`
+  - `turn front|threeQuarter|side|threeQuarterBack|back|<زاوية> [مدة]` · `face left|right` · `look at <id>`
+  - `act <name>|none [energy=] [for 2s]` · `expr <name> [for …]` · `pose <name> [for …]` · `energy 0.8`
+  - `hold` (لا تلتفت للكاميرا تلقائياً عند الوقوف) · `release`
+- **التلقائي:** المدة من المسافة والسرعة (السرعة × مقياس الشخصية)؛ `travel` لإيقاع الخطوات؛ الحركة الأفقية → جانبي باتجاه الحركة (التفات عبر الأمام عند تغيير الجهة)؛ الحركة في العمق تحافظ على الاتجاه الحالي (فـ `turn back | walk to y=…` = ابتعاد بالظهر)؛ عند الوقوف التفات ناعم للكاميرا ما لم يُستخدم `hold`؛ `for` تعيد الحالة السابقة بعد المدة.
+- اختبار: Composition `ScriptTest` (`src/ScriptTest.tsx`) تعرض السكريبت والسطر المنفَّذ. مثال حقيقي: `TEAM_SCRIPT` في `episodes/suez1956/ShotsB.tsx`.
+
 ## ١١.٥ الحشود الكبيرة (`Crowd` في `episodes/suez1956/props.tsx`)
 - شخوص خفيفة (جسم + رأس + شعر + يد مرفوعة اختيارية + علم اختياري) بدل `Person` الثقيل.
 - `rows`، `gap`، `s0→s1` (حجم الصف الخلفي → الأمامي)، `cheer` 0..1 (رفع الأيدي والقفز)، `flags` نسبة حاملي الأعلام، `hats` قبعات تُرمى، `outline` للصفوف القريبة فقط.

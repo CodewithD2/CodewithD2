@@ -50,3 +50,9 @@ const FadeIn: React.FC<{children: React.ReactNode}> = ({children}) => {
   const f = useCurrentFrame();
   return <AbsoluteFill style={{opacity: interpolate(f, [0, XF], [0, 1], {extrapolateRight: 'clamp'})}}>{children}</AbsoluteFill>;
 };
+
+/**
+ * إزاحة توقيت كلمات التعليق إلى زمن اللقطة المحلي (لسكريبت الحركة):
+ * زمن الكلمة في اللقطة = word.t + wordOffsetForShot(at, index)
+ */
+export const wordOffsetForShot = (at: number, index: number, fps = 30) => VOICE_DELAY - (Math.round(at * fps) - (index ? XF / 2 : 0)) / fps;
