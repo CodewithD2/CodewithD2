@@ -23,7 +23,7 @@ const KEYS = ['x', 'y', 'z', 'ry', 'rx', 'rz', 'fov', 'zoom'] as const;
 
 export type CamTimeline = {
   /** ينفّذ أوامر سطر واحد بدءاً من t ويعيد زمن الانتهاء */
-  run: (body: string, t: number, fail: CamCmdError, sec: (tok: string) => number, knownActor: (id: string) => boolean) => number;
+  run: (body: string, t: number, fail: CamCmdError, sec: (tok: string) => number, knownActor: (id: string) => boolean, onSfx?: (t: number, name: string, kv: Record<string, string>, dur?: number) => void) => number;
   /** الكاميرا عند الزمن t؛ pos(id,t) يعيد موضع الشخصية على الشاشة */
   at: (t: number, pos: (id: string, t: number) => {x: number; y: number}) => Cam;
   used: () => boolean;
@@ -54,7 +54,7 @@ export const makeCamTimeline = (depth: number): CamTimeline => {
     return t + dur;
   };
 
-  const run: CamTimeline['run'] = (body, t, fail, sec, knownActor) => {
+  const run: CamTimeline['run'] = (body, t, fail, sec, knownActor, onSfx) => {
     used = true;
     let cur = t;
     for (const raw of body.split('|')) {
@@ -106,6 +106,9 @@ export const makeCamTimeline = (depth: number): CamTimeline => {
           shakes.push({t0: cur, t1: cur + d, amp: num('amp', 10)});
           break;
         }
+        case 'sfx':
+          onSfx?.(cur, pos[0], kv, forDur);
+          break;
         case 'reset':
           for (const f of follows) if (f.t1 > cur) f.t1 = cur;
           cur = tween(cur, dur(1), {...BASE});
@@ -114,7 +117,7 @@ export const makeCamTimeline = (depth: number): CamTimeline => {
           cur += sec(pos[0] ?? '1s');
           break;
         default:
-          fail(`أمر كاميرا غير معروف: ${tok[0]}. المتاح: follow unfollow move zoom shake reset wait`);
+          fail(`أمر كاميرا غير معروف: ${tok[0]}. المتاح: follow unfollow move zoom shake sfx reset wait`);
       }
     }
     return cur;

@@ -8,6 +8,20 @@ import {Art, CAM0, Cam, Layer, Sky, Stage} from '../lib/stage';
 import {INK, scatter} from '../lib/util';
 import {DepthSort, Sorted} from '../lib/depth';
 import {CharLightCtx, LIGHT_BY_TIME, PointLight} from '../characters/light';
+import {AmbientLoop} from '../lib/sfx';
+
+/** الصوت المحيطي لكل خلفية: [صوت، شدة] — يتغير قليلاً مع الوقت */
+export const AMBIENCE: Record<BackdropName, (time: TimeOfDay) => [string, number][]> = {
+  cairoMamlukStreet: (t) => [['murmur', t === 'night' ? 0.08 : 0.28]],
+  alexCorniche: (t) => [['waves', 0.45], ['wind', 0.12], ...(t === 'night' ? [] : ([['murmur', 0.08]] as [string, number][]))],
+  cityPlaza1950s: (t) => [['murmur', t === 'night' ? 0.07 : 0.22], ['wind', 0.06]],
+  nileCountryside: () => [['wind', 0.2]],
+  desertPyramids: () => [['wind', 0.45]],
+  harbor: () => [['waves', 0.35], ['murmur', 0.1]],
+  palaceInterior: () => [],
+  militaryCamp: (t) => [['fire', t === 'day' ? 0.15 : 0.35], ['wind', 0.12], ['murmur', t === 'night' ? 0.04 : 0.12]],
+  besiegedWalls: () => [['wind', 0.3], ['fire', 0.12]],
+};
 import {Qaitbay, Steamer} from '../episodes/suez1956/props';
 import {
   CairoHouse,
@@ -604,7 +618,7 @@ const DEFS: Record<BackdropName, (W: World, f: number) => {layers: L[]; actorD: 
 };
 
 /** خلفية جاهزة — الشخصيات (children) تُرسم على طبقة الممثلين بين الوسط والمقدمة */
-export const Backdrop: React.FC<{name: BackdropName; time: TimeOfDay; cam?: Cam; frame?: number; children?: React.ReactNode; grade?: boolean; lighting?: boolean}> = ({
+export const Backdrop: React.FC<{name: BackdropName; time: TimeOfDay; cam?: Cam; frame?: number; children?: React.ReactNode; grade?: boolean; lighting?: boolean; ambience?: number}> = ({
   name,
   time,
   cam = CAM0,
@@ -612,6 +626,7 @@ export const Backdrop: React.FC<{name: BackdropName; time: TimeOfDay; cam?: Cam;
   children,
   grade = true,
   lighting = true,
+  ambience = 1,
 }) => {
   const cf = useCurrentFrame();
   const f = frame ?? cf;
@@ -666,6 +681,7 @@ export const Backdrop: React.FC<{name: BackdropName; time: TimeOfDay; cam?: Cam;
         </Layer>
       </Stage>
       {grade && <ColorGrade p={W.P} lightAt={[(W.sun[0] / 1920) * 100, (W.sun[1] / 1080) * 100]} lightStrength={time === 'night' ? 0.12 : 0.18} />}
+      {ambience > 0 && AMBIENCE[name](time).map(([snd, v]) => <AmbientLoop key={snd} name={snd} volume={v * ambience} />)}
      </CharLightCtx.Provider>
     </WorldCtx.Provider>
   );

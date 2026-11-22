@@ -421,6 +421,17 @@ const scene = useScene(SCRIPT, {cast: CAST, words, wordOffset: wordOffsetForShot
   - `@after camera` يعمل. اختبار: `CameraTest` (فيديو) و`CameraSheet` (لوحة إطارات) — `src/CameraTest.tsx`.
 - اختبار: Composition `ScriptTest` (`src/ScriptTest.tsx`) تعرض السكريبت والسطر المنفَّذ. مثال حقيقي: `TEAM_SCRIPT` في `episodes/suez1956/ShotsB.tsx`.
 
+## ١١.٤ب المؤثرات الصوتية (البند ٩) — `lib/sfx.tsx` + `narrator/sfx_synth.py`
+- كل الأصوات **مُركّبة رياضياً** (numpy، بلا حقوق، نتيجة ثابتة): `python narrator/sfx_synth.py` → `studio/public/sfx/*.wav`.
+  قصيرة: `step step2 run land whoosh clang pop boom` — ممتدة تتكرر بلا قطع: `waves wind fire murmur cheer`.
+- **تلقائي من السكريبت:** خطوات متزامنة مع ملامسة القدم (نفس معادلة الطور في `computeMotion`: دورة 150 مشي/230 جري ÷ s)، صوت هبوط بعد `jump`، `whoosh` كل ثانية مع `pose swing`. علوّ الخطوة يتبع حجم الشخصية.
+- **أوامر:** `sfx <name> [vol=0.8] [delay=0.3s] [for 3s]` (لأي شخصية أو `camera:`) · `steps off|on` · `jump sound=off` · `pose swing sound=off`.
+- **التشغيل:** `<SceneAudio scene={scene} volume? steps? />` مرة واحدة في اللقطة (خارج svg). `scene.sfx()` يعيد قائمة الأحداث.
+- **الصوت المحيطي:** `Backdrop` يشغّل تلقائياً `AMBIENCE[name](time)` (أمواج للكورنيش والميناء، نار+ريح للمعسكر، ريح للصحراء، همهمة للشوارع…). `ambience={0}` للإيقاف أو رقم للشدة.
+- **مراجعة الصوت بلا تصيير فيديو:** `npx remotion render src/index.ts SfxTest out.mp3 --codec=mp3` (~٤٠ث، لا يرسم إطارات).
+- اختبار: `SfxTest` (`src/SfxTest.tsx`).
+- إصلاح: الشخصية التي أول أوامرها `enter` بعد البداية تكون مخفية قبله.
+
 ## ١١.٥ الحشود الكبيرة (`Crowd` في `episodes/suez1956/props.tsx`)
 - شخوص خفيفة (جسم + رأس + شعر + يد مرفوعة اختيارية + علم اختياري) بدل `Person` الثقيل.
 - `rows`، `gap`، `s0→s1` (حجم الصف الخلفي → الأمامي)، `cheer` 0..1 (رفع الأيدي والقفز)، `flags` نسبة حاملي الأعلام، `hats` قبعات تُرمى، `outline` للصفوف القريبة فقط.

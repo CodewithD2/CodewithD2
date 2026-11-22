@@ -4,6 +4,7 @@ import {Act, Expr, Person, PersonProps, Pose, VIEW_YAW, View} from '../character
 import {Held, ITEM_MODE, ItemId} from '../characters/items';
 import {makeCamTimeline} from './camscript';
 import {CAM0, Cam} from './stage';
+import {SfxEvent, SFX_NAMES, footsteps} from './sfx';
 
 /* =====================================================================
  * سكريبت الحركة — تكتب التمثيل كنص، والمحرك يحسب كل إطار.
@@ -51,6 +52,7 @@ type ActorTL = {
   holdR: Step<Held | undefined>[];
   holdL: Step<Held | undefined>[];
   jumps: {t0: number; t1: number; h: number}[];
+  steps: Step<boolean>[];
   cursor: number; // متى تنتهي آخر أوامر الشخصية
 };
 
@@ -112,6 +114,8 @@ export type Scene = {
   at: (id: string, frame: number) => ActorState;
   /** الكاميرا من أسطر `camera:` (CAM0 إن لم تُستخدم) */
   cam: (frame: number) => Cam;
+  /** كل الأصوات بالترتيب الزمني: أوامر sfx + القفز + ضربات السيف + الخطوات التلقائية */
+  sfx: () => SfxEvent[];
 };
 
 export const buildScene = (script: string, opts: SceneOpts): Scene => {
@@ -121,6 +125,11 @@ export const buildScene = (script: string, opts: SceneOpts): Scene => {
   const lines: Scene['lines'] = [];
   const camTL = makeCamTimeline(opts.camDepth ?? 150);
   let camCursor = 0;
+  const sfxList: SfxEvent[] = [];
+  const addSfx = (line: number, t: number, name: string, kv: Record<string, string>, forDur?: number, who?: string) => {
+    if (!SFX_NAMES.includes(name)) throw new ScriptError(line, `صوت غير معروف: ${name}. المتاح: ${SFX_NAMES.join(' ')}`);
+    sfxList.push({t: t + (kv.delay ? parseSeconds(kv.delay, fps, line) : 0), name, vol: kv.vol ? +kv.vol : 1, dur: forDur, who});
+  };
 
   const actor = (id: string, line: number) => {
     if (!cast[id]) throw new ScriptError(line, `شخصية غير معرّفة: ${id} (المتاح: ${Object.keys(cast).join('، ')})`);
@@ -139,6 +148,7 @@ export const buildScene = (script: string, opts: SceneOpts): Scene => {
         holdR: [{t: 0, v: c.holdR}],
         holdL: [{t: 0, v: c.holdL}],
         jumps: [],
+        steps: [{t: 0, v: true}],
         cursor: 0,
       };
     }
@@ -245,7 +255,7 @@ export const buildScene = (script: string, opts: SceneOpts): Scene => {
       const fail = (msg: string): never => {
         throw new ScriptError(line, msg);
       };
-      camCursor = Math.max(camCursor, camTL.run(body, t, fail, (tok) => parseSeconds(tok, fps, line), (x) => !!cast[x]));
+      camCursor = Math.max(camCursor, camTL.run(body, t, fail, (tok) => parseSeconds(tok, fps, line), (x) => !!cast[x], (tt, name, kv, d) => addSfx(line, tt, name, kv, d)));
       return;
     }
     const a = actor(id, line);
@@ -271,6 +281,8 @@ export const buildScene = (script: string, opts: SceneOpts): Scene => {
       switch (cmd) {
         case 'enter':
         case 'place': {
+          // أول enter بعد البداية: الشخصية مخفية قبله
+          if (cmd === 'enter' && cur > 0 && a.pos.length === 1 && a.visible.length === 1) a.visible[0] = {t: 0, v: false};
           const p = cutPos(a, cur);
           a.pos.push({t0: cur, t1: cur, x0: p.x, x1: kv.x ? +kv.x : p.x, y0: p.y, y1: kv.y ? +kv.y : p.y, s0: p.s, s1: kv.s ? +kv.s : p.s, kind: 'set', trav0: p.trav});
           const pp = a.pos[a.pos.length - 1];
@@ -343,6 +355,7 @@ export const buildScene = (script: string, opts: SceneOpts): Scene => {
           const arr = a[cmd] as unknown as Step<unknown>[];
           const prev = stepAt(arr, cur, undefined);
           arr.push({t: cur, v});
+          if (cmd === 'pose' && v === 'swing' && kv.sound !== 'off') for (let k = 0; k < Math.max(1, Math.round(forDur ?? 2)); k++) sfxList.push({t: cur + 0.35 + k, name: 'whoosh', vol: 0.8, who: id});
           if (forDur !== undefined) {
             arr.push({t: cur + forDur, v: prev});
             cur += forDur;
@@ -355,6 +368,7 @@ export const buildScene = (script: string, opts: SceneOpts): Scene => {
         case 'jump': {
           const h = kv.height ? +kv.height : 70;
           a.jumps.push({t0: cur, t1: cur + 0.5, h});
+          if (kv.sound !== 'off') sfxList.push({t: cur + 0.5, name: 'land', vol: 0.8, who: id});
           cur += 0.5;
           break;
         }
@@ -394,6 +408,14 @@ export const buildScene = (script: string, opts: SceneOpts): Scene => {
           b.cursor = Math.max(b.cursor, cur + 0.15);
           break;
         }
+        case 'sfx':
+          // sfx <name> [vol=0.8] [delay=0.2s] [for 3s] — `for` للأصوات الممتدة (أمواج، هتاف…)
+          addSfx(line, cur, pos[0], kv, forDur, id);
+          break;
+        case 'steps':
+          // steps off|on — إيقاف/تشغيل الخطوات التلقائية
+          a.steps.push({t: cur, v: pos[0] !== 'off'});
+          break;
         case 'hold':
           a.autoFront.push({t: cur, v: false});
           a.yaw = a.yaw.filter((s) => !(s.soft && s.t0 >= cur - 0.2));
@@ -411,7 +433,7 @@ export const buildScene = (script: string, opts: SceneOpts): Scene => {
         default:
           throw new ScriptError(
             line,
-            `أمر غير معروف: ${cmd}. المتاح: enter walk run move stop wait turn face look act expr pose energy jump take drop give hold release show hide exit`,
+            `أمر غير معروف: ${cmd}. المتاح: enter walk run move stop wait turn face look act expr pose energy jump take drop give sfx steps hold release show hide exit`,
           );
       }
     }
@@ -444,8 +466,19 @@ export const buildScene = (script: string, opts: SceneOpts): Scene => {
     };
   };
 
+  let sfxCache: SfxEvent[] | undefined;
+  const sfx = (): SfxEvent[] => {
+    if (!sfxCache) {
+      const end = Math.max(camCursor, ...Object.values(tl).map((a) => a.cursor)) + 1;
+      const auto = Object.keys(tl).flatMap((id) =>
+        footsteps(id, Math.ceil(end * fps), fps, (f) => at(id, f), cast[id]?.seed ?? 0).filter((e) => stepAt(tl[id].steps, e.t, true)),
+      );
+      sfxCache = [...sfxList, ...auto].sort((x, y) => x.t - y.t);
+    }
+    return sfxCache;
+  };
   const cam = (frame: number): Cam => (camTL.used() ? camTL.at(frame / fps, (id, tt) => at(id, tt * fps)) : CAM0);
-  return {cast, fps, lines, at, cam};
+  return {cast, fps, lines, at, cam, sfx};
 };
 
 /** يبني المشهد مرة واحدة (يُعاد فقط إن تغيّر النص) ويحوّل أي خطأ إلى رسالة واضحة */
@@ -455,7 +488,7 @@ export const useScene = (script: string, opts: SceneOpts): Scene => {
       return buildScene(script, opts);
     } catch (e) {
       const err = e instanceof ScriptError ? e : new ScriptError(0, String(e));
-      return {error: err, cast: opts.cast, fps: opts.fps ?? 30, lines: [], cam: () => CAM0, at: () => ({x: 0, y: 0, s: 1, flip: false, view: 0, motion: 'idle', travel: 0, energy: 0.5, visible: false})};
+      return {error: err, cast: opts.cast, fps: opts.fps ?? 30, lines: [], cam: () => CAM0, sfx: () => [], at: () => ({x: 0, y: 0, s: 1, flip: false, view: 0, motion: 'idle', travel: 0, energy: 0.5, visible: false})};
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [script]);
