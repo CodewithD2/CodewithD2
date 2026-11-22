@@ -23,3 +23,14 @@ python narrator/narrate.py narrator/scripts/example.txt
 - الأسطر التي تبدأ بـ `#` ملاحظات للمونتاج ولا تُقرأ.
 - شكّل الكلمات الملتبسة أو أسماء الأعلام (مثل: مُحَمَّدٌ الفاتِح) لضبط النطق.
 - اكتب الأرقام والتواريخ بالحروف لنطق أدق.
+
+## تحويل مشهد إلى فيديو
+كل مشهد صفحة HTML ترسم الصورة على canvas بدلالة الزمن (`narrator/scene/`). افتحها في المتصفح لمعاينتها مباشرة.
+
+```bash
+python narrator/narrate.py narrator/scripts/ships-overland.txt --rate=-5%
+node narrator/render.js narrator/scene/ships-overland.html output/ships-overland.mp3 output/ships-overland.srt output/ships-overland.mp4
+```
+يتطلب Node مع Playwright و ffmpeg. الخيار `--preview 3,15,25` يحفظ لقطات ثابتة للمراجعة بدل الفيديو.
+
+خط العناوين والترجمة: أميري (رخصة SIL OFL).
