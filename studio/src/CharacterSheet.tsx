@@ -88,3 +88,46 @@ export const SheetFaces: React.FC = () => {
     </Sheet>
   );
 };
+
+/** لوحة ٣: شخصيات نسائية */
+export const SheetWomen: React.FC = () => {
+  const f = useCurrentFrame() + 20;
+  const women: Card[] = [
+    {
+      label: 'سيدة الخمسينيات',
+      sub: "outfit='skirt' · hairStyle='bob'",
+      p: {build: 'female', outfit: 'skirt', robe: '#f2ece0', skirt: '#2f5f8f', trim: '#c0262d', hat: 'none', hair: '#2a1a12', hairStyle: 'bob', lips: '#c0392b', earrings: '#e8b830', expr: 'happy', pose: 'wave', shading: 'cel', skin: '#e2b48c'},
+    },
+    {
+      label: 'بالحجاب',
+      sub: "hat='hijab' · outfit='dress'",
+      p: {build: 'female', outfit: 'dress', robe: '#2f6f4a', trim: '#e0b43a', hat: 'hijab', scarf: '#f0e6d2', expr: 'neutral', pose: 'stand', shading: 'cel', skin: '#d9a27a', lips: '#b5524a'},
+    },
+    {
+      label: 'ملكة',
+      sub: "hat='crown' · hairStyle='long'",
+      p: {build: 'female', outfit: 'dress', robe: '#6a2a7a', trim: '#e0b43a', hat: 'crown', hair: '#1a1210', hairStyle: 'long', face: 'long', earrings: '#e8b830', lips: '#a8324a', expr: 'smug', pose: 'stand', shading: 'cel', skin: '#efc29b'},
+    },
+    {
+      label: 'سيدة كبيرة',
+      sub: "build='femaleFull' · hairStyle='bun'",
+      p: {build: 'femaleFull', outfit: 'dress', robe: '#8a4a3a', trim: '#e8d8b8', hat: 'none', hair: '#9a9590', hairStyle: 'bun', face: 'wide', expr: 'happy', pose: 'cross', shading: 'cel', skin: '#e6b48d'},
+    },
+    {
+      label: 'فتاة',
+      sub: "hairStyle='ponytail'",
+      p: {build: 'female', outfit: 'skirt', robe: '#f6d8a8', skirt: '#c0504a', trim: '#2f5f8f', hat: 'none', hair: '#5a3a1e', hairStyle: 'ponytail', expr: 'idea', pose: 'point', shading: 'cel', skin: '#f2c6a0', look: [1, 0]},
+    },
+    {
+      label: 'بعباءة',
+      sub: "outfit='abaya' · hairStyle='braid'",
+      p: {build: 'female', outfit: 'abaya', robe: '#26222e', trim: '#b88a3a', hat: 'none', hair: '#1a1210', hairStyle: 'braid', face: 'pointy', earrings: '#e8b830', lips: '#9a3040', expr: 'think', pose: 'chin', shading: 'cel', skin: '#c98f68'},
+    },
+  ];
+  return (
+    <Sheet title="شخصيات نسائية">
+      <Row cards={women.slice(0, 3)} y={450} s={1.05} frame={f} />
+      <Row cards={women.slice(3)} y={960} s={1.05} frame={f} />
+    </Sheet>
+  );
+};

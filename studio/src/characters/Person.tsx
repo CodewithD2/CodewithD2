@@ -7,20 +7,37 @@ import {INK, mixColor} from '../lib/util';
  */
 
 export type Expr = 'neutral' | 'smug' | 'shock' | 'think' | 'strain' | 'idea' | 'sleepy' | 'happy' | 'speak' | 'shout';
-export type Hat = 'sultan' | 'vizier' | 'byzHelmet' | 'bork' | 'cap' | 'officerCap' | 'none';
-export type Outfit = 'robe' | 'suit' | 'uniform';
+export type Hat = 'sultan' | 'vizier' | 'byzHelmet' | 'bork' | 'cap' | 'officerCap' | 'hijab' | 'crown' | 'none';
+export type Outfit = 'robe' | 'suit' | 'uniform' | 'dress' | 'skirt' | 'abaya';
+/** تسريحات الشعر */
+export type HairStyle = 'short' | 'long' | 'bun' | 'ponytail' | 'bob' | 'braid';
 /** البنية الجسدية */
-export type Build = 'normal' | 'broad' | 'belly' | 'slim';
+export type Build = 'normal' | 'broad' | 'belly' | 'slim' | 'female' | 'femaleFull';
 /** شكل الوجه */
 export type Face = 'round' | 'square' | 'jaw' | 'pointy' | 'long' | 'wide';
 /** التظليل: none مسطح، cel ظل حاد كرتوني، soft تدرج ناعم */
 export type Shading = 'none' | 'cel' | 'soft';
 
-const BODY: Record<Build, {d: string; sh: number; belt: [number, number]}> = {
+const BODY: Record<Build, {d: string; sh: number; belt: [number, number]; beltY?: number; bust?: boolean}> = {
   normal: {d: 'M -40 -40 L -48 -128 Q 0 -150 48 -128 L 40 -40 Q 0 -30 -40 -40 Z', sh: 40, belt: [-44, 88]},
   broad: {d: 'M -36 -40 L -74 -122 Q -70 -148 0 -152 Q 70 -148 74 -122 L 36 -40 Q 0 -30 -36 -40 Z', sh: 64, belt: [-50, 100]},
   belly: {d: 'M -44 -40 Q -84 -66 -62 -108 L -44 -130 Q 0 -148 44 -130 L 62 -108 Q 84 -66 44 -40 Q 0 -26 -44 -40 Z', sh: 42, belt: [-76, 152]},
   slim: {d: 'M -30 -40 L -38 -128 Q 0 -146 38 -128 L 30 -40 Q 0 -32 -30 -40 Z', sh: 34, belt: [-35, 70]},
+  // جسم أنثوي: كتفان أضيق، خصر محدد، وركان أعرض
+  female: {
+    d: 'M -27 -86 Q -44 -64 -48 -40 Q 0 -30 48 -40 Q 44 -64 27 -86 Q 22 -104 36 -128 Q 0 -146 -36 -128 Q -22 -104 -27 -86 Z',
+    sh: 33,
+    belt: [-29, 58],
+    beltY: -92,
+    bust: true,
+  },
+  femaleFull: {
+    d: 'M -36 -84 Q -62 -62 -62 -40 Q 0 -28 62 -40 Q 62 -62 36 -84 Q 30 -102 44 -128 Q 0 -148 -44 -128 Q -30 -102 -36 -84 Z',
+    sh: 40,
+    belt: [-38, 76],
+    beltY: -90,
+    bust: true,
+  },
 };
 
 const FACE: Record<Face, {d: string; top: number}> = {
@@ -61,6 +78,15 @@ export type PersonProps = {
   build?: Build;
   face?: Face;
   shading?: Shading;
+  hairStyle?: HairStyle;
+  /** رموش (تلقائياً مع البنية الأنثوية) */
+  lashes?: boolean;
+  lips?: string;
+  earrings?: string;
+  /** لون الحجاب (افتراضياً trim) */
+  scarf?: string;
+  /** لون التنورة في outfit='skirt' */
+  skirt?: string;
   look?: [number, number];
   /** 0..1 للانتقال الحاد في التعبير (مثل قفزة الصدمة) */
   jolt?: number;
@@ -89,7 +115,7 @@ const Arm: React.FC<{from: [number, number]; mid: [number, number]; to: [number,
   );
 };
 
-const Eyes: React.FC<{expr: Expr; blink: boolean; look: [number, number]; skin: string}> = ({expr, blink, look, skin}) => {
+const Eyes: React.FC<{expr: Expr; blink: boolean; look: [number, number]; skin: string; lashes?: boolean}> = ({expr, blink, look, skin, lashes}) => {
   const [lx, ly] = look;
   const E = [-21, 21];
   const ey = -206;
@@ -128,6 +154,16 @@ const Eyes: React.FC<{expr: Expr; blink: boolean; look: [number, number]; skin: 
       {E.map((x) => (
         <ellipse key={x} cx={x + lx * 5} cy={ey + ly * 5} rx={6.5} ry={ry} fill={INK} />
       ))}
+      {lashes &&
+        E.map((x) => {
+          const sd = Math.sign(x);
+          return (
+            <g key={`lash${x}`} stroke={INK} strokeWidth={3.5} strokeLinecap="round">
+              <line x1={x + sd * 5} y1={ey - 8} x2={x + sd * 13} y2={ey - 15} />
+              <line x1={x + sd * 7} y1={ey - 3} x2={x + sd * 15} y2={ey - 7} />
+            </g>
+          );
+        })}
       {expr === 'smug' &&
         E.map((x) => (
           <g key={`lid${x}`}>
@@ -163,8 +199,16 @@ const Brows: React.FC<{expr: Expr}> = ({expr}) => {
   );
 };
 
-const Mouth: React.FC<{expr: Expr; frame: number}> = ({expr, frame}) => {
+const Mouth: React.FC<{expr: Expr; frame: number; lips?: string}> = ({expr, frame, lips}) => {
   const y = -172;
+  if (lips && (expr === 'neutral' || expr === 'think')) {
+    return (
+      <path d={`M -12 ${y} Q -6 ${y - 6} 0 ${y - 2} Q 6 ${y - 6} 12 ${y} Q 0 ${y + 10} -12 ${y} Z`} fill={lips} stroke={INK} strokeWidth={2.5} strokeLinejoin="round" />
+    );
+  }
+  if (lips && expr === 'smug') {
+    return <path d={`M -14 ${y} Q 4 ${y + 9} 18 ${y - 8} Q 4 ${y + 2} -14 ${y} Z`} fill={lips} stroke={INK} strokeWidth={3} strokeLinejoin="round" />;
+  }
   switch (expr) {
     case 'smug':
       return <path d={`M -14 ${y} Q 4 ${y + 6} 18 ${y - 8}`} stroke={INK} strokeWidth={5} fill="none" strokeLinecap="round" />;
@@ -248,6 +292,27 @@ const HatShape: React.FC<{hat: Hat; trim: string}> = ({hat, trim}) => {
           <path d="M -6 -270 L 0 -318 L 6 -270 Z" fill={trim} />
         </g>
       );
+    case 'hijab':
+      // الجزء الأمامي من الحجاب: إطار حول الوجه (الجزء الخلفي يُرسم قبل الرأس)
+      return (
+        <path
+          d="M -68 -192 Q -72 -280 0 -284 Q 72 -280 68 -192 Q 64 -252 0 -258 Q -64 -252 -68 -192 Z"
+          fill={trim}
+          stroke={INK}
+          strokeWidth={SW}
+          strokeLinejoin="round"
+        />
+      );
+    case 'crown':
+      return (
+        <g stroke={INK} strokeWidth={4} strokeLinejoin="round">
+          <path d="M -46 -252 L -50 -306 L -24 -280 L 0 -318 L 24 -280 L 50 -306 L 46 -252 Z" fill="#e8b830" />
+          <rect x={-48} y={-262} width={96} height={14} rx={4} fill="#d9a020" />
+          {[-28, 0, 28].map((cx, i) => (
+            <circle key={cx} cx={cx} cy={-255} r={5} fill={['#c0262d', '#2f6fae', '#2f8f5a'][i]} strokeWidth={2} />
+          ))}
+        </g>
+      );
     case 'officerCap':
       // كاب ضابط بحافة أمامية وشارة
       return (
@@ -292,6 +357,12 @@ export const Person: React.FC<PersonProps> = ({
   build = 'normal',
   face = 'round',
   shading = 'none',
+  hairStyle = 'short',
+  lashes,
+  lips,
+  earrings,
+  scarf,
+  skirt,
   look = [0, 0],
   jolt = 0,
 }) => {
@@ -405,7 +476,21 @@ export const Person: React.FC<PersonProps> = ({
       );
   }
 
-  const legs =
+  const longDress = outfit === 'dress' || outfit === 'abaya';
+  const isFemale = build === 'female' || build === 'femaleFull';
+  const showLashes = lashes ?? isFemale;
+  const hijabColor = scarf ?? trim;
+  const legs = longDress ? (
+    <g fill={INK}>
+      <ellipse cx={-15} cy={-2} rx={14} ry={7} />
+      <ellipse cx={15} cy={-2} rx={14} ry={7} />
+    </g>
+  ) : isFemale && pose !== 'pull' ? (
+    <g fill={INK}>
+      <rect x={-20} y={-44} width={13} height={46} rx={6} />
+      <rect x={7} y={-44} width={13} height={46} rx={6} />
+    </g>
+  ) :
     pose === 'pull' ? (
       <g fill={INK}>
         <rect x={-6} y={-44} width={15} height={48} rx={6} transform="rotate(28 0 -40)" />
@@ -426,6 +511,19 @@ export const Person: React.FC<PersonProps> = ({
       <ellipse cx={0} cy={2} rx={46} ry={9} fill="rgba(0,0,0,0.28)" />
       {legs}
       <g transform={`translate(0 ${bob + hop}) rotate(${lean} 0 -40)`}>
+        {/* شعر خلفي / الجزء الخلفي من الحجاب — قبل الجسم والرأس */}
+        <g transform={`translate(0 ${dTop})`}>
+          {hat === 'hijab' && (
+            <path
+              d="M -80 -200 Q -84 -294 0 -296 Q 84 -294 80 -200 Q 84 -128 62 -104 Q 0 -90 -62 -104 Q -84 -128 -80 -200 Z"
+              fill={hijabColor}
+              stroke={INK}
+              strokeWidth={SW}
+              strokeLinejoin="round"
+            />
+          )}
+          {hair && hat !== 'hijab' && <BackHair style={hairStyle} color={hair} frame={frame} seed={seed} />}
+        </g>
         {/* الجسم */}
         <path
           d={B.d}
@@ -434,10 +532,35 @@ export const Person: React.FC<PersonProps> = ({
           strokeWidth={SW}
           strokeLinejoin="round"
         />
+        {(longDress || outfit === 'skirt') && (
+          <path
+            d={
+              longDress
+                ? `M ${B.belt[0]} ${(B.beltY ?? -78) + 4} Q ${B.belt[0] - 20} -40 -62 -6 Q 0 4 62 -6 Q ${-B.belt[0] + 20} -40 ${-B.belt[0]} ${(B.beltY ?? -78) + 4} Z`
+                : `M ${B.belt[0]} ${(B.beltY ?? -78) + 4} Q ${B.belt[0] - 16} -50 -56 -20 Q 0 -10 56 -20 Q ${-B.belt[0] + 16} -50 ${-B.belt[0]} ${(B.beltY ?? -78) + 4} Z`
+            }
+            fill={outfit === 'skirt' ? skirt ?? trim : robe}
+            stroke={INK}
+            strokeWidth={SW}
+            strokeLinejoin="round"
+          />
+        )}
+        {longDress && (
+          <g stroke={mixColor(robe.length === 7 ? robe : '#444444', '#1b1a22', 0.35)} strokeWidth={3} fill="none" opacity={0.6}>
+            <path d="M -14 -70 Q -20 -40 -26 -8" />
+            <path d="M 14 -70 Q 20 -40 26 -8" />
+          </g>
+        )}
+        {B.bust && (
+          <path d="M -26 -112 Q -15 -100 -3 -108 M 3 -108 Q 15 -100 26 -112" stroke={INK} strokeWidth={3} fill="none" strokeLinecap="round" opacity={0.55} />
+        )}
+        {(outfit === 'dress' || outfit === 'skirt') && (
+          <rect x={B.belt[0]} y={(B.beltY ?? -78) - 2} width={B.belt[1]} height={9} rx={4} fill={trim} stroke={INK} strokeWidth={3} />
+        )}
         {outfit === 'robe' && (
           <>
             <path d="M 0 -142 L 0 -40" stroke={trim} strokeWidth={6} />
-            <rect x={B.belt[0]} y={-78} width={B.belt[1]} height={11} fill={trim} stroke={INK} strokeWidth={3} />
+            <rect x={B.belt[0]} y={B.beltY ?? -78} width={B.belt[1]} height={11} fill={trim} stroke={INK} strokeWidth={3} />
           </>
         )}
         {outfit === 'suit' && (
@@ -474,20 +597,16 @@ export const Person: React.FC<PersonProps> = ({
               strokeWidth={4}
             />
           )}
-          {hair && (hat === 'none' || hat === 'officerCap') && (
-            <path
-              transform={`translate(0 ${dTop})`}
-              d="M -63 -206 Q -66 -262 -8 -270 Q 50 -272 64 -210 Q 58 -236 34 -246 Q 8 -238 -18 -248 Q -46 -240 -63 -206 Z"
-              fill={hair}
-              stroke={INK}
-              strokeWidth={4}
-              strokeLinejoin="round"
-            />
+          {hair && (hat === 'none' || hat === 'officerCap' || hat === 'crown') && (
+            <g transform={`translate(0 ${dTop})`}>
+              <FrontHair style={hairStyle} color={hair} />
+            </g>
           )}
+          {earrings && hat !== 'hijab' && [-63, 63].map((ex) => <circle key={ex} cx={ex} cy={-178} r={6} fill={earrings} stroke={INK} strokeWidth={2.5} />)}
           {mustache && <path d="M -30 -186 Q -14 -198 0 -190 Q 14 -198 30 -186 Q 16 -176 0 -182 Q -16 -176 -30 -186 Z" fill={mustache} stroke={INK} strokeWidth={3} />}
           <Brows expr={expr} />
-          <Eyes expr={expr} blink={blink && expr !== 'shock'} look={look} skin={skin} />
-          <Mouth expr={expr} frame={frame} />
+          <Eyes expr={expr} blink={blink && expr !== 'shock'} look={look} skin={skin} lashes={showLashes} />
+          <Mouth expr={expr} frame={frame} lips={lips} />
           {expr === 'strain' && (
             <path
               d={`M 62 -236 q 9 ${14 + (frame % 20)} 0 ${20 + (frame % 20)} q -9 -6 0 -${20 + (frame % 20)} Z`}
@@ -497,7 +616,7 @@ export const Person: React.FC<PersonProps> = ({
             />
           )}
           <g transform={`translate(0 ${dTop})`}>
-            <HatShape hat={hat} trim={trim} />
+            <HatShape hat={hat} trim={hat === 'hijab' ? hijabColor : trim} />
           </g>
         </g>
       </g>
@@ -553,3 +672,62 @@ const Shade: React.FC<{
     </g>
   </g>
 );
+
+/** الشعر الخلفي (يُرسم خلف الرأس والجسم) */
+const BackHair: React.FC<{style: HairStyle; color: string; frame: number; seed: number}> = ({style, color, frame, seed}) => {
+  const st = {fill: color, stroke: INK, strokeWidth: 4, strokeLinejoin: 'round' as const};
+  const sway = Math.sin(frame / 9 + seed) * 6;
+  switch (style) {
+    case 'long':
+      return <path d={`M -68 -222 Q -84 -150 -66 -92 Q -30 -84 0 -88 Q 30 -84 66 -92 Q 84 -150 68 -222 Q 0 -300 -68 -222 Z`} {...st} />;
+    case 'bob':
+      return <path d="M -74 -214 Q -80 -160 -62 -136 Q 0 -128 62 -136 Q 80 -160 74 -214 Q 0 -296 -74 -214 Z" {...st} />;
+    case 'ponytail':
+      return <path d={`M 44 -250 Q ${118 + sway} -236 ${104 + sway} -160 Q ${98 + sway} -126 ${78 + sway} -112 Q ${92 + sway} -168 56 -214 Z`} {...st} />;
+    case 'braid':
+      return (
+        <g>
+          {Array.from({length: 7}, (_, i) => (
+            <ellipse key={i} cx={52 + i * 3 + (sway * i) / 7} cy={-176 + i * 18} rx={13 - i * 0.6} ry={11} {...st} />
+          ))}
+        </g>
+      );
+    default:
+      return null;
+  }
+};
+
+/** الشعر الأمامي (فوق الوجه، تحت القبعة) */
+const FrontHair: React.FC<{style: HairStyle; color: string}> = ({style, color}) => {
+  const st = {fill: color, stroke: INK, strokeWidth: 4, strokeLinejoin: 'round' as const};
+  switch (style) {
+    case 'short':
+      return <path d="M -63 -206 Q -66 -262 -8 -270 Q 50 -272 64 -210 Q 58 -236 34 -246 Q 8 -238 -18 -248 Q -46 -240 -63 -206 Z" {...st} />;
+    case 'bun':
+      return (
+        <g>
+          <circle cx={0} cy={-276} r={28} {...st} />
+          <path d="M -63 -206 Q -64 -268 0 -270 Q 64 -268 63 -206 Q 52 -248 0 -250 Q -52 -248 -63 -206 Z" {...st} />
+        </g>
+      );
+    case 'long':
+      return (
+        <g>
+          <path d="M -64 -206 Q -66 -270 0 -272 Q 66 -270 64 -206 Q 58 -240 28 -246 Q 4 -232 -6 -252 Q -34 -236 -64 -206 Z" {...st} />
+          <path d="M -64 -210 Q -74 -166 -62 -132 L -52 -140 Q -58 -176 -56 -216 Z" {...st} />
+          <path d="M 64 -210 Q 74 -166 62 -132 L 52 -140 Q 58 -176 56 -216 Z" {...st} />
+        </g>
+      );
+    case 'bob':
+      return (
+        <g>
+          <path d="M -66 -200 Q -68 -272 0 -274 Q 68 -272 66 -200 Q 56 -236 20 -238 Q 0 -244 -20 -238 Q -56 -236 -66 -200 Z" {...st} />
+          <path d="M -66 -204 Q -72 -164 -60 -146 L -50 -150 Q -56 -176 -56 -210 Z" {...st} />
+          <path d="M 66 -204 Q 72 -164 60 -146 L 50 -150 Q 56 -176 56 -210 Z" {...st} />
+        </g>
+      );
+    default:
+      // ponytail / braid: غرة مشدودة للخلف
+      return <path d="M -63 -206 Q -64 -268 0 -270 Q 64 -268 63 -206 Q 50 -244 10 -246 Q -40 -244 -63 -206 Z" {...st} />;
+  }
+};

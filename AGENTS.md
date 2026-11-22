@@ -266,7 +266,13 @@ studio/
 - `build`: `normal | broad` (كتفان عريضان، شكل V) `| belly` (كرش) `| slim` (نحيف). يغيّر شكل الجسم وموضع الكتفين وعرض الحزام والأرجل.
 - `face`: `round | square | jaw` (فك قوي) `| pointy` (ذقن حاد) `| long | wide` (عريض ممتلئ). الشعر والقبعة يُزاحان تلقائياً حسب ارتفاع الرأس (`FACE[face].top`).
 - `shading`: `none` (افتراضي، مسطّح) `| cel` (هلال ظل حاد بلون بنفسجي بارد في الجهة البعيدة عن الضوء + لمعة + احمرار خدين + ظل تحت الذقن + ظل على الأذرع) `| soft` (تدرج دائري ناعم). الضوء مفترض من أعلى اليسار. يستخدم `React.useId()` لمعرّفات mask/clip فريدة.
-- لوحات مرجعية: Compositions `SheetBuild` و`SheetFaces` في `src/CharacterSheet.tsx` — صدّرها بـ `npx remotion still src/index.ts SheetFaces out.png --frame=0`.
+- **شخصيات نسائية:** `build='female'` (كتفان أضيق، خصر محدد، وركان أعرض، خط صدر خفيف) أو `femaleFull` (أكثر امتلاءً/أكبر سناً). الرموش تظهر تلقائياً معهما (`lashes` للتحكم).
+  - `outfit`: `dress` (فستان طويل يغطي الأرجل، تظهر القدمان فقط) `| skirt` (بلوزة بلون `robe` + تنورة بلون `skirt`) `| abaya` (عباءة طويلة بلا حزام).
+  - `hairStyle`: `short | long | bun | ponytail | bob | braid` — الجزء الخلفي (`BackHair`) يُرسم قبل الجسم، والأمامي (`FrontHair`) فوق الوجه.
+  - `hat='hijab'` (جزء خلفي قبل الرأس + إطار أمامي حول الوجه، لونه `scarf` أو `trim`) و`hat='crown'` (تاج ذهبي بأحجار).
+  - `lips` لون الشفاه (للتعابير neutral/think/smug)، `earrings` لون الأقراط.
+  - الأسلوب محتشم وكرتوني؛ حافظ عليه.
+- لوحات مرجعية: Compositions `SheetBuild` و`SheetFaces` و`SheetWomen` في `src/CharacterSheet.tsx` — صدّرها بـ `npx remotion still src/index.ts SheetFaces out.png --frame=0`.
 - `look=[dx,dy]` اتجاه النظر (−1..1). `jolt` 0..1 قفزة لحظية (استعمل `Math.sin(prog(f,a,a+10)*Math.PI)`). `seed` يغيّر توقيت الرمش والتنفس بين الشخصيات.
 - `flip` يعكس الشخصية أفقياً. `rot` لميلها على منحدر.
 - شخصيات الحلقة ٢: عبد الناصر — ثابت `NASSER` في `episodes/suez1956/ShotsA.tsx` (بدلة `#3a3e4a`، ربطة `#5a1e28`، شعر وشارب `#1a1512`، بشرة `#c98f68`). استورده بـ `{...NASSER}` لضمان ثبات المظهر. فريق التسلّم: بدل مدنية + ضباط بـ `uniform`/`officerCap`.
