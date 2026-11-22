@@ -297,6 +297,15 @@ studio/
   - **الشعر الخلفي والحجاب:** خلف الجسم عادةً، وفوق الظهر في المنظر الخلفي (`backOnTop`). ذيل الحصان والضفيرة يُعكسان في الجانب ويتوسطان في الخلفي. الحجاب يغطي الرأس كاملاً من الخلف.
   - **القبعات:** زخارف الواجهة داخل `<Front>` في `HatShape` (تدور وتختفي من الخلف)؛ حافة الكاب تبرز للأمام في الجانب.
   - اختبار: Compositions `TurnSheetA/B/C` (لوحات دوران) و`TurnTest` (فيديو) في `src/Turnaround.tsx`.
+- **الأشياء في الأيدي (البند ٥) — `characters/items.tsx`:**
+  - `holdR` (اليد اليمنى للشخصية = الذراع ذات x<0 في المنظر الأمامي) و`holdL`. القيمة `ItemId` أو `{id, text}` للجريدة واللافتة.
+  - الأشياء (20): `kilij`، `spatha`، `spear`، `shield`، `bow`، `rifle`، `scroll`، `paper`، `book`، `newspaper`، `flagEgypt`، `flagOttoman`، `flagByz`، `placard`، `mic`، `torch`، `lantern`، `phone`، `tea`، `briefcase`.
+  - طريقة التثبيت (`ITEM_MODE`): `along` يتبع اتجاه الساعد، `upright` رأسي دائماً، `hang` يتدلى، `front` يواجه الكاميرا. الأصل المحلي للشيء = نقطة المسك، و−y = بعيداً عن اليد.
+  - الشيء يُرسم داخل `Arm` (عبر `ItemCtx`) قبل دائرة اليد، فيتبع إسقاط الذراع في كل الاتجاهات تلقائياً، ويختفي خلف الجسم مع الذراع البعيدة.
+  - وضعيات الأشياء: `raise`، `swing` (ضربة متحركة بدورة 30 إطاراً + أثر أبيض)، `read` (الشيء ينزل للصدر `frontDy=78` والعينان للأسفل)، `present` (`frontDy=24`)، `aim` (زاوية ثابتة 90°)، `shoulder` (−20°)، `carry`.
+  - ⚠️ الرأس كبير ويغطي ما تحت الذقن (y≈−136 فأعلى): ضع الأيدي والأشياء الأمامية تحت y≈−125 وإلا اختفت خلف الرأس في الثلاثة أرباع.
+  - السكريبت: `take <item> [right|left] [text="…"]` · `drop [right|left|both]` · `give [right|left] to <id>` (عرض ← انتقال الشيء عند +0.5ث ← رجوع الوضعيتين).
+  - لوحات: `ItemsCatalog`، `ItemPoses` (مع تسلسل إطارات الضربة والتسليم)، `ItemsTurn` — `src/ItemsSheet.tsx`.
 - لوحات مرجعية: Compositions `SheetBuild` و`SheetFaces` و`SheetWomen` في `src/CharacterSheet.tsx` — صدّرها بـ `npx remotion still src/index.ts SheetFaces out.png --frame=0`.
 - `look=[dx,dy]` اتجاه النظر (−1..1). `jolt` 0..1 قفزة لحظية (استعمل `Math.sin(prog(f,a,a+10)*Math.PI)`). `seed` يغيّر توقيت الرمش والتنفس بين الشخصيات.
 - `flip` يعكس الشخصية أفقياً. `rot` لميلها على منحدر.
@@ -383,6 +392,7 @@ const scene = useScene(SCRIPT, {cast: CAST, words, wordOffset: wordOffsetForShot
   - `turn front|threeQuarter|side|threeQuarterBack|back|<زاوية> [مدة]` · `face left|right` · `look at <id>`
   - `act <name>|none [energy=] [for 2s]` · `expr <name> [for …]` · `pose <name> [for …]` · `energy 0.8`
   - `hold` (لا تلتفت للكاميرا تلقائياً عند الوقوف) · `release`
+  - `take <item> [right|left] [text=…]` · `drop [right|left|both]` · `give [right|left] to <id>`
 - **التلقائي:** المدة من المسافة والسرعة (السرعة × مقياس الشخصية)؛ `travel` لإيقاع الخطوات؛ الحركة الأفقية → جانبي باتجاه الحركة (التفات عبر الأمام عند تغيير الجهة)؛ الحركة في العمق تحافظ على الاتجاه الحالي (فـ `turn back | walk to y=…` = ابتعاد بالظهر)؛ عند الوقوف التفات ناعم للكاميرا ما لم يُستخدم `hold`؛ `for` تعيد الحالة السابقة بعد المدة.
 - اختبار: Composition `ScriptTest` (`src/ScriptTest.tsx`) تعرض السكريبت والسطر المنفَّذ. مثال حقيقي: `TEAM_SCRIPT` في `episodes/suez1956/ShotsB.tsx`.
 

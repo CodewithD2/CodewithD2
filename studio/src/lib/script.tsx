@@ -1,6 +1,7 @@
 import React from 'react';
 import {useCurrentFrame} from 'remotion';
 import {Act, Expr, Person, PersonProps, Pose, VIEW_YAW, View} from '../characters/Person';
+import {Held, ITEM_MODE, ItemId} from '../characters/items';
 
 /* =====================================================================
  * سكريبت الحركة — تكتب التمثيل كنص، والمحرك يحسب كل إطار.
@@ -43,6 +44,8 @@ type ActorTL = {
   energy: Step<number>[];
   visible: Step<boolean>[];
   autoFront: Step<boolean>[];
+  holdR: Step<Held | undefined>[];
+  holdL: Step<Held | undefined>[];
   jumps: {t0: number; t1: number; h: number}[];
   cursor: number; // متى تنتهي آخر أوامر الشخصية
 };
@@ -60,6 +63,8 @@ export type ActorState = {
   pose?: Pose;
   energy: number;
   visible: boolean;
+  holdR?: Held;
+  holdL?: Held;
 };
 
 export class ScriptError extends Error {
@@ -123,6 +128,8 @@ export const buildScene = (script: string, opts: SceneOpts): Scene => {
         energy: [{t: 0, v: c.energy ?? 0.5}],
         visible: [{t: 0, v: true}],
         autoFront: [{t: 0, v: c.autoFront ?? true}],
+        holdR: [{t: 0, v: c.holdR}],
+        holdL: [{t: 0, v: c.holdL}],
         jumps: [],
         cursor: 0,
       };
@@ -336,6 +343,42 @@ export const buildScene = (script: string, opts: SceneOpts): Scene => {
           cur += 0.5;
           break;
         }
+        case 'take': {
+          // take <item> [right|left] [text="..."]
+          const it = pos[0] as ItemId;
+          if (!it || !(it in ITEM_MODE)) throw new ScriptError(line, `take <شيء>؟ المتاح: ${Object.keys(ITEM_MODE).join('، ')}`);
+          const held: Held = kv.text ? {id: it, text: kv.text} : it;
+          (pos[1] === 'left' ? a.holdL : a.holdR).push({t: cur, v: held});
+          break;
+        }
+        case 'drop': {
+          const side = pos[0] ?? 'right';
+          if (side === 'right' || side === 'both') a.holdR.push({t: cur, v: undefined});
+          if (side === 'left' || side === 'both') a.holdL.push({t: cur, v: undefined});
+          break;
+        }
+        case 'give': {
+          // give [right|left] to <id>: مدّ اليد، ينتقل الشيء، ثم يعود كل منهما
+          const side = pos[0] === 'left' ? 'left' : 'right';
+          const ti = pos.indexOf('to');
+          const other = ti >= 0 ? pos[ti + 1] : undefined;
+          if (!other) throw new ScriptError(line, 'give [right|left] to <شخصية>');
+          const b = actor(other, line);
+          const from = side === 'left' ? a.holdL : a.holdR;
+          const item = stepAt(from, cur, undefined);
+          if (!item) throw new ScriptError(line, `${id} لا يمسك شيئاً في يده ${side === 'left' ? 'اليسرى' : 'اليمنى'}`);
+          const prevPoseA = stepAt(a.pose, cur, undefined);
+          const prevPoseB = stepAt(b.pose, cur, undefined);
+          a.pose.push({t: cur, v: 'present'});
+          b.pose.push({t: cur + 0.25, v: 'present'});
+          from.push({t: cur + 0.5, v: undefined});
+          b.holdR.push({t: cur + 0.5, v: item});
+          a.pose.push({t: cur + 0.8, v: prevPoseA});
+          b.pose.push({t: cur + 0.95, v: prevPoseB});
+          cur += 0.8;
+          b.cursor = Math.max(b.cursor, cur + 0.15);
+          break;
+        }
         case 'hold':
           a.autoFront.push({t: cur, v: false});
           a.yaw = a.yaw.filter((s) => !(s.soft && s.t0 >= cur - 0.2));
@@ -353,7 +396,7 @@ export const buildScene = (script: string, opts: SceneOpts): Scene => {
         default:
           throw new ScriptError(
             line,
-            `أمر غير معروف: ${cmd}. المتاح: enter walk run move stop wait turn face look act expr pose energy jump hold release show hide exit`,
+            `أمر غير معروف: ${cmd}. المتاح: enter walk run move stop wait turn face look act expr pose energy jump take drop give hold release show hide exit`,
           );
       }
     }
@@ -381,6 +424,8 @@ export const buildScene = (script: string, opts: SceneOpts): Scene => {
       pose: stepAt(a.pose, t, undefined),
       energy: stepAt(a.energy, t, 0.5),
       visible: stepAt(a.visible, t, true),
+      holdR: stepAt(a.holdR, t, undefined),
+      holdL: stepAt(a.holdL, t, undefined),
     };
   };
 
@@ -420,6 +465,8 @@ export const Actor: React.FC<{scene: Scene; id: string; frameOffset?: number}> =
       expr={st.expr ?? base.expr}
       pose={st.pose ?? base.pose}
       energy={st.energy}
+      holdR={st.holdR}
+      holdL={st.holdL}
       frame={f}
     />
   );

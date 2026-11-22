@@ -1,5 +1,6 @@
 import React from 'react';
 import {INK, mixColor} from '../lib/util';
+import {Held, HeldItem} from './items';
 
 /*
  * شخصية بأسلوب كرتوني مبسّط: رأس مستدير كبير، عيون نقطية، خط خارجي سميك،
@@ -59,7 +60,10 @@ const FACE: Record<Face, {d: string; top: number}> = {
 /** لون الظل: يميل للبنفسجي البارد بدل الأسود ليبقى حيوياً */
 const shadeOf = (c: string, k = 0.38) => (c.startsWith('#') && c.length === 7 ? mixColor(c, '#3a2244', k) : 'rgba(40,20,50,0.35)');
 const lightOf = (c: string, k = 0.35) => (c.startsWith('#') && c.length === 7 ? mixColor(c, '#fff4e0', k) : 'rgba(255,255,255,0.3)');
-export type Pose = 'stand' | 'cross' | 'chin' | 'point' | 'pull' | 'armsUp' | 'stretch' | 'fist' | 'wave' | 'podium' | 'fists' | 'belly' | 'droop' | 'cower' | 'gesture';
+export type Pose =
+  | 'stand' | 'cross' | 'chin' | 'point' | 'pull' | 'armsUp' | 'stretch' | 'fist' | 'wave' | 'podium' | 'fists' | 'belly' | 'droop' | 'cower' | 'gesture'
+  /* وضعيات مع الأشياء */
+  | 'raise' | 'swing' | 'read' | 'present' | 'aim' | 'shoulder' | 'carry';
 
 export type PersonProps = {
   x: number;
@@ -98,6 +102,10 @@ export type PersonProps = {
    * إن لم يُحدَّد: جانبي تلقائياً أثناء walk/run، وأمامي غير ذلك. للالتفات الناعم استخدم yawAt().
    */
   view?: View | number;
+  /** شيء في اليد اليمنى للشخصية (يسار الشاشة في المنظر الأمامي) */
+  holdR?: Held;
+  /** شيء في اليد اليسرى */
+  holdL?: Held;
   hairStyle?: HairStyle;
   /** رموش (تلقائياً مع البنية الأنثوية) */
   lashes?: boolean;
@@ -117,6 +125,9 @@ const SW = 5; // سُمك الخط الخارجي
 const ArmShade = React.createContext<string | null>(null);
 /** إسقاط الذراعين حسب الاتجاه + أي ذراع يُرسم الآن (البعيدة قبل الجسم، القريبة بعده) */
 type ArmCtxT = {cy: number; sy: number; draw: 'all' | 'far' | 'near'};
+/** الأشياء الممسوكة: R لليد اليمنى (الذراع ذات x<0 في الأمامي)، L لليسرى، وزوايا ثابتة لبعض الوضعيات */
+type ItemCtxT = {R?: Held; L?: Held; ovR?: number; ovL?: number; frame: number; frontDy?: number};
+const ItemCtx = React.createContext<ItemCtxT>({frame: 0});
 const ArmCtx = React.createContext<ArmCtxT>({cy: 1, sy: 0, draw: 'all'});
 
 const Arm: React.FC<{from: [number, number]; mid: [number, number]; to: [number, number]; robe: string; skin: string; raw?: boolean; nearSide?: boolean}> = ({
@@ -130,6 +141,7 @@ const Arm: React.FC<{from: [number, number]; mid: [number, number]; to: [number,
 }) => {
   const shade = React.useContext(ArmShade);
   const {cy, sy, draw} = React.useContext(ArmCtx);
+  const items = React.useContext(ItemCtx);
   // الذراع اليسرى على الشاشة (x<0) هي القريبة حين تنظر الشخصية لليمين
   const near = nearSide ?? from0[0] < 0;
   if (draw === 'far' && near) return null;
@@ -149,6 +161,16 @@ const Arm: React.FC<{from: [number, number]; mid: [number, number]; to: [number,
       <path d={d} stroke={INK} strokeWidth={24} fill="none" strokeLinecap="round" />
       <path d={d} stroke={robe} strokeWidth={14} fill="none" strokeLinecap="round" />
       {shade && <path d={d} stroke={shade} strokeWidth={5} fill="none" strokeLinecap="round" transform="translate(2 4)" opacity={0.85} />}
+      {(near ? items.R : items.L) && (
+        <HeldItem
+          item={(near ? items.R : items.L) as Held}
+          at={to}
+          dir={Math.atan2(to[1] - mid[1], to[0] - mid[0])}
+          frame={items.frame}
+          angleOverride={near ? items.ovR : items.ovL}
+          frontDy={items.frontDy}
+        />
+      )}
       <circle cx={to[0]} cy={to[1]} r={11} fill={skin} stroke={INK} strokeWidth={SW - 1} />
     </g>
   );
@@ -453,6 +475,8 @@ export const Person: React.FC<PersonProps> = ({
   energy = 0.5,
   act,
   view,
+  holdR,
+  holdL,
 }) => {
   // ===== الاتجاه =====
   const yawDeg = Math.max(0, Math.min(180, view === undefined ? (motion === 'walk' || motion === 'run' ? 90 : 0) : typeof view === 'number' ? view : VIEW_YAW[view]));
@@ -476,7 +500,14 @@ export const Person: React.FC<PersonProps> = ({
   const expr: Expr = act ? ACTS[act].expr : exprIn;
   const pose: Pose = act ? ACTS[act].pose : poseIn;
   const M = computeMotion({motion, travel, frame, s, energy, act, seed});
-  const look: [number, number] = act === 'sad' ? [0, 1] : lookIn;
+  const look: [number, number] = act === 'sad' || poseIn === 'read' ? [0, 1] : lookIn;
+  const itemCtx: ItemCtxT = {
+    R: holdR,
+    L: holdL,
+    frame,
+    ovR: poseIn === 'aim' ? 90 : poseIn === 'shoulder' ? -20 : undefined,
+    frontDy: poseIn === 'read' ? 78 : poseIn === 'present' ? 24 : 0,
+  };
 
   // رمش كل ثلاث ثوانٍ تقريباً، مع اختلاف التوقيت بين الشخصيات
   const blink = (frame + seed * 37) % 97 < 4;
@@ -520,6 +551,87 @@ export const Person: React.FC<PersonProps> = ({
       );
       break;
     }
+    case 'raise':
+      // يرفع الشيء فوق الرأس
+      arms = (
+        <>
+          <Arm from={sh} mid={[sh[0] - 22, -196]} to={[sh[0] - 4, -268 - Math.sin(frame / 6) * 4 * M.sc]} robe={robe} skin={skin} />
+          <Arm from={sh2} mid={[56, -80]} to={[46, -52]} robe={robe} skin={skin} />
+        </>
+      );
+      break;
+    case 'swing': {
+      // ضربة سيف: رفع للخلف ← ضربة سريعة ← عودة
+      const p = (((frame + seed * 5) % 30) + 30) % 30 / 30;
+      const ease = (t: number) => 1 - (1 - t) * (1 - t);
+      const a = p < 0.6 ? 0.3 + (-2.8 - 0.3) * ease(p / 0.6) : p < 0.75 ? -2.8 + (1.0 + 2.8) * ((p - 0.6) / 0.15) : 1.0 + (0.3 - 1.0) * ((p - 0.75) / 0.25);
+      const L = 72;
+      const hand: [number, number] = [sh[0] + Math.sin(a) * L, -122 + Math.cos(a) * L];
+      const elbow: [number, number] = [sh[0] + Math.sin(a) * L * 0.5 - 14, -122 + Math.cos(a) * L * 0.5 + 6];
+      const strike = p >= 0.6 && p < 0.8;
+      arms = (
+        <>
+          {strike && (
+            <path
+              d={`M ${sh[0] + Math.sin(-2.6) * 190} ${-122 + Math.cos(-2.6) * 190} A 190 190 0 0 1 ${sh[0] + Math.sin(a) * 190} ${-122 + Math.cos(a) * 190}`}
+              fill="none"
+              stroke="#fff"
+              strokeWidth={14}
+              opacity={0.55}
+              strokeLinecap="round"
+            />
+          )}
+          <Arm from={sh} mid={elbow} to={hand} robe={robe} skin={skin} raw={sy < 0.3 && cy > 0} nearSide />
+          <Arm from={sh2} mid={[56, -90]} to={[40, -64]} robe={robe} skin={skin} />
+        </>
+      );
+      break;
+    }
+    case 'read':
+      // يمسك الورقة أمام صدره بيديه ويقرأ
+      arms = (
+        <>
+          <Arm from={sh} mid={[sh[0] - 6, -100]} to={[-14, -146]} robe={robe} skin={skin} />
+          <Arm from={sh2} mid={[sh2[0] + 6, -100]} to={[14, -146]} robe={robe} skin={skin} />
+        </>
+      );
+      break;
+    case 'present':
+      // يمد الشيء للأمام ويعرضه
+      arms = (
+        <>
+          <Arm from={sh} mid={[sh[0] - 46, -100]} to={[sh[0] - 86, -118]} robe={robe} skin={skin} />
+          <Arm from={sh2} mid={[56, -80]} to={[46, -52]} robe={robe} skin={skin} />
+        </>
+      );
+      break;
+    case 'aim':
+      // يصوّب البندقية للأمام
+      arms = (
+        <>
+          <Arm from={sh} mid={[-20, -120]} to={[-4, -150]} robe={robe} skin={skin} />
+          <Arm from={sh2} mid={[60, -130]} to={[74, -154]} robe={robe} skin={skin} />
+        </>
+      );
+      break;
+    case 'shoulder':
+      // الشيء على الكتف
+      arms = (
+        <>
+          <Arm from={sh} mid={[sh[0] - 20, -110]} to={[sh[0] + 2, -150]} robe={robe} skin={skin} />
+          <Arm from={sh2} mid={[56, -80]} to={[46, -52]} robe={robe} skin={skin} />
+        </>
+      );
+      break;
+    case 'carry':
+      // الشيء في اليد بجانب الجسم
+      arms = (
+        <>
+          <Arm from={sh} mid={[sh[0] - 14, -92]} to={[sh[0] - 12, -60]} robe={robe} skin={skin} />
+          <Arm from={sh2} mid={[56, -80]} to={[46, -52]} robe={robe} skin={skin} />
+        </>
+      );
+      break;
     case 'fists': {
       // قبضتان مشدودتان بجانب الجسم وترتجفان
       const t = Math.sin(frame * 1.7) * 3 * M.sc;
@@ -739,7 +851,9 @@ export const Person: React.FC<PersonProps> = ({
         {/* الذراع البعيدة خلف الجسم عند الالتفات */}
         {sy > 0.3 && (
           <ArmCtx.Provider value={{cy, sy, draw: 'far'}}>
-            <ArmShade.Provider value={shading === 'none' ? null : shadeOf(robe)}>{arms}</ArmShade.Provider>
+            <ArmShade.Provider value={shading === 'none' ? null : shadeOf(robe)}>
+              <ItemCtx.Provider value={itemCtx}>{arms}</ItemCtx.Provider>
+            </ArmShade.Provider>
           </ArmCtx.Provider>
         )}
         {/* الجسم: يضيق عند الالتفات */}
@@ -817,7 +931,9 @@ export const Person: React.FC<PersonProps> = ({
         {shading !== 'none' && <Shade id={`b${uid}`} d={B.d} color={shadeOf(robe)} light={lightOf(robe)} mode={shading} dx={-16} dy={-6} neck />}
         </g>
         <ArmCtx.Provider value={{cy, sy, draw: sy > 0.3 ? 'near' : 'all'}}>
-          <ArmShade.Provider value={shading === 'none' ? null : shadeOf(robe)}>{arms}</ArmShade.Provider>
+          <ArmShade.Provider value={shading === 'none' ? null : shadeOf(robe)}>
+              <ItemCtx.Provider value={itemCtx}>{arms}</ItemCtx.Provider>
+            </ArmShade.Provider>
         </ArmCtx.Provider>
         {backOnTop && backLayer}
         {/* الرأس */}
