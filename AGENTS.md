@@ -22,7 +22,12 @@
 فيديو MP4 بدقة 1920×1080، 30fps، مع الصوت والترجمة المدمجة
 ```
 
-المشهد المنجز حتى الآن: **«السفن فوق اليابسة»** (حصار القسطنطينية ١٤٥٣) — ٣١ ثانية، ٤ لقطات.
+الحلقات المنجزة (كل حلقة Composition مستقلة في `studio/src/Root.tsx`):
+
+| Composition | الموضوع | المدة | الملفات |
+|---|---|---|---|
+| `ShipsOverland` | السفن فوق اليابسة — حصار القسطنطينية ١٤٥٣ | ٣١ث، ٤ لقطات | `src/Episode.tsx`، `src/shots/`، `src/cues.json`، `public/voice.mp3`، `public/drone.wav` |
+| `Suez1956` | خطاب عبد الناصر وتأميم قناة السويس — ٢٦ يوليو ١٩٥٦ | ٣٢ث، ٤ لقطات | `src/episodes/suez1956/`، `public/suez/voice.mp3`، `public/suez/drone.wav` |
 
 يوجد في المستودع **نظامان**:
 
@@ -151,11 +156,20 @@ studio/
 └── src/
     ├── index.ts            # registerRoot
     ├── Root.tsx            # تحميل خط Amiri محلياً (FontFace + delayRender) + تعريف Composition "ShipsOverland"
-    ├── Episode.tsx         # ترتيب اللقطات (SHOTS)، الانتقالات، الصوت، الترجمة، fade in/out
-    ├── Subtitles.tsx       # الترجمة من cues.json + VOICE_DELAY
-    ├── cues.json           # توقيت الجمل (ثوانٍ) من SRT
+    ├── Episode.tsx         # الحلقة ١ (ShipsOverland): قائمة SHOTS فقط → EpisodeBase
+    ├── Subtitles.tsx       # الترجمة (تستقبل cues كـ prop) + VOICE_DELAY + type Cue
+    ├── cues.json           # توقيت جمل الحلقة ١
+    ├── episodes/
+    │   └── suez1956/       # الحلقة ٢ — نمط كل حلقة جديدة:
+    │       ├── Episode.tsx #   SUEZ_SHOTS + SUEZ_DURATION_S + SuezEpisode → EpisodeBase
+    │       ├── cues.json   #   توقيت الجمل
+    │       ├── palettes.ts #   ALEX_DUSK، SPEECH، CANAL_NIGHT، CELEBRATE
+    │       ├── props.tsx   #   Crowd، Bourse، Mics، Searchlights، AlexSkyline، Qaitbay، Palm، CanalHQ، Steamer، Car، Radio، RadioWaves، Confetti، EgyptFlag
+    │       ├── ShotsA.tsx  #   NASSER (مظهر الشخصية) + SuezShot1 (الحشود) + SuezShot2 (كلمة السر)
+    │       └── ShotsB.tsx  #   SuezShot3 (الإسماعيلية) + SuezShot4 (الإعلان والاحتفال)
     ├── characters/Person.tsx
     ├── lib/
+    │   ├── EpisodeBase.tsx # هيكل عام لأي حلقة: لقطات + crossfade + صوت + drone + ترجمة + FilmLook + fade
     │   ├── stage.tsx       # محرك 2.5D: Stage، Layer، Art، Sky، camAt
     │   ├── palette.ts      # لوحات الألوان + atmos()
     │   ├── fx.tsx          # Bloom، Halo، Embers، Smoke، Motes، Cloud، GodRays، MistBand، ColorGrade
@@ -244,12 +258,15 @@ studio/
 <Person x y s? flip? rot? frame seed? skin? robe trim? hat expr pose beard? look? jolt? />
 ```
 - الأصل (0,0) **عند القدمين**؛ الطول ≈ 270 وحدة عند `s=1`. الرأس مركزه y=−200.
-- `expr`: `neutral | smug | shock | think | strain | idea | sleepy | happy`
-- `pose`: `stand | cross | chin | point | pull | armsUp | stretch`
-- `hat`: `sultan` (عمامة بيضاء + قاووق أحمر) | `vizier` | `byzHelmet` (خوذة بيزنطية + ريشة) | `bork` (قبعة الإنكشارية) | `cap` (عامل) | `none`
+- `expr`: `neutral | smug | shock | think | strain | idea | sleepy | happy | speak` (فم يتكلم متحرك) `| shout` (هتاف بحماس)
+- `pose`: `stand | cross | chin | point | pull | armsUp | stretch | fist` (قبضة مرفوعة) `| wave` (تلويح) `| podium` (خطيب يحرك يده)
+- `hat`: `sultan` (عمامة بيضاء + قاووق أحمر) | `vizier` | `byzHelmet` (خوذة بيزنطية + ريشة) | `bork` (قبعة الإنكشارية) | `cap` (عامل) | `officerCap` (كاب ضابط) | `none`
+- `outfit`: `robe` (افتراضي: ثوب بخط وحزام بلون `trim`) | `suit` (بدلة + قميص أبيض + ربطة عنق بلون `tie`) | `uniform` (زي عسكري بحزام وكتّافات بلون `trim`)
+- `hair` (لون الشعر، يظهر مع `hat='none'` أو `officerCap`)، `mustache` (لون الشارب)، `beard` (لون اللحية)
 - `look=[dx,dy]` اتجاه النظر (−1..1). `jolt` 0..1 قفزة لحظية (استعمل `Math.sin(prog(f,a,a+10)*Math.PI)`). `seed` يغيّر توقيت الرمش والتنفس بين الشخصيات.
 - `flip` يعكس الشخصية أفقياً. `rot` لميلها على منحدر.
-- الشخصيات المعتمدة في المشهد: السلطان محمد الثاني (robe `#b3262c`، hat `sultan`، beard `#3a2416`)، الوزير (`#2f5f8f`، `vizier`، beard رمادي)، الحارس البيزنطي (`#7a2430`، `byzHelmet`)، العمال (`cap`، ألوان متنوعة، `strain`+`pull`)، الضابط الإنكشاري (`#2c5f8a`، `bork`).
+- شخصيات الحلقة ٢: عبد الناصر — ثابت `NASSER` في `episodes/suez1956/ShotsA.tsx` (بدلة `#3a3e4a`، ربطة `#5a1e28`، شعر وشارب `#1a1512`، بشرة `#c98f68`). استورده بـ `{...NASSER}` لضمان ثبات المظهر. فريق التسلّم: بدل مدنية + ضباط بـ `uniform`/`officerCap`.
+- الشخصيات المعتمدة في الحلقة ١: السلطان محمد الثاني (robe `#b3262c`، hat `sultan`، beard `#3a2416`)، الوزير (`#2f5f8f`، `vizier`، beard رمادي)، الحارس البيزنطي (`#7a2430`، `byzHelmet`)، العمال (`cap`، ألوان متنوعة، `strain`+`pull`)، الضابط الإنكشاري (`#2c5f8a`، `bork`).
 
 ---
 
@@ -275,6 +292,12 @@ studio/
 
 ---
 
+## ١١.٥ الحشود الكبيرة (`Crowd` في `episodes/suez1956/props.tsx`)
+- شخوص خفيفة (جسم + رأس + شعر + يد مرفوعة اختيارية + علم اختياري) بدل `Person` الثقيل.
+- `rows`، `gap`، `s0→s1` (حجم الصف الخلفي → الأمامي)، `cheer` 0..1 (رفع الأيدي والقفز)، `flags` نسبة حاملي الأعلام، `hats` قبعات تُرمى، `outline` للصفوف القريبة فقط.
+- **الأداء:** `sp` يزيد التباعد (1.5 للحشد البعيد)، و`mass` يرسم كتلة لون خلف الحشد فيبدو كثيفاً بعدد أقل من الشخوص. وزّع الحشد على ٣ طبقات (بعيد/متوسط/قريب) لعمق حقيقي.
+- **التكوين:** اجعل الحشد يملأ النصف السفلي من الكادر فوق خط الترجمة (المبنى/الخطيب في الثلث العلوي)، وإلا يختفي الحشد تحت الترجمة.
+
 ## ١٢. إضافة حلقة/مشهد جديد — الخطوات
 
 1. اكتب النص في `narrator/scripts/<name>.txt` (§٥).
@@ -284,7 +307,7 @@ studio/
    - اختر/أنشئ `Palette`.
    - `Sky` ← `Stage cam={camAt(...)}` ← ٦–٨ `Layer` بأعماق متدرجة ← `ColorGrade`.
    - أعد استخدام `CityEpic`، `Ridge`، `Person`، `Ship`، `Campfire`... قبل رسم جديد.
-5. حدّث `SHOTS` و`DURATION_S` في `Episode.tsx` (وأنشئ Composition جديدة في `Root.tsx` إن أردت الإبقاء على القديمة).
+5. أنشئ مجلد `src/episodes/<name>/` على نمط `suez1956`: `Episode.tsx` يعرّف قائمة اللقطات والمدة ويستدعي `<EpisodeBase shots cues voice="<name>/voice.mp3" drone="<name>/drone.wav" />`، وضع الصوت في `public/<name>/`. ثم سجّل `<Composition id=... />` جديدة في `Root.tsx`.
 6. `npx tsc --noEmit -p .` ← لقطات `still` ← تصيير كامل.
 
 ---
@@ -306,3 +329,4 @@ studio/
 3. مشهد ٣٠ ثانية أول بـ HTML5 Canvas + Playwright + ffmpeg (`narrator/render.js`) بخط Amiri.
 4. إعادة البناء بـ Remotion 4 في `studio/`: محرك 2.5D (طبقات parallax في CSS 3D، كاميرا، FOV، dolly zoom) + شخصيات كرتونية أصلية بتعابير ووضعيات.
 5. تمريرة فنية ملحمية: لوحات ألوان لكل لقطة، atmospheric perspective، bloom حقيقي، شرر، دخان، ذرات، ضباب، سحب مرسومة، أشعة شمس، color grading، مدينة ملحمية، ومعسكر بالمدفع والرايات، وإصلاح ترتيب العناصر حسب العمق.
+6. الحلقة ٢ «تأميم قناة السويس»: هيكل `EpisodeBase` العام، مجلد `episodes/`، توسيع `Person` (شعر، شارب، بدلة، زي عسكري، كاب ضابط، تعابير speak/shout، أوضاع fist/wave/podium)، حشود ضخمة خفيفة، مبنى البورصة، الإسكندرية وقايتباي، كشافات، مبنى شركة القناة، بواخر، سيارات خمسينية، راديو وموجات بث، علم مصر ١٩٥٣، قصاصات احتفالية، وكلمة السر «فرديناند دي ليسبس» على الشاشة.

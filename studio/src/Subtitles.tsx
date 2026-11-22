@@ -1,11 +1,12 @@
 import React from 'react';
 import {useCurrentFrame, useVideoConfig} from 'remotion';
-import cues from './cues.json';
 import {prog} from './lib/util';
 
 export const VOICE_DELAY = 0.6; // ثوانٍ قبل بدء التعليق
 
-export const Subtitles: React.FC = () => {
+export type Cue = {s: number; e: number; text: string};
+
+export const Subtitles: React.FC<{cues: Cue[]}> = ({cues}) => {
   const frame = useCurrentFrame();
   const {fps} = useVideoConfig();
   const t = frame / fps - VOICE_DELAY;

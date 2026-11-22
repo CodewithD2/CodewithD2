@@ -6,9 +6,10 @@ import {INK} from '../lib/util';
  * جسم صغير وأذرع مرنة. نقطة الأصل (0,0) عند القدمين، والطول ≈ 270 وحدة.
  */
 
-export type Expr = 'neutral' | 'smug' | 'shock' | 'think' | 'strain' | 'idea' | 'sleepy' | 'happy';
-export type Hat = 'sultan' | 'vizier' | 'byzHelmet' | 'bork' | 'cap' | 'none';
-export type Pose = 'stand' | 'cross' | 'chin' | 'point' | 'pull' | 'armsUp' | 'stretch';
+export type Expr = 'neutral' | 'smug' | 'shock' | 'think' | 'strain' | 'idea' | 'sleepy' | 'happy' | 'speak' | 'shout';
+export type Hat = 'sultan' | 'vizier' | 'byzHelmet' | 'bork' | 'cap' | 'officerCap' | 'none';
+export type Outfit = 'robe' | 'suit' | 'uniform';
+export type Pose = 'stand' | 'cross' | 'chin' | 'point' | 'pull' | 'armsUp' | 'stretch' | 'fist' | 'wave' | 'podium';
 
 export type PersonProps = {
   x: number;
@@ -25,6 +26,12 @@ export type PersonProps = {
   expr: Expr;
   pose: Pose;
   beard?: string;
+  /** لون الشعر (يظهر حين لا يغطي الرأسَ غطاء كامل) */
+  hair?: string;
+  mustache?: string;
+  /** robe = ثوب تقليدي، suit = بدلة بقميص وربطة عنق، uniform = زي عسكري */
+  outfit?: Outfit;
+  tie?: string;
   look?: [number, number];
   /** 0..1 للانتقال الحاد في التعبير (مثل قفزة الصدمة) */
   jolt?: number;
@@ -111,6 +118,8 @@ const Brows: React.FC<{expr: Expr}> = ({expr}) => {
     idea: [-10, -3, -10, 3],
     sleepy: [4, -2, 4, 2],
     happy: [-6, -2, -6, 2],
+    speak: [-4, 2, -4, -2],
+    shout: [2, 8, 2, -8],
   };
   const [ly, ls, ry, rs] = b[expr];
   return (
@@ -143,6 +152,18 @@ const Mouth: React.FC<{expr: Expr; frame: number}> = ({expr, frame}) => {
     case 'idea':
     case 'happy':
       return <path d={`M -22 ${y - 8} Q 0 ${y + 22} 22 ${y - 8} Z`} fill={INK} />;
+    case 'speak': {
+      // فم يتكلم: يفتح ويغلق بإيقاع غير منتظم
+      const o = 3 + 9 * Math.abs(Math.sin(frame / 2.6) * Math.sin(frame / 7.3));
+      return <ellipse cx={0} cy={y + 2} rx={13} ry={o} fill={INK} />;
+    }
+    case 'shout':
+      return (
+        <g>
+          <path d={`M -24 ${y - 10} Q 0 ${y + 34} 24 ${y - 10} Z`} fill={INK} />
+          <path d={`M -14 ${y + 6} Q 0 ${y + 20} 14 ${y + 6}`} fill="#c0485a" />
+        </g>
+      );
     case 'sleepy': {
       const o = 6 + 6 * Math.abs(Math.sin(frame / 14));
       return <ellipse cx={0} cy={y + 2} rx={7} ry={o} fill={INK} />;
@@ -194,6 +215,16 @@ const HatShape: React.FC<{hat: Hat; trim: string}> = ({hat, trim}) => {
           <path d="M -6 -270 L 0 -318 L 6 -270 Z" fill={trim} />
         </g>
       );
+    case 'officerCap':
+      // كاب ضابط بحافة أمامية وشارة
+      return (
+        <g stroke={INK} strokeWidth={SW} strokeLinejoin="round">
+          <path d="M -66 -244 Q -70 -300 0 -304 Q 70 -300 66 -244 Z" fill="#8a7b4e" />
+          <rect x={-64} y={-256} width={128} height={16} fill="#5a4e30" />
+          <path d="M -50 -240 Q 10 -232 74 -246 Q 60 -226 -40 -230 Z" fill="#2a2418" />
+          <circle cx={0} cy={-276} r={10} fill={trim} />
+        </g>
+      );
     case 'cap':
       return (
         <g stroke={INK} strokeWidth={SW}>
@@ -221,6 +252,10 @@ export const Person: React.FC<PersonProps> = ({
   expr,
   pose,
   beard,
+  hair,
+  mustache,
+  outfit = 'robe',
+  tie = '#2a2a3a',
   look = [0, 0],
   jolt = 0,
 }) => {
@@ -281,6 +316,38 @@ export const Person: React.FC<PersonProps> = ({
       );
       break;
     }
+    case 'fist': {
+      // قبضة مرفوعة بحماس
+      const pump = Math.abs(Math.sin(frame / 5)) * 16;
+      arms = (
+        <>
+          <Arm from={sh} mid={[-56, -80]} to={[-46, -52]} robe={robe} skin={skin} />
+          <Arm from={sh2} mid={[76, -170]} to={[60, -250 - pump]} robe={robe} skin={skin} />
+        </>
+      );
+      break;
+    }
+    case 'wave': {
+      const w = Math.sin(frame / 4 + seed) * 16;
+      arms = (
+        <>
+          <Arm from={sh} mid={[-56, -80]} to={[-46, -52]} robe={robe} skin={skin} />
+          <Arm from={sh2} mid={[80, -160]} to={[70 + w, -240]} robe={robe} skin={skin} />
+        </>
+      );
+      break;
+    }
+    case 'podium': {
+      // يمسك حافة المنصة ويحرك يده أثناء الكلام
+      const g = Math.sin(frame / 6) * 18;
+      arms = (
+        <>
+          <Arm from={sh} mid={[-60, -96]} to={[-50, -70]} robe={robe} skin={skin} />
+          <Arm from={sh2} mid={[80, -120 + g / 2]} to={[96, -150 + g]} robe={robe} skin={skin} />
+        </>
+      );
+      break;
+    }
     case 'stretch':
       arms = (
         <>
@@ -327,8 +394,30 @@ export const Person: React.FC<PersonProps> = ({
           strokeWidth={SW}
           strokeLinejoin="round"
         />
-        <path d="M 0 -142 L 0 -40" stroke={trim} strokeWidth={6} />
-        <rect x={-44} y={-78} width={88} height={11} fill={trim} stroke={INK} strokeWidth={3} />
+        {outfit === 'robe' && (
+          <>
+            <path d="M 0 -142 L 0 -40" stroke={trim} strokeWidth={6} />
+            <rect x={-44} y={-78} width={88} height={11} fill={trim} stroke={INK} strokeWidth={3} />
+          </>
+        )}
+        {outfit === 'suit' && (
+          <g stroke={INK} strokeLinejoin="round">
+            <path d="M -20 -142 L 0 -92 L 20 -142 Z" fill="#f4f1ea" strokeWidth={3} />
+            <path d="M -6 -138 L 6 -138 L 9 -104 L 0 -92 L -9 -104 Z" fill={tie} strokeWidth={3} />
+            <path d="M -20 -142 L -6 -96 L -30 -112 M 20 -142 L 6 -96 L 30 -112" fill="none" strokeWidth={3} />
+            <circle cx={0} cy={-72} r={3.5} fill={INK} stroke="none" />
+            <circle cx={0} cy={-56} r={3.5} fill={INK} stroke="none" />
+          </g>
+        )}
+        {outfit === 'uniform' && (
+          <g stroke={INK} strokeWidth={3}>
+            <rect x={-44} y={-78} width={88} height={10} fill="#4a3a22" />
+            <rect x={-6} y={-79} width={12} height={12} fill={trim} />
+            <rect x={-50} y={-136} width={26} height={8} rx={3} fill={trim} />
+            <rect x={24} y={-136} width={26} height={8} rx={3} fill={trim} />
+            <path d="M -14 -142 L 0 -122 L 14 -142" fill="none" />
+          </g>
+        )}
         {arms}
         {/* الرأس */}
         <g transform={`rotate(${pose === 'pull' ? 6 : 0} 0 -200)`}>
@@ -341,6 +430,16 @@ export const Person: React.FC<PersonProps> = ({
               strokeWidth={4}
             />
           )}
+          {hair && (hat === 'none' || hat === 'officerCap') && (
+            <path
+              d="M -63 -206 Q -66 -262 -8 -270 Q 50 -272 64 -210 Q 58 -236 34 -246 Q 8 -238 -18 -248 Q -46 -240 -63 -206 Z"
+              fill={hair}
+              stroke={INK}
+              strokeWidth={4}
+              strokeLinejoin="round"
+            />
+          )}
+          {mustache && <path d="M -30 -186 Q -14 -198 0 -190 Q 14 -198 30 -186 Q 16 -176 0 -182 Q -16 -176 -30 -186 Z" fill={mustache} stroke={INK} strokeWidth={3} />}
           <Brows expr={expr} />
           <Eyes expr={expr} blink={blink && expr !== 'shock'} look={look} skin={skin} />
           <Mouth expr={expr} frame={frame} />
