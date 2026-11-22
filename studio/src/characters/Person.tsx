@@ -9,6 +9,9 @@ import {INK, mixColor} from '../lib/util';
 export type Expr = 'neutral' | 'smug' | 'shock' | 'think' | 'strain' | 'idea' | 'sleepy' | 'happy' | 'speak' | 'shout' | 'angry' | 'laugh' | 'sad';
 /** نمط الحركة: still ثابت (السلوك القديم)، idle وقوف حي، walk مشي، run جري */
 export type Motion = 'still' | 'idle' | 'walk' | 'run';
+/** الاتجاه: front 0°، threeQuarter 45°، side 90°، threeQuarterBack 135°، back 180° — أو أي زاوية رقمية */
+export type View = 'front' | 'threeQuarter' | 'side' | 'threeQuarterBack' | 'back';
+export const VIEW_YAW: Record<View, number> = {front: 0, threeQuarter: 45, side: 90, threeQuarterBack: 135, back: 180};
 /** حالات تمثيل جاهزة تجمع التعبير والوضعية وحركة الجسم والمؤثرات */
 export type Act = 'angry' | 'laugh' | 'sad' | 'scared' | 'orate' | 'cheer';
 export type Hat = 'sultan' | 'vizier' | 'byzHelmet' | 'bork' | 'cap' | 'officerCap' | 'hijab' | 'crown' | 'none';
@@ -90,6 +93,11 @@ export type PersonProps = {
   energy?: number;
   /** حالة تمثيل جاهزة (تتجاوز expr و pose) */
   act?: Act;
+  /**
+   * الاتجاه (اسم أو زاوية 0..180). الشخصية تنظر لليمين؛ استخدم flip لليسار.
+   * إن لم يُحدَّد: جانبي تلقائياً أثناء walk/run، وأمامي غير ذلك. للالتفات الناعم استخدم yawAt().
+   */
+  view?: View | number;
   hairStyle?: HairStyle;
   /** رموش (تلقائياً مع البنية الأنثوية) */
   lashes?: boolean;
@@ -107,16 +115,35 @@ export type PersonProps = {
 const SW = 5; // سُمك الخط الخارجي
 
 const ArmShade = React.createContext<string | null>(null);
+/** إسقاط الذراعين حسب الاتجاه + أي ذراع يُرسم الآن (البعيدة قبل الجسم، القريبة بعده) */
+type ArmCtxT = {cy: number; sy: number; draw: 'all' | 'far' | 'near'};
+const ArmCtx = React.createContext<ArmCtxT>({cy: 1, sy: 0, draw: 'all'});
 
-const Arm: React.FC<{from: [number, number]; mid: [number, number]; to: [number, number]; robe: string; skin: string}> = ({
-  from,
-  mid,
-  to,
+const Arm: React.FC<{from: [number, number]; mid: [number, number]; to: [number, number]; robe: string; skin: string; raw?: boolean; nearSide?: boolean}> = ({
+  from: from0,
+  mid: mid0,
+  to: to0,
   robe,
   skin,
+  raw,
+  nearSide,
 }) => {
-  const d = `M ${from[0]} ${from[1]} Q ${mid[0]} ${mid[1]} ${to[0]} ${to[1]}`;
   const shade = React.useContext(ArmShade);
+  const {cy, sy, draw} = React.useContext(ArmCtx);
+  // الذراع اليسرى على الشاشة (x<0) هي القريبة حين تنظر الشخصية لليمين
+  const near = nearSide ?? from0[0] < 0;
+  if (draw === 'far' && near) return null;
+  if (draw === 'near' && !near) return null;
+  const P = (p: [number, number]): [number, number] => {
+    if (raw) return p;
+    // الامتداد الجانبي في الأمام يصير امتداداً للأمام في الجانب، ويُعكس في الخلف
+    const dx = p[0] - from0[0];
+    return [from0[0] * cy + dx * cy + Math.abs(dx) * sy * 0.9 + (near ? 4 : -4) * sy, p[1]];
+  };
+  const from = raw ? from0 : ([from0[0] * cy + (near ? 4 : -4) * sy, from0[1]] as [number, number]);
+  const mid = P(mid0);
+  const to = P(to0);
+  const d = `M ${from[0]} ${from[1]} Q ${mid[0]} ${mid[1]} ${to[0]} ${to[1]}`;
   return (
     <g>
       <path d={d} stroke={INK} strokeWidth={24} fill="none" strokeLinecap="round" />
@@ -127,15 +154,17 @@ const Arm: React.FC<{from: [number, number]; mid: [number, number]; to: [number,
   );
 };
 
-const Eyes: React.FC<{expr: Expr; blink: boolean; look: [number, number]; skin: string; lashes?: boolean}> = ({expr, blink, look, skin, lashes}) => {
+const Eyes: React.FC<{expr: Expr; blink: boolean; look: [number, number]; skin: string; lashes?: boolean; only?: 0 | 1}> = ({expr, blink, look, skin, lashes, only}) => {
   const [lx, ly] = look;
-  const E = [-21, 21];
+  const E = only === undefined ? [-21, 21] : [[-21, 21][only]];
   const ey = -206;
   if (expr === 'strain') {
     return (
       <g stroke={INK} strokeWidth={5} strokeLinecap="round" fill="none">
-        <path d={`M ${E[0] - 9} ${ey - 7} L ${E[0] + 6} ${ey} L ${E[0] - 9} ${ey + 7}`} />
-        <path d={`M ${E[1] + 9} ${ey - 7} L ${E[1] - 6} ${ey} L ${E[1] + 9} ${ey + 7}`} />
+        {E.map((x) => {
+          const k = Math.sign(x);
+          return <path key={x} d={`M ${x + k * 9} ${ey - 7} L ${x - k * 6} ${ey} L ${x + k * 9} ${ey + 7}`} />;
+        })}
       </g>
     );
   }
@@ -197,7 +226,7 @@ const Eyes: React.FC<{expr: Expr; blink: boolean; look: [number, number]; skin: 
   );
 };
 
-const Brows: React.FC<{expr: Expr}> = ({expr}) => {
+const Brows: React.FC<{expr: Expr; only?: 0 | 1}> = ({expr, only}) => {
   const y = -228;
   const b: Record<Expr, [number, number, number, number]> = {
     // [ارتفاع اليسار, ميل اليسار, ارتفاع اليمين, ميل اليمين]
@@ -218,8 +247,8 @@ const Brows: React.FC<{expr: Expr}> = ({expr}) => {
   const [ly, ls, ry, rs] = b[expr];
   return (
     <g stroke={INK} strokeWidth={6} strokeLinecap="round">
-      <line x1={-33} y1={y + ly - ls} x2={-11} y2={y + ly + ls} />
-      <line x1={11} y1={y + ry + rs} x2={33} y2={y + ry - rs} />
+      {only !== 1 && <line x1={-33} y1={y + ly - ls} x2={-11} y2={y + ly + ls} />}
+      {only !== 0 && <line x1={11} y1={y + ry + rs} x2={33} y2={y + ry - rs} />}
     </g>
   );
 };
@@ -294,7 +323,10 @@ const Mouth: React.FC<{expr: Expr; frame: number; lips?: string}> = ({expr, fram
   }
 };
 
-const HatShape: React.FC<{hat: Hat; trim: string}> = ({hat, trim}) => {
+const HatShape: React.FC<{hat: Hat; trim: string; cy?: number; sy?: number}> = ({hat, trim, cy = 1, sy = 0}) => {
+  // زخارف الواجهة (جوهرة، شارة، واقي أنف…) تدور مع الرأس وتختفي من الخلف
+  const Front: React.FC<{children: React.ReactNode}> = ({children}) =>
+    cy < -0.05 ? null : <g transform={`translate(${sy * 40} 0) scale(${Math.max(0.3, cy)} 1)`}>{children}</g>;
   switch (hat) {
     case 'sultan':
       // عمامة ضخمة بيضاء يعلوها قاووق أحمر
@@ -304,9 +336,11 @@ const HatShape: React.FC<{hat: Hat; trim: string}> = ({hat, trim}) => {
           <ellipse cx={0} cy={-252} rx={86} ry={46} fill="#f6f1e4" />
           <path d="M -70 -262 Q 0 -232 70 -262" fill="none" strokeWidth={3} />
           <path d="M -58 -280 Q 0 -250 58 -280" fill="none" strokeWidth={3} />
-          <circle cx={0} cy={-246} r={10} fill={trim} />
-          <path d="M 0 -256 Q 6 -300 18 -306" fill="none" stroke={INK} strokeWidth={4} />
-          <ellipse cx={20} cy={-310} rx={6} ry={12} fill="#fff" strokeWidth={3} />
+          <Front>
+            <circle cx={0} cy={-246} r={10} fill={trim} />
+            <path d="M 0 -256 Q 6 -300 18 -306" fill="none" stroke={INK} strokeWidth={4} />
+            <ellipse cx={20} cy={-310} rx={6} ry={12} fill="#fff" strokeWidth={3} />
+          </Front>
         </g>
       );
     case 'vizier':
@@ -324,7 +358,9 @@ const HatShape: React.FC<{hat: Hat; trim: string}> = ({hat, trim}) => {
           <path d="M 0 -300 Q 6 -340 40 -350 Q 22 -320 14 -296 Z" fill="#b3262c" />
           <path d="M -64 -236 Q -64 -300 0 -306 Q 64 -300 64 -236 Z" fill="#9aa3ad" />
           <rect x={-70} y={-242} width={140} height={16} rx={6} fill="#c9a43a" />
-          <rect x={-5} y={-236} width={10} height={20} fill="#9aa3ad" />
+          <Front>
+            <rect x={-5} y={-236} width={10} height={20} fill="#9aa3ad" />
+          </Front>
         </g>
       );
     case 'bork':
@@ -333,7 +369,9 @@ const HatShape: React.FC<{hat: Hat; trim: string}> = ({hat, trim}) => {
         <g stroke={INK} strokeWidth={SW}>
           <path d="M 40 -262 Q 30 -330 -10 -360 Q -60 -380 -110 -330 Q -60 -340 -30 -300 Q -40 -280 -44 -262 Z" fill="#f4efe2" />
           <rect x={-56} y={-272} width={110} height={24} rx={8} fill={trim} />
-          <path d="M -6 -270 L 0 -318 L 6 -270 Z" fill={trim} />
+          <Front>
+            <path d="M -6 -270 L 0 -318 L 6 -270 Z" fill={trim} />
+          </Front>
         </g>
       );
     case 'hijab':
@@ -352,9 +390,11 @@ const HatShape: React.FC<{hat: Hat; trim: string}> = ({hat, trim}) => {
         <g stroke={INK} strokeWidth={4} strokeLinejoin="round">
           <path d="M -46 -252 L -50 -306 L -24 -280 L 0 -318 L 24 -280 L 50 -306 L 46 -252 Z" fill="#e8b830" />
           <rect x={-48} y={-262} width={96} height={14} rx={4} fill="#d9a020" />
-          {[-28, 0, 28].map((cx, i) => (
-            <circle key={cx} cx={cx} cy={-255} r={5} fill={['#c0262d', '#2f6fae', '#2f8f5a'][i]} strokeWidth={2} />
-          ))}
+          <Front>
+            {[-28, 0, 28].map((cx, i) => (
+              <circle key={cx} cx={cx} cy={-255} r={5} fill={['#c0262d', '#2f6fae', '#2f8f5a'][i]} strokeWidth={2} />
+            ))}
+          </Front>
         </g>
       );
     case 'officerCap':
@@ -363,8 +403,15 @@ const HatShape: React.FC<{hat: Hat; trim: string}> = ({hat, trim}) => {
         <g stroke={INK} strokeWidth={SW} strokeLinejoin="round">
           <path d="M -66 -244 Q -70 -300 0 -304 Q 70 -300 66 -244 Z" fill="#8a7b4e" />
           <rect x={-64} y={-256} width={128} height={16} fill="#5a4e30" />
-          <path d="M -50 -240 Q 10 -232 74 -246 Q 60 -226 -40 -230 Z" fill="#2a2418" />
-          <circle cx={0} cy={-276} r={10} fill={trim} />
+          {/* الحافة: للأمام في الجانب، مختفية من الخلف */}
+          {cy > -0.3 && (
+            <g transform={`translate(${sy * 44} 0) scale(${0.62 + 0.38 * Math.max(0, cy)} 1)`}>
+              <path d="M -50 -240 Q 10 -232 74 -246 Q 60 -226 -40 -230 Z" fill="#2a2418" />
+            </g>
+          )}
+          <Front>
+            <circle cx={0} cy={-276} r={10} fill={trim} />
+          </Front>
         </g>
       );
     case 'cap':
@@ -413,7 +460,18 @@ export const Person: React.FC<PersonProps> = ({
   travel,
   energy = 0.5,
   act,
+  view,
 }) => {
+  // ===== الاتجاه =====
+  const yawDeg = Math.max(0, Math.min(180, view === undefined ? (motion === 'walk' || motion === 'run' ? 90 : 0) : typeof view === 'number' ? view : VIEW_YAW[view]));
+  const yr = (yawDeg * Math.PI) / 180;
+  const cy = Math.cos(yr); // 1 أمامي، 0 جانبي، −1 خلفي
+  const sy = Math.sin(yr); // 0 أمامي/خلفي، 1 جانبي
+  /** إسقاط نقطة على كرة الرأس عند زاوية theta (درجات) */
+  const onHead = (theta: number, r = 64) => {
+    const a = (theta * Math.PI) / 180 + yr;
+    return {x: r * Math.sin(a), z: Math.cos(a)};
+  };
   // ===== حالات التمثيل تحدد التعبير والوضعية =====
   const ACTS: Record<Act, {expr: Expr; pose: Pose}> = {
     angry: {expr: 'angry', pose: 'fists'},
@@ -451,12 +509,21 @@ export const Person: React.FC<PersonProps> = ({
       const bend = motion === 'run' ? 1 : 0;
       const a1 = (-M.swing * 0.9 * Math.PI) / 180;
       const a2 = (M.swing * 0.9 * Math.PI) / 180;
-      const h1 = handAt(-B.sh + 4, a1, bend);
-      const h2 = handAt(B.sh - 4, a2, bend);
+      // التأرجح جانبي في الأمام، وأمامي-خلفي في الجانب
+      const fwd = Math.max(Math.abs(cy), sy);
+      const swingArm = (shx: number, a: number, nearSide: boolean) => {
+        const sx = shx * cy + (nearSide ? 4 : -4) * sy;
+        const h = handAt(0, a, bend);
+        const hand: [number, number] = [sx + h[0] * fwd, h[1]];
+        const elbow: [number, number] = [(sx + hand[0]) / 2 - bend * 16 * Math.sign(h[0] || 1) * fwd, (-122 + hand[1]) / 2 + bend * 10];
+        return {from: [sx, -122] as [number, number], mid: elbow, to: hand};
+      };
+      const A1 = swingArm(-B.sh + 4, a1, true);
+      const A2 = swingArm(B.sh - 4, a2, false);
       arms = (
         <>
-          <Arm from={sh} mid={[(sh[0] + h1[0]) / 2 - 10 + bend * 14 * Math.sign(a1 || 1), (sh[1] + h1[1]) / 2 + bend * 8]} to={h1} robe={robe} skin={skin} />
-          <Arm from={sh2} mid={[(sh2[0] + h2[0]) / 2 + 10 + bend * 14 * Math.sign(a2 || 1), (sh2[1] + h2[1]) / 2 + bend * 8]} to={h2} robe={robe} skin={skin} />
+          <Arm from={A1.from} mid={A1.mid} to={A1.to} robe={robe} skin={skin} raw nearSide />
+          <Arm from={A2.from} mid={A2.mid} to={A2.to} robe={robe} skin={skin} raw nearSide={false} />
         </>
       );
       break;
@@ -625,12 +692,34 @@ export const Person: React.FC<PersonProps> = ({
     </g>
   ) : (
     <g fill={INK}>
-      <Leg hipX={-LEG.hip} w={LEG.w} angle={M.legA} lift={M.liftA} />
-      <Leg hipX={LEG.hip} w={LEG.w} angle={M.legB} lift={M.liftB} />
+      {/* في الجانب: الرجلان متقاربتان، البعيدة أفتح قليلاً وتُرسم أولاً، والقدم تشير للأمام */}
+      <Leg hipX={LEG.hip * (0.3 + 0.7 * Math.abs(cy))} w={LEG.w} angle={M.legB * (0.35 + 0.65 * sy)} lift={M.liftB} toe={8 * sy} far={sy > 0.4} />
+      <Leg hipX={-LEG.hip * (0.3 + 0.7 * Math.abs(cy))} w={LEG.w} angle={M.legA * (0.35 + 0.65 * sy)} lift={M.liftA} toe={8 * sy} />
     </g>
   );
   // تأرجح طرف الفستان مع المشي
   const hemSway = longDress ? M.swing * 0.35 : 0;
+
+  // ===== قيم الالتفات =====
+  const bodyW = 1 - 0.3 * sy; // الجسم أضيق من الجانب
+  const coverK = (1 - cy) / 2; // 0 أمامي … 0.5 جانبي … 1 خلفي
+  const coverX = -66 + 156 * coverK;
+  const coverY = -192 + 44 * coverK;
+  const backOnTop = cy < -0.2;
+  const backLayer = (
+    <g transform={`translate(${-sy * 14} ${dTop})`}>
+      {hat === 'hijab' && (
+        <path
+          d="M -80 -200 Q -84 -294 0 -296 Q 84 -294 80 -200 Q 84 -128 62 -104 Q 0 -90 -62 -104 Q -84 -128 -80 -200 Z"
+          fill={hijabColor}
+          stroke={INK}
+          strokeWidth={SW}
+          strokeLinejoin="round"
+        />
+      )}
+      {hair && hat !== 'hijab' && <BackHair style={hairStyle} color={hair} frame={frame} seed={seed} yaw={yawDeg} />}
+    </g>
+  );
 
   return (
     <g
@@ -641,19 +730,18 @@ export const Person: React.FC<PersonProps> = ({
       {M.dust > 0 && <Dust frame={frame} phase={M.dustPhase} amount={M.dust} />}
       {legs}
       <g transform={`translate(${M.shakeX} ${bob + hop}) rotate(${lean} 0 -40) translate(0 -40) scale(${M.sqX} ${M.sqY}) translate(0 40)`}>
-        {/* شعر خلفي / الجزء الخلفي من الحجاب — قبل الجسم والرأس */}
-        <g transform={`translate(0 ${dTop})`}>
-          {hat === 'hijab' && (
-            <path
-              d="M -80 -200 Q -84 -294 0 -296 Q 84 -294 80 -200 Q 84 -128 62 -104 Q 0 -90 -62 -104 Q -84 -128 -80 -200 Z"
-              fill={hijabColor}
-              stroke={INK}
-              strokeWidth={SW}
-              strokeLinejoin="round"
-            />
-          )}
-          {hair && hat !== 'hijab' && <BackHair style={hairStyle} color={hair} frame={frame} seed={seed} />}
-        </g>
+        {/* شعر خلفي / الجزء الخلفي من الحجاب: خلف الجسم، إلا في المنظر الخلفي فيغطي الظهر */}
+        {!backOnTop && backLayer}
+        {/* الذراع البعيدة خلف الجسم عند الالتفات */}
+        {sy > 0.3 && (
+          <ArmCtx.Provider value={{cy, sy, draw: 'far'}}>
+            <ArmShade.Provider value={shading === 'none' ? null : shadeOf(robe)}>{arms}</ArmShade.Provider>
+          </ArmCtx.Provider>
+        )}
+        {/* الجسم: يضيق عند الالتفات */}
+        <g transform={`scale(${bodyW} 1)`}>
+          {/* الكرش يبرز للأمام في الجانب (يُرسم خلف الجسم فيظهر الجزء البارز فقط) */}
+          {build === 'belly' && sy > 0.6 && <ellipse cx={(34 * sy) / bodyW} cy={-80} rx={32 / bodyW} ry={36} fill={robe} stroke={INK} strokeWidth={SW} />}
         {/* الجسم */}
         <path
           d={B.d}
@@ -675,6 +763,9 @@ export const Person: React.FC<PersonProps> = ({
             strokeLinejoin="round"
           />
         )}
+        {/* تفاصيل الواجهة الأمامية تنزاح وتضيق مع الالتفات وتختفي في الخلفي */}
+        {cy > -0.05 ? (
+          <g transform={`translate(${(sy * 22) / bodyW} 0) scale(${Math.max(0.22, cy)} 1)`}>
         {longDress && (
           <g stroke={mixColor(robe.length === 7 ? robe : '#444444', '#1b1a22', 0.35)} strokeWidth={3} fill="none" opacity={0.6}>
             <path d="M -14 -70 Q -20 -40 -26 -8" />
@@ -711,34 +802,109 @@ export const Person: React.FC<PersonProps> = ({
             <path d="M -14 -142 L 0 -122 L 14 -142" fill="none" />
           </g>
         )}
+          </g>
+        ) : (
+          <g stroke={INK} strokeWidth={3}>
+            <path d="M 0 -138 L 0 -44" fill="none" opacity={0.5} />
+            {outfit !== 'abaya' && outfit !== 'suit' && <rect x={B.belt[0]} y={(B.beltY ?? -78) - 2} width={B.belt[1]} height={10} rx={4} fill={outfit === 'uniform' ? '#4a3a22' : trim} />}
+            {outfit === 'suit' && <path d="M -22 -140 Q 0 -132 22 -140" fill="none" />}
+          </g>
+        )}
         {shading !== 'none' && <Shade id={`b${uid}`} d={B.d} color={shadeOf(robe)} light={lightOf(robe)} mode={shading} dx={-16} dy={-6} neck />}
-        <ArmShade.Provider value={shading === 'none' ? null : shadeOf(robe)}>{arms}</ArmShade.Provider>
+        </g>
+        <ArmCtx.Provider value={{cy, sy, draw: sy > 0.3 ? 'near' : 'all'}}>
+          <ArmShade.Provider value={shading === 'none' ? null : shadeOf(robe)}>{arms}</ArmShade.Provider>
+        </ArmCtx.Provider>
+        {backOnTop && backLayer}
         {/* الرأس */}
         <g transform={`rotate(${(pose === 'pull' ? 6 : 0) + M.headTilt} 0 -140)`}>
           <path d={F.d} fill={skin} stroke={INK} strokeWidth={SW} strokeLinejoin="round" />
           {act === 'angry' && <path d={F.d} fill="#e0301e" opacity={(0.12 + 0.18 * energy) * (0.75 + 0.25 * Math.sin(frame / 4))} />}
           {shading !== 'none' && <Shade id={`f${uid}`} d={F.d} color={shadeOf(skin, 0.34)} light={lightOf(skin)} mode={shading} dx={-14} dy={-12} highlight={[-26, F.top + 34]} />}
           {shading === 'cel' &&
-            [-38, 38].map((cx) => <ellipse key={cx} cx={cx} cy={-178} rx={11} ry={6} fill="#e0706a" opacity={0.28} />)}
-          {beard && (
-            <path
-              d="M -50 -176 Q -46 -120 0 -112 Q 46 -120 50 -176 Q 30 -150 0 -152 Q -30 -150 -50 -176 Z"
-              fill={beard}
-              stroke={INK}
-              strokeWidth={4}
-            />
+            [-36, 36].map((th) => {
+              const p = onHead(th, 60);
+              return p.z > 0.2 ? <ellipse key={th} cx={p.x} cy={-178} rx={11 * Math.min(1, p.z * 1.2)} ry={6} fill="#e0706a" opacity={0.28} /> : null;
+            })}
+          {/* مؤخرة الرأس: شعر أو حجاب يغطيها تدريجياً مع الالتفات */}
+          {coverK > 0.02 && (hat === 'hijab' || hair || (hat !== 'none' && hat !== 'sultan' && hat !== 'vizier')) && (
+            <g>
+              <defs>
+                <clipPath id={`hc${uid}`}>
+                  <path d={F.d} />
+                </clipPath>
+              </defs>
+              <path
+                clipPath={`url(#hc${uid})`}
+                d={`M -100 -300 L ${coverX} -300 L ${coverX} -246 Q ${coverX + 14 * sy} ${(-246 + coverY) / 2} ${coverX - 8} ${coverY} L -100 ${coverY} Z`}
+                fill={hat === 'hijab' ? hijabColor : hair ?? '#2a1d16'}
+              />
+              <path d={F.d} fill="none" stroke={INK} strokeWidth={SW} strokeLinejoin="round" />
+            </g>
           )}
-          {hair && (hat === 'none' || hat === 'officerCap' || hat === 'crown') && (
-            <g transform={`translate(0 ${dTop})`}>
+          {/* الأذنان: تظهران عند الالتفات */}
+          {yawDeg > 12 &&
+            hat !== 'hijab' &&
+            [-90, 90].map((th) => {
+              const p = onHead(th, 60);
+              if (p.z < -0.3) return null;
+              return (
+                <g key={th}>
+                  <ellipse cx={p.x} cy={-194} rx={7 + 4 * Math.max(0, p.z)} ry={14} fill={skin} stroke={INK} strokeWidth={4} />
+                  {earrings && <circle cx={p.x} cy={-176} r={6} fill={earrings} stroke={INK} strokeWidth={2.5} />}
+                </g>
+              );
+            })}
+          {earrings && yawDeg <= 12 && hat !== 'hijab' && [-63, 63].map((ex) => <circle key={ex} cx={ex} cy={-178} r={6} fill={earrings} stroke={INK} strokeWidth={2.5} />)}
+          {beard && cy > -0.3 && (
+            <g transform={`translate(${onHead(0, 34).x} 0) scale(${1 - 0.35 * sy} 1)`}>
+              <path
+                d="M -50 -176 Q -46 -120 0 -112 Q 46 -120 50 -176 Q 30 -150 0 -152 Q -30 -150 -50 -176 Z"
+                fill={beard}
+                stroke={INK}
+                strokeWidth={4}
+              />
+            </g>
+          )}
+          {hair && (hat === 'none' || hat === 'officerCap' || hat === 'crown') && cy > -0.4 && (
+            <g transform={`translate(${sy * 12} ${dTop}) scale(${1 - 0.12 * sy} 1)`}>
               <FrontHair style={hairStyle} color={hair} />
             </g>
           )}
-          {earrings && hat !== 'hijab' && [-63, 63].map((ex) => <circle key={ex} cx={ex} cy={-178} r={6} fill={earrings} stroke={INK} strokeWidth={2.5} />)}
-          {mustache && <path d="M -30 -186 Q -14 -198 0 -190 Q 14 -198 30 -186 Q 16 -176 0 -182 Q -16 -176 -30 -186 Z" fill={mustache} stroke={INK} strokeWidth={3} />}
-          <Brows expr={expr} />
-          <Eyes expr={expr} blink={blink && expr !== 'shock'} look={look} skin={skin} lashes={showLashes} />
-          <Mouth expr={expr} frame={frame} lips={lips} />
-          {expr === 'strain' && (
+          {hair && hairStyle === 'bun' && cy <= -0.4 && <circle cx={0} cy={-276 + dTop} r={28} fill={hair} stroke={INK} strokeWidth={4} />}
+          {/* الملامح: كل عين وحاجب على حدة حسب موقعه على كرة الرأس */}
+          {[0, 1].map((i) => {
+            const p = onHead(i ? 19 : -19, 56);
+            if (p.z < 0.08) return null;
+            const ex = i ? 21 : -21;
+            const sx = Math.max(0.35, Math.min(1, p.z * 1.25));
+            return (
+              <g key={i} transform={`translate(${p.x} 0) scale(${sx} 1) translate(${-ex} 0)`}>
+                <Brows expr={expr} only={i as 0 | 1} />
+                <Eyes expr={expr} blink={blink && expr !== 'shock'} look={[Math.max(-1, Math.min(1, look[0] + 0.7 * sy)), look[1]]} skin={skin} lashes={showLashes} only={i as 0 | 1} />
+              </g>
+            );
+          })}
+          {/* الأنف: يظهر عند الالتفات */}
+          {sy > 0.12 && cy > -0.2 && (() => {
+            const nx = onHead(0, 62).x;
+            return (
+              <path
+                d={`M ${nx - 3} -204 Q ${nx + 6 + 12 * sy} -200 ${nx + 3 + 7 * sy} -186 Q ${nx} -183 ${nx - 3} -186`}
+                fill={skin}
+                stroke={INK}
+                strokeWidth={3.5}
+                strokeLinejoin="round"
+              />
+            );
+          })()}
+          {onHead(0, 60).z > -0.12 && (
+            <g transform={`translate(${onHead(0, 58).x} 0) scale(${Math.max(0.42, onHead(0).z)} 1)`}>
+              {mustache && <path d="M -30 -186 Q -14 -198 0 -190 Q 14 -198 30 -186 Q 16 -176 0 -182 Q -16 -176 -30 -186 Z" fill={mustache} stroke={INK} strokeWidth={3} />}
+              <Mouth expr={expr} frame={frame} lips={lips} />
+            </g>
+          )}
+          {expr === 'strain' && cy > -0.2 && (
             <path
               d={`M 62 -236 q 9 ${14 + (frame % 20)} 0 ${20 + (frame % 20)} q -9 -6 0 -${20 + (frame % 20)} Z`}
               fill="#7fc8ff"
@@ -746,9 +912,24 @@ export const Person: React.FC<PersonProps> = ({
               strokeWidth={3}
             />
           )}
-          <g transform={`translate(0 ${dTop})`}>
-            <HatShape hat={hat} trim={hat === 'hijab' ? hijabColor : trim} />
-          </g>
+          {!(hat === 'hijab' && cy < -0.3) && (
+            <g transform={`translate(${sy * (hat === 'hijab' ? 24 : 5)} ${dTop}) scale(${1 - (hat === 'hijab' ? 0.4 : 0.08) * sy} 1)`}>
+              <HatShape hat={hat} trim={hat === 'hijab' ? hijabColor : trim} cy={cy} sy={sy} />
+            </g>
+          )}
+          {hat === 'hijab' && cy < -0.3 && (
+            <g>
+            <path
+              transform={`translate(${-sy * 14} ${dTop})`}
+              d="M -80 -200 Q -84 -294 0 -296 Q 84 -294 80 -200 Q 84 -128 62 -104 Q 0 -90 -62 -104 Q -84 -128 -80 -200 Z"
+              fill={hijabColor}
+              stroke={INK}
+              strokeWidth={SW}
+              strokeLinejoin="round"
+            />
+            <path transform={`translate(${-sy * 14} ${dTop})`} d="M -30 -270 Q -10 -190 -24 -110 M 26 -262 Q 14 -190 28 -112" fill="none" stroke={INK} strokeWidth={3} opacity={0.35} />
+            </g>
+          )}
           {act && <ActFX act={act} frame={frame} energy={energy} top={F.top} />}
         </g>
       </g>
@@ -806,7 +987,9 @@ const Shade: React.FC<{
 );
 
 /** الشعر الخلفي (يُرسم خلف الرأس والجسم) */
-const BackHair: React.FC<{style: HairStyle; color: string; frame: number; seed: number}> = ({style, color, frame, seed}) => {
+const BackHair: React.FC<{style: HairStyle; color: string; frame: number; seed: number; yaw?: number}> = ({style, color, frame, seed, yaw = 0}) => {
+  // ذيل الحصان والضفيرة: خلف الرأس دائماً — يُعكسان في الجانب ويتوسطان في الخلفي
+  const tail = yaw >= 150 ? 'translate(-62 8)' : yaw > 55 ? 'scale(-1 1)' : '';
   const st = {fill: color, stroke: INK, strokeWidth: 4, strokeLinejoin: 'round' as const};
   const sway = Math.sin(frame / 9 + seed) * 6;
   switch (style) {
@@ -815,10 +998,14 @@ const BackHair: React.FC<{style: HairStyle; color: string; frame: number; seed: 
     case 'bob':
       return <path d="M -74 -214 Q -80 -160 -62 -136 Q 0 -128 62 -136 Q 80 -160 74 -214 Q 0 -296 -74 -214 Z" {...st} />;
     case 'ponytail':
-      return <path d={`M 44 -250 Q ${118 + sway} -236 ${104 + sway} -160 Q ${98 + sway} -126 ${78 + sway} -112 Q ${92 + sway} -168 56 -214 Z`} {...st} />;
+      return (
+        <g transform={tail}>
+          <path d={`M 44 -250 Q ${118 + sway} -236 ${104 + sway} -160 Q ${98 + sway} -126 ${78 + sway} -112 Q ${92 + sway} -168 56 -214 Z`} {...st} />
+        </g>
+      );
     case 'braid':
       return (
-        <g>
+        <g transform={tail}>
           {Array.from({length: 7}, (_, i) => (
             <ellipse key={i} cx={52 + i * 3 + (sway * i) / 7} cy={-176 + i * 18} rx={13 - i * 0.6} ry={11} {...st} />
           ))}
@@ -877,10 +1064,10 @@ const LEGS: Record<Build, {hip: number; w: number}> = {
 };
 
 /** رِجل بسيطة تتأرجح من الورك (بلا ركبة) مع قدم بيضاوية */
-const Leg: React.FC<{hipX: number; w: number; angle: number; lift: number}> = ({hipX, w, angle, lift}) => (
-  <g transform={`translate(${hipX} ${-44 - lift}) rotate(${angle})`}>
+const Leg: React.FC<{hipX: number; w: number; angle: number; lift: number; toe?: number; far?: boolean}> = ({hipX, w, angle, lift, toe = 0, far}) => (
+  <g transform={`translate(${hipX} ${-44 - lift}) rotate(${angle})`} fill={far ? '#3a3846' : INK}>
     <rect x={-w / 2} y={0} width={w} height={44} rx={w / 2.4} />
-    <ellipse cx={3} cy={44} rx={w * 0.8} ry={6.5} />
+    <ellipse cx={3 + toe} cy={44} rx={w * 0.8 + Math.abs(toe) * 0.6} ry={6.5} />
   </g>
 );
 
@@ -1089,4 +1276,21 @@ const ActFX: React.FC<{act: Act; frame: number; energy: number; top: number}> = 
     default:
       return null;
   }
+};
+
+/**
+ * التفات ناعم: يستوفي زاوية الاتجاه بين مفاتيح {f, view}. الالتفات من الأمام للجانب يمر بالثلاثة أرباع تلقائياً.
+ * مثال: view={yawAt(frame, [{f: 0, view: 'side'}, {f: 20, view: 'front'}])}
+ */
+export const yawAt = (frame: number, keys: {f: number; view: View | number}[]): number => {
+  const ks = keys.map((k) => ({f: k.f, y: typeof k.view === 'number' ? k.view : VIEW_YAW[k.view]}));
+  if (frame <= ks[0].f) return ks[0].y;
+  for (let i = 1; i < ks.length; i++) {
+    if (frame <= ks[i].f) {
+      const t = (frame - ks[i - 1].f) / Math.max(1, ks[i].f - ks[i - 1].f);
+      const e = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;
+      return ks[i - 1].y + (ks[i].y - ks[i - 1].y) * e;
+    }
+  }
+  return ks[ks.length - 1].y;
 };

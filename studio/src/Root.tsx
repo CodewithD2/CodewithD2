@@ -4,6 +4,7 @@ import {DURATION_S, Episode} from './Episode';
 import {SUEZ_DURATION_S, SuezEpisode} from './episodes/suez1956/Episode';
 import {SheetBuild, SheetFaces, SheetWomen} from './CharacterSheet';
 import {MOTION_TEST_FRAMES, MotionTest} from './MotionTest';
+import {TURN_TEST_FRAMES, TurnSheetA, TurnSheetB, TurnSheetC, TurnTest} from './Turnaround';
 
 // تحميل خط أميري محلياً قبل التصيير
 const fontHandle = delayRender('Amiri font');
@@ -25,5 +26,10 @@ export const Root: React.FC = () => (
     <Composition id="SheetWomen" component={SheetWomen} durationInFrames={60} fps={30} width={1920} height={1080} />
     {/* اختبار الحركة والتمثيل */}
     <Composition id="MotionTest" component={MotionTest} durationInFrames={MOTION_TEST_FRAMES} fps={30} width={1920} height={1080} />
+    {/* اختبار الاتجاهات والالتفات */}
+    <Composition id="TurnSheetA" component={TurnSheetA} durationInFrames={60} fps={30} width={1920} height={1080} />
+    <Composition id="TurnSheetB" component={TurnSheetB} durationInFrames={60} fps={30} width={1920} height={1080} />
+    <Composition id="TurnSheetC" component={TurnSheetC} durationInFrames={60} fps={30} width={1920} height={1080} />
+    <Composition id="TurnTest" component={TurnTest} durationInFrames={TURN_TEST_FRAMES} fps={30} width={1920} height={1080} />
   </>
 );
