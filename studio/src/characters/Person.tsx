@@ -1,5 +1,5 @@
 import React from 'react';
-import {INK} from '../lib/util';
+import {INK, mixColor} from '../lib/util';
 
 /*
  * شخصية بأسلوب كرتوني مبسّط: رأس مستدير كبير، عيون نقطية، خط خارجي سميك،
@@ -9,6 +9,32 @@ import {INK} from '../lib/util';
 export type Expr = 'neutral' | 'smug' | 'shock' | 'think' | 'strain' | 'idea' | 'sleepy' | 'happy' | 'speak' | 'shout';
 export type Hat = 'sultan' | 'vizier' | 'byzHelmet' | 'bork' | 'cap' | 'officerCap' | 'none';
 export type Outfit = 'robe' | 'suit' | 'uniform';
+/** البنية الجسدية */
+export type Build = 'normal' | 'broad' | 'belly' | 'slim';
+/** شكل الوجه */
+export type Face = 'round' | 'square' | 'jaw' | 'pointy' | 'long' | 'wide';
+/** التظليل: none مسطح، cel ظل حاد كرتوني، soft تدرج ناعم */
+export type Shading = 'none' | 'cel' | 'soft';
+
+const BODY: Record<Build, {d: string; sh: number; belt: [number, number]}> = {
+  normal: {d: 'M -40 -40 L -48 -128 Q 0 -150 48 -128 L 40 -40 Q 0 -30 -40 -40 Z', sh: 40, belt: [-44, 88]},
+  broad: {d: 'M -36 -40 L -74 -122 Q -70 -148 0 -152 Q 70 -148 74 -122 L 36 -40 Q 0 -30 -36 -40 Z', sh: 64, belt: [-50, 100]},
+  belly: {d: 'M -44 -40 Q -84 -66 -62 -108 L -44 -130 Q 0 -148 44 -130 L 62 -108 Q 84 -66 44 -40 Q 0 -26 -44 -40 Z', sh: 42, belt: [-76, 152]},
+  slim: {d: 'M -30 -40 L -38 -128 Q 0 -146 38 -128 L 30 -40 Q 0 -32 -30 -40 Z', sh: 34, belt: [-35, 70]},
+};
+
+const FACE: Record<Face, {d: string; top: number}> = {
+  round: {d: 'M -64 -200 A 64 64 0 1 1 64 -200 A 64 64 0 1 1 -64 -200 Z', top: -264},
+  square: {d: 'M -40 -262 L 40 -262 Q 62 -262 62 -240 L 62 -160 Q 62 -134 38 -134 L -38 -134 Q -62 -134 -62 -160 L -62 -240 Q -62 -262 -40 -262 Z', top: -262},
+  jaw: {d: 'M -60 -206 Q -62 -270 0 -272 Q 62 -270 60 -206 L 60 -168 Q 58 -144 30 -130 L -30 -130 Q -58 -144 -60 -168 Z', top: -272},
+  pointy: {d: 'M -62 -212 Q -64 -270 0 -272 Q 64 -270 62 -212 Q 58 -168 28 -144 L 0 -120 L -28 -144 Q -58 -168 -62 -212 Z', top: -272},
+  long: {d: 'M -52 -204 A 52 78 0 1 1 52 -204 A 52 78 0 1 1 -52 -204 Z', top: -282},
+  wide: {d: 'M -78 -198 A 78 64 0 1 1 78 -198 A 78 64 0 1 1 -78 -198 Z', top: -270},
+};
+
+/** لون الظل: يميل للبنفسجي البارد بدل الأسود ليبقى حيوياً */
+const shadeOf = (c: string, k = 0.38) => (c.startsWith('#') && c.length === 7 ? mixColor(c, '#3a2244', k) : 'rgba(40,20,50,0.35)');
+const lightOf = (c: string, k = 0.35) => (c.startsWith('#') && c.length === 7 ? mixColor(c, '#fff4e0', k) : 'rgba(255,255,255,0.3)');
 export type Pose = 'stand' | 'cross' | 'chin' | 'point' | 'pull' | 'armsUp' | 'stretch' | 'fist' | 'wave' | 'podium';
 
 export type PersonProps = {
@@ -32,12 +58,17 @@ export type PersonProps = {
   /** robe = ثوب تقليدي، suit = بدلة بقميص وربطة عنق، uniform = زي عسكري */
   outfit?: Outfit;
   tie?: string;
+  build?: Build;
+  face?: Face;
+  shading?: Shading;
   look?: [number, number];
   /** 0..1 للانتقال الحاد في التعبير (مثل قفزة الصدمة) */
   jolt?: number;
 };
 
 const SW = 5; // سُمك الخط الخارجي
+
+const ArmShade = React.createContext<string | null>(null);
 
 const Arm: React.FC<{from: [number, number]; mid: [number, number]; to: [number, number]; robe: string; skin: string}> = ({
   from,
@@ -47,10 +78,12 @@ const Arm: React.FC<{from: [number, number]; mid: [number, number]; to: [number,
   skin,
 }) => {
   const d = `M ${from[0]} ${from[1]} Q ${mid[0]} ${mid[1]} ${to[0]} ${to[1]}`;
+  const shade = React.useContext(ArmShade);
   return (
     <g>
       <path d={d} stroke={INK} strokeWidth={24} fill="none" strokeLinecap="round" />
       <path d={d} stroke={robe} strokeWidth={14} fill="none" strokeLinecap="round" />
+      {shade && <path d={d} stroke={shade} strokeWidth={5} fill="none" strokeLinecap="round" transform="translate(2 4)" opacity={0.85} />}
       <circle cx={to[0]} cy={to[1]} r={11} fill={skin} stroke={INK} strokeWidth={SW - 1} />
     </g>
   );
@@ -256,6 +289,9 @@ export const Person: React.FC<PersonProps> = ({
   mustache,
   outfit = 'robe',
   tie = '#2a2a3a',
+  build = 'normal',
+  face = 'round',
+  shading = 'none',
   look = [0, 0],
   jolt = 0,
 }) => {
@@ -266,8 +302,12 @@ export const Person: React.FC<PersonProps> = ({
   const lean = pose === 'pull' ? 14 + Math.sin((frame + seed * 9) / 5) * 4 : 0;
   const hop = -jolt * 28;
 
-  const sh: [number, number] = [-40, -122];
-  const sh2: [number, number] = [40, -122];
+  const uid = React.useId().replace(/[^a-zA-Z0-9]/g, '');
+  const B = BODY[build];
+  const F = FACE[face];
+  const dTop = F.top + 264; // إزاحة الشعر والقبعة حسب ارتفاع الرأس
+  const sh: [number, number] = [-B.sh, -122];
+  const sh2: [number, number] = [B.sh, -122];
   let arms: React.ReactNode;
   switch (pose) {
     case 'cross':
@@ -373,8 +413,8 @@ export const Person: React.FC<PersonProps> = ({
       </g>
     ) : (
       <g fill={INK}>
-        <rect x={-24} y={-44} width={16} height={46} rx={6} />
-        <rect x={8} y={-44} width={16} height={46} rx={6} />
+        <rect x={build === 'slim' ? -20 : build === 'normal' ? -24 : -30} y={-44} width={build === 'slim' ? 14 : build === 'normal' ? 16 : 20} height={46} rx={6} />
+        <rect x={build === 'slim' ? 6 : build === 'normal' ? 8 : 10} y={-44} width={build === 'slim' ? 14 : build === 'normal' ? 16 : 20} height={46} rx={6} />
       </g>
     );
 
@@ -388,7 +428,7 @@ export const Person: React.FC<PersonProps> = ({
       <g transform={`translate(0 ${bob + hop}) rotate(${lean} 0 -40)`}>
         {/* الجسم */}
         <path
-          d="M -40 -40 L -48 -128 Q 0 -150 48 -128 L 40 -40 Q 0 -30 -40 -40 Z"
+          d={B.d}
           fill={robe}
           stroke={INK}
           strokeWidth={SW}
@@ -397,7 +437,7 @@ export const Person: React.FC<PersonProps> = ({
         {outfit === 'robe' && (
           <>
             <path d="M 0 -142 L 0 -40" stroke={trim} strokeWidth={6} />
-            <rect x={-44} y={-78} width={88} height={11} fill={trim} stroke={INK} strokeWidth={3} />
+            <rect x={B.belt[0]} y={-78} width={B.belt[1]} height={11} fill={trim} stroke={INK} strokeWidth={3} />
           </>
         )}
         {outfit === 'suit' && (
@@ -411,17 +451,21 @@ export const Person: React.FC<PersonProps> = ({
         )}
         {outfit === 'uniform' && (
           <g stroke={INK} strokeWidth={3}>
-            <rect x={-44} y={-78} width={88} height={10} fill="#4a3a22" />
+            <rect x={B.belt[0]} y={-78} width={B.belt[1]} height={10} fill="#4a3a22" />
             <rect x={-6} y={-79} width={12} height={12} fill={trim} />
-            <rect x={-50} y={-136} width={26} height={8} rx={3} fill={trim} />
-            <rect x={24} y={-136} width={26} height={8} rx={3} fill={trim} />
+            <rect x={-B.sh - 10} y={-136} width={26} height={8} rx={3} fill={trim} />
+            <rect x={B.sh - 16} y={-136} width={26} height={8} rx={3} fill={trim} />
             <path d="M -14 -142 L 0 -122 L 14 -142" fill="none" />
           </g>
         )}
-        {arms}
+        {shading !== 'none' && <Shade id={`b${uid}`} d={B.d} color={shadeOf(robe)} light={lightOf(robe)} mode={shading} dx={-16} dy={-6} neck />}
+        <ArmShade.Provider value={shading === 'none' ? null : shadeOf(robe)}>{arms}</ArmShade.Provider>
         {/* الرأس */}
         <g transform={`rotate(${pose === 'pull' ? 6 : 0} 0 -200)`}>
-          <circle cx={0} cy={-200} r={64} fill={skin} stroke={INK} strokeWidth={SW} />
+          <path d={F.d} fill={skin} stroke={INK} strokeWidth={SW} strokeLinejoin="round" />
+          {shading !== 'none' && <Shade id={`f${uid}`} d={F.d} color={shadeOf(skin, 0.34)} light={lightOf(skin)} mode={shading} dx={-14} dy={-12} highlight={[-26, F.top + 34]} />}
+          {shading === 'cel' &&
+            [-38, 38].map((cx) => <ellipse key={cx} cx={cx} cy={-178} rx={11} ry={6} fill="#e0706a" opacity={0.28} />)}
           {beard && (
             <path
               d="M -50 -176 Q -46 -120 0 -112 Q 46 -120 50 -176 Q 30 -150 0 -152 Q -30 -150 -50 -176 Z"
@@ -432,6 +476,7 @@ export const Person: React.FC<PersonProps> = ({
           )}
           {hair && (hat === 'none' || hat === 'officerCap') && (
             <path
+              transform={`translate(0 ${dTop})`}
               d="M -63 -206 Q -66 -262 -8 -270 Q 50 -272 64 -210 Q 58 -236 34 -246 Q 8 -238 -18 -248 Q -46 -240 -63 -206 Z"
               fill={hair}
               stroke={INK}
@@ -451,9 +496,60 @@ export const Person: React.FC<PersonProps> = ({
               strokeWidth={3}
             />
           )}
-          <HatShape hat={hat} trim={trim} />
+          <g transform={`translate(0 ${dTop})`}>
+            <HatShape hat={hat} trim={trim} />
+          </g>
         </g>
       </g>
     </g>
   );
 };
+
+/**
+ * طبقة تظليل داخل شكل معيّن:
+ * cel  = هلال ظل حاد في الجهة البعيدة عن الضوء (الضوء من أعلى اليسار) + لمعة
+ * soft = تدرج دائري ناعم من الضوء إلى الظل
+ */
+const Shade: React.FC<{
+  id: string;
+  d: string;
+  color: string;
+  light: string;
+  mode: Shading;
+  dx: number;
+  dy: number;
+  highlight?: [number, number];
+  neck?: boolean;
+}> = ({id, d, color, light, mode, dx, dy, highlight, neck}) => (
+  <g>
+    <defs>
+      <clipPath id={`c${id}`}>
+        <path d={d} />
+      </clipPath>
+      {mode === 'cel' ? (
+        <mask id={`m${id}`}>
+          <path d={d} fill="#fff" />
+          <path d={d} fill="#000" transform={`translate(${dx} ${dy})`} />
+        </mask>
+      ) : (
+        <radialGradient id={`g${id}`} cx="0.32" cy="0.28" r="0.85">
+          <stop offset="0%" stopColor={light} stopOpacity={0.55} />
+          <stop offset="45%" stopColor={light} stopOpacity={0} />
+          <stop offset="70%" stopColor={color} stopOpacity={0.15} />
+          <stop offset="100%" stopColor={color} stopOpacity={0.85} />
+        </radialGradient>
+      )}
+    </defs>
+    {mode === 'cel' ? (
+      <path d={d} fill={color} mask={`url(#m${id})`} opacity={0.9} />
+    ) : (
+      <path d={d} fill={`url(#g${id})`} />
+    )}
+    <g clipPath={`url(#c${id})`}>
+      {neck && <ellipse cx={0} cy={-136} rx={40} ry={14} fill={color} opacity={0.55} />}
+      {highlight && mode === 'cel' && (
+        <ellipse cx={highlight[0]} cy={highlight[1]} rx={15} ry={8} fill="#fff" opacity={0.35} transform={`rotate(-30 ${highlight[0]} ${highlight[1]})`} />
+      )}
+    </g>
+  </g>
+);

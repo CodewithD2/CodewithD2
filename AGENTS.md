@@ -263,6 +263,10 @@ studio/
 - `hat`: `sultan` (عمامة بيضاء + قاووق أحمر) | `vizier` | `byzHelmet` (خوذة بيزنطية + ريشة) | `bork` (قبعة الإنكشارية) | `cap` (عامل) | `officerCap` (كاب ضابط) | `none`
 - `outfit`: `robe` (افتراضي: ثوب بخط وحزام بلون `trim`) | `suit` (بدلة + قميص أبيض + ربطة عنق بلون `tie`) | `uniform` (زي عسكري بحزام وكتّافات بلون `trim`)
 - `hair` (لون الشعر، يظهر مع `hat='none'` أو `officerCap`)، `mustache` (لون الشارب)، `beard` (لون اللحية)
+- `build`: `normal | broad` (كتفان عريضان، شكل V) `| belly` (كرش) `| slim` (نحيف). يغيّر شكل الجسم وموضع الكتفين وعرض الحزام والأرجل.
+- `face`: `round | square | jaw` (فك قوي) `| pointy` (ذقن حاد) `| long | wide` (عريض ممتلئ). الشعر والقبعة يُزاحان تلقائياً حسب ارتفاع الرأس (`FACE[face].top`).
+- `shading`: `none` (افتراضي، مسطّح) `| cel` (هلال ظل حاد بلون بنفسجي بارد في الجهة البعيدة عن الضوء + لمعة + احمرار خدين + ظل تحت الذقن + ظل على الأذرع) `| soft` (تدرج دائري ناعم). الضوء مفترض من أعلى اليسار. يستخدم `React.useId()` لمعرّفات mask/clip فريدة.
+- لوحات مرجعية: Compositions `SheetBuild` و`SheetFaces` في `src/CharacterSheet.tsx` — صدّرها بـ `npx remotion still src/index.ts SheetFaces out.png --frame=0`.
 - `look=[dx,dy]` اتجاه النظر (−1..1). `jolt` 0..1 قفزة لحظية (استعمل `Math.sin(prog(f,a,a+10)*Math.PI)`). `seed` يغيّر توقيت الرمش والتنفس بين الشخصيات.
 - `flip` يعكس الشخصية أفقياً. `rot` لميلها على منحدر.
 - شخصيات الحلقة ٢: عبد الناصر — ثابت `NASSER` في `episodes/suez1956/ShotsA.tsx` (بدلة `#3a3e4a`، ربطة `#5a1e28`، شعر وشارب `#1a1512`، بشرة `#c98f68`). استورده بـ `{...NASSER}` لضمان ثبات المظهر. فريق التسلّم: بدل مدنية + ضباط بـ `uniform`/`officerCap`.
