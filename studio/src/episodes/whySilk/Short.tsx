@@ -5,7 +5,7 @@ import {MUSIC} from '../../lib/music';
 import {FPS, SfxCue} from '../../shorts/track';
 import {SceneAmazon, SceneCarpet, SceneNetwork, SceneNo, SceneProps, SceneRelay} from './ScenesA';
 import {SceneAsk, SceneGoods, SceneName, SceneSecret} from './ScenesB';
-import {S, T, TOTAL_FRAMES, TOTAL_S, wordAt} from './track';
+import {S, T, TOTAL_FRAMES, TOTAL_S, E, wordAt} from './track';
 
 /* =====================================================================
  * شورت «ليه ولماذا؟» — لماذا سُمّي بطريق الحرير؟ (1080×1920، ~٥٢ث، أسلوب كوميدي)
@@ -26,24 +26,36 @@ const SCENES: {from: number; C: React.FC<SceneProps>; cut?: boolean}[] = [
   {from: S('s8_1') - 0.3, C: SceneAsk},
 ];
 
-/** لحظات النكت: خدش أسطوانة + إسكات الموسيقى */
-const GAGS = [S('s1_2'), wordAt('s5_1', 'ستفقد'), wordAt('s6_1', 'الأوبئة')];
-export const SILK_MUSIC_MUTE = GAGS.map((g) => ({t0: g - 0.05, t1: g + 1.1}));
+/** لحظات النكت: خدش أسطوانة داخل وقفة صامتة (لا يتداخل مع الكلام أبداً) + إسكات الموسيقى حتى بعد الكلمة */
+const wordEnd = (id: string, w: string) => {
+  const c = T.CLIPS[id];
+  const t = wordAt(id, w) - c.t0;
+  const x = c.e.words.find((q) => Math.abs(q.t - t) < 1e-6)!;
+  return c.t0 + x.t + x.d;
+};
+// [بداية الوقفة، الكلمة التالية بعد الوقفة]
+const GAPS: [number, number][] = [
+  [E('s1_1'), S('s1_2')],
+  [wordEnd('s5_1', 'كشفته'), wordAt('s5_1', 'ستفقد')],
+  [wordEnd('s6_1', 'البارود'), wordAt('s6_1', 'ويا')],
+];
+const SCRATCH = GAPS.map(([a, b]) => ({at: a + 0.04, dur: Math.max(0.3, b - a - 0.1)}));
+export const SILK_MUSIC_MUTE = GAPS.map(([a, b]) => ({t0: a, t1: b + 1.0}));
 
 export const WHY_SILK_SFX: SfxCue[] = [
-  ...GAGS.map((g) => ({at: g - 0.08, name: 'scratch', vol: 0.6, dur: 1.2, loop: false})),
+  ...SCRATCH.map(({at, dur}) => ({at, name: 'scratch', vol: 0.5, dur, fadeOut: 0.08, loop: false})),
   {at: wordAt('s1_1', 'لماذا') - 0.1, name: 'pop', vol: 0.35, dur: 0.6, loop: false},
-  {at: S('s1_2') + 0.1, name: 'thud', vol: 0.55, dur: 1, loop: false},
+  {at: S('s1_2') + 0.1, name: 'thud', vol: 0.4, dur: 1, loop: false},
   {at: wordAt('s2_1', 'فوضوية') - 0.1, name: 'pop', vol: 0.3, dur: 0.6, loop: false},
   {at: S('s3_1') - 0.3, name: 'camelBells', vol: 0.22, dur: wordAt('s3_1', 'يسرقك') - S('s3_1') + 0.4},
   {at: wordAt('s3_1', 'يسرقك') - 0.1, name: 'swoosh', vol: 0.4, dur: 1, loop: false},
   {at: wordAt('s4_1', 'تنقلت') - 0.2, name: 'swoosh', vol: 0.3, dur: 1, loop: false},
   {at: wordAt('s4_1', 'تاجر', 2) - 0.1, name: 'swoosh', vol: 0.3, dur: 1, loop: false},
   {at: wordAt('s4_1', 'كسباق') - 0.1, name: 'swoosh', vol: 0.3, dur: 1, loop: false},
-  {at: wordAt('s4_1', 'عملاق'), name: 'swoosh', vol: 0.3, dur: 1, loop: false},
-  {at: wordAt('s5_1', 'سرا') - 0.1, name: 'pop', vol: 0.35, dur: 0.6, loop: false},
+  {at: wordAt('s4_1', 'العملاق'), name: 'swoosh', vol: 0.3, dur: 1, loop: false},
+  {at: wordAt('s5_1', 'سر') - 0.1, name: 'pop', vol: 0.35, dur: 0.6, loop: false},
   {at: wordAt('s5_1', 'حرفيا') - 0.05, name: 'boing', vol: 0.5, dur: 1.2, loop: false},
-  ...['التوابل', 'والورق', 'والبارود'].map((w) => ({at: wordAt('s6_1', w) - 0.1, name: 'pop', vol: 0.35, dur: 0.6, loop: false})),
+  ...['التوابل', 'والورق', 'البارود'].map((w) => ({at: wordAt('s6_1', w) - 0.1, name: 'pop', vol: 0.35, dur: 0.6, loop: false})),
   {at: wordAt('s7_1', 'اخترعه') + 0.1, name: 'thud', vol: 0.5, dur: 1, loop: false},
   {at: wordAt('s8_1', 'هل'), name: 'pop', vol: 0.3, dur: 0.6, loop: false},
 ];
@@ -67,7 +79,7 @@ export const WhySilkShort: React.FC = () => {
       <FilmLook frame={f} />
       <T.Subtitles />
       <AbsoluteFill style={{background: '#000', opacity: fadeBlack}} />
-      <T.Audio sfx={WHY_SILK_SFX} music={MUSIC.bluesky} musicHigh={0.22} musicLow={0.1} musicMute={SILK_MUSIC_MUTE} />
+      <T.Audio sfx={WHY_SILK_SFX} music={MUSIC.bluesky} musicHigh={0.15} musicLow={0.055} musicMute={SILK_MUSIC_MUTE} />
     </AbsoluteFill>
   );
 };

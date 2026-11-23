@@ -9,7 +9,7 @@ export const T = makeTrack({
   sfxFiles: SFX as Record<string, string>,
   tight: true,
   order: [
-    ['s1_1', 0.15],
+    ['s1_1', 0.6],
     ['s1_2', 0.35],
     ['s2_1', 0.2],
     ['s3_1', 0.2],

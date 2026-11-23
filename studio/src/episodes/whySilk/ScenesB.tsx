@@ -30,7 +30,7 @@ const routeAt = (u: number): [number, number] => {
 export const SceneSecret: React.FC<SceneProps> = ({t, f}) => {
   const t0 = S('s5_1') - 0.3;
   const t1 = S('s6_1');
-  const tSecret = wordAt('s5_1', 'سرا');
+  const tSecret = wordAt('s5_1', 'سر');
   const tReveal = wordAt('s5_1', 'كشفته');
   const tLose = wordAt('s5_1', 'ستفقد');
   const tLit = wordAt('s5_1', 'حرفيا');
@@ -115,7 +115,7 @@ export const SceneGoods: React.FC<SceneProps> = ({t, f}) => {
   const items = [
     {at: wordAt('s6_1', 'التوابل'), C: SpiceSack, label: 'توابل'},
     {at: wordAt('s6_1', 'والورق'), C: PaperScroll, label: 'ورق'},
-    {at: wordAt('s6_1', 'والبارود'), C: Bomb, label: 'بارود'},
+    {at: wordAt('s6_1', 'البارود'), C: Bomb, label: 'بارود'},
     {at: wordAt('s6_1', 'الأوبئة'), C: GermSkull, label: 'أوبئة!'},
   ];
   const tPlague = items[3].at;
