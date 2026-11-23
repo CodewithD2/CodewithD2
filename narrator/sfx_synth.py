@@ -98,6 +98,68 @@ def make(out):
     d = 2.5; t = t_(d)
     S['boom'] = norm(lp_fast(noise(d), 180) * env(d, 0.004, 0.9, 3) + np.sin(2 * np.pi * 42 * t) * env(d, 0.004, 0.6, 3), 0.9)
 
+    # ---- مؤثرات كوميدية وتاريخية (حلقات العصور الوسطى) ----
+    # طبول حرب متسارعة
+    d = 1.6; t = t_(d); dr = np.zeros_like(t)
+    beat_times = [0.0, 0.28, 0.52, 0.72, 0.89, 1.04, 1.17, 1.28, 1.38, 1.46, 1.53]
+    for bt in beat_times:
+        i0 = int(bt * SR); blen = min(int(0.18 * SR), len(dr) - i0)
+        if blen > 0:
+            tb = np.arange(blen) / SR
+            hit = np.sin(2 * np.pi * (88 + 55 * np.exp(-tb * 28)) * tb) * np.exp(-tb * 18) + bp_fast(noise(blen / SR), 180, 900) * np.exp(-tb * 24) * 0.4
+            dr[i0:i0 + blen] += hit
+    S['drumroll'] = norm(dr, 0.85)
+    # توقف مفاجئ (Record Scratch)
+    d = 0.45; t = t_(d)
+    f_sc = 1800 * np.exp(-t * 6.5) + 140
+    ph = 2 * np.pi * np.cumsum(f_sc) / SR
+    S['scratch'] = norm((np.sin(ph) + 0.5 * np.sin(2.3 * ph) + bp_fast(noise(d), 1200, 5000) * 0.45) * env(d, 0.005, 0.16, 3), 0.75)
+    # جرس خطأ (Buzzer)
+    d = 0.65; t = t_(d)
+    bz = np.sign(np.sin(2 * np.pi * 118 * t)) + 0.6 * np.sign(np.sin(2 * np.pi * 124 * t))
+    S['buzzer'] = norm(lp_fast(bz, 1200) * env(d, 0.008, 0.45, 2.5), 0.65)
+    # ثلاث طرقات باب خشبي (طق.. طق.. طق)
+    d = 0.9; t = t_(d); kn = np.zeros_like(t)
+    for bt in [0.04, 0.30, 0.56]:
+        i0 = int(bt * SR); blen = min(int(0.14 * SR), len(kn) - i0)
+        tb = np.arange(blen) / SR
+        hit = (np.sin(2 * np.pi * 210 * tb) + 0.6 * np.sin(2 * np.pi * 390 * tb)) * np.exp(-tb * 36) + bp_fast(noise(blen / SR), 300, 1600) * np.exp(-tb * 45) * 0.5
+        kn[i0:i0 + blen] += hit
+    S['knock'] = norm(kn, 0.8)
+    # إغلاق باب خشبي ثقيل
+    d = 0.55; t = t_(d)
+    S['doorSlam'] = norm(np.sin(2 * np.pi * (75 + 80 * np.exp(-t * 32)) * t) * env(d, 0.002, 0.14, 4) + lp_fast(noise(d), 1400) * env(d, 0.002, 0.18, 4) * 0.9, 0.9)
+    # تحطم زجاجي خفيف وطريف
+    d = 0.75; t = t_(d); gl = np.zeros_like(t)
+    for _ in range(28):
+        i0 = rng.integers(0, int(0.35 * SR)); blen = min(int(0.28 * SR), len(gl) - i0)
+        tb = np.arange(blen) / SR; f0 = rng.uniform(2200, 7600)
+        gl[i0:i0 + blen] += np.sin(2 * np.pi * f0 * tb) * np.exp(-tb * rng.uniform(16, 38)) * rng.uniform(0.3, 1.0)
+    S['glass'] = norm(gl + bp_fast(noise(d), 3000, 9000) * env(d, 0.002, 0.08, 5) * 0.5, 0.7)
+    # مقص شعر (تشك تشك)
+    d = 0.42; t = t_(d); sn = np.zeros_like(t)
+    for bt in [0.03, 0.21]:
+        i0 = int(bt * SR); blen = min(int(0.11 * SR), len(sn) - i0)
+        tb = np.arange(blen) / SR
+        sn[i0:i0 + blen] += (bp_fast(noise(blen / SR), 2800, 8500) + 0.35 * np.sin(2 * np.pi * 4200 * tb)) * np.exp(-tb * 35)
+    S['snip'] = norm(sn, 0.7)
+    # بوق بطولي (معركة الرنجة / إعلان)
+    d = 1.25; t = t_(d); tr = np.zeros_like(t)
+    for st, en, freq in [(0.0, 0.22, 392.0), (0.24, 0.46, 523.25), (0.48, 0.68, 659.25), (0.70, 1.22, 783.99)]:
+        m = (t >= st) & (t < en); tm = t[m] - st
+        brass = sum((1.0 / k) * np.sin(2 * np.pi * freq * k * tm) for k in range(1, 6))
+        tr[m] += brass * np.minimum(1, tm / 0.025) * np.exp(-tm * 1.4)
+    S['trumpet'] = norm(lp_fast(tr, 2600), 0.72)
+    # ختم موافقة ثقيل
+    d = 0.35; t = t_(d)
+    S['stamp'] = norm(np.sin(2 * np.pi * (95 + 70 * np.exp(-t * 35)) * t) * env(d, 0.002, 0.09, 5) + bp_fast(noise(d), 250, 2200) * env(d, 0.002, 0.06, 6) * 0.7, 0.85)
+    # سقوط فك جماعي كوميدي
+    d = 0.55; t = t_(d)
+    f_jd = 520 * np.exp(-t * 4.5) + 65
+    ph_jd = 2 * np.pi * np.cumsum(f_jd) / SR
+    thud = np.sin(2 * np.pi * 68 * np.maximum(0, t - 0.36)) * (t >= 0.36) * np.exp(-np.maximum(0, t - 0.36) * 18) * 1.4
+    S['jawDrop'] = norm(np.sin(ph_jd) * env(d, 0.01, 0.35, 2) * 0.6 + thud, 0.78)
+
     # ---- أصوات ممتدة قابلة للتكرار ----
     L = 8.0; t = t_(L)
     # أمواج: ضوضاء منخفضة تعلو وتهبط كل ~4 ثوانٍ

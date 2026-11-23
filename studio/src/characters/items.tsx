@@ -31,7 +31,18 @@ export type ItemId =
   | 'lantern'
   | 'phone'
   | 'tea'
-  | 'briefcase';
+  | 'briefcase'
+  | 'joanBanner'
+  | 'longsword'
+  | 'battleAxe'
+  | 'flagFrance'
+  | 'flagEngland'
+  | 'flagBurgundy'
+  | 'moneyBag'
+  | 'rattle'
+  | 'spyglass'
+  | 'quill'
+  | 'mug';
 
 /** شيء ممسوك: id أو كائن بنص (للجريدة واللافتة) */
 export type Held = ItemId | {id: ItemId; text?: string};
@@ -61,6 +72,17 @@ export const ITEM_LABEL: Record<ItemId, string> = {
   phone: 'سماعة هاتف',
   tea: 'كوب شاي',
   briefcase: 'حقيبة',
+  joanBanner: 'راية جان دارك البيضاء',
+  longsword: 'سيف فرنسي مستقيم',
+  battleAxe: 'فأس قتال ضخم',
+  flagFrance: 'علم فرنسا الملكي',
+  flagEngland: 'علم إنجلترا',
+  flagBurgundy: 'علم بورغوندي',
+  moneyBag: 'كيس ذهب',
+  rattle: 'شخشيخة ملكية',
+  spyglass: 'منظار',
+  quill: 'ريشة كتابة',
+  mug: 'كوب معدني',
 };
 
 export const ITEM_MODE: Record<ItemId, HoldMode> = {
@@ -84,6 +106,17 @@ export const ITEM_MODE: Record<ItemId, HoldMode> = {
   phone: 'along',
   tea: 'front',
   briefcase: 'hang',
+  joanBanner: 'upright',
+  longsword: 'along',
+  battleAxe: 'along',
+  flagFrance: 'upright',
+  flagEngland: 'upright',
+  flagBurgundy: 'upright',
+  moneyBag: 'hang',
+  rattle: 'along',
+  spyglass: 'along',
+  quill: 'along',
+  mug: 'front',
 };
 
 const st = {stroke: INK, strokeWidth: 4, strokeLinejoin: 'round' as const, strokeLinecap: 'round' as const};
@@ -100,15 +133,32 @@ const star = (cx: number, cy: number, r: number) => {
 };
 
 /** راية ترفرف مثبتة على سارية — design يحدد النقش */
-const FlagCloth: React.FC<{frame: number; design: 'egypt' | 'ottoman' | 'byz'; top: number}> = ({frame, design, top}) => {
-  const w = 96;
-  const h = 64;
+const FlagCloth: React.FC<{frame: number; design: 'egypt' | 'ottoman' | 'byz' | 'france' | 'england' | 'burgundy' | 'joan'; top: number}> = ({frame, design, top}) => {
+  const w = design === 'joan' ? 128 : 96;
+  const h = design === 'joan' ? 76 : 64;
   const N = 8;
   const wave = (t: number) => Math.sin(frame / 4.5 - t * 5) * 8 * t;
   const pts = Array.from({length: N + 1}, (_, i) => `${(i / N) * w} ${top + wave(i / N)}`);
   const bot = Array.from({length: N + 1}, (_, i) => `${((N - i) / N) * w} ${top + h + wave((N - i) / N)}`);
   const mid = wave(0.5);
-  const bg = design === 'egypt' ? '#1f7a3a' : design === 'ottoman' ? '#c0262d' : '#7a1f5a';
+  const bg =
+    design === 'egypt'
+      ? '#1f7a3a'
+      : design === 'ottoman' || design === 'england'
+        ? '#c0262d'
+        : design === 'byz'
+          ? '#7a1f5a'
+          : design === 'france'
+            ? '#2452a4'
+            : '#f8f5ec';
+  const fleur = (cx: number, cy: number, sc = 0.65) => (
+    <g transform={`translate(${cx} ${cy}) scale(${sc})`} fill="#f2c43a" stroke={INK} strokeWidth={2.5}>
+      <path d="M 0 -18 Q 7 -6 3 4 L -3 4 Q -7 -6 0 -18 Z" />
+      <path d="M -3 3 Q -18 -6 -14 6 Q -9 10 -3 5 Z" />
+      <path d="M 3 3 Q 18 -6 14 6 Q 9 10 3 5 Z" />
+      <rect x={-9} y={3} width={18} height={4} rx={1.5} />
+    </g>
+  );
   return (
     <g>
       <path d={`M ${pts.join(' L ')} L ${bot.join(' L ')} Z`} fill={bg} {...st} />
@@ -129,6 +179,36 @@ const FlagCloth: React.FC<{frame: number; design: 'egypt' | 'ottoman' | 'byz'; t
         </g>
       )}
       {design === 'byz' && <path d={`M ${w * 0.5} ${top + 10 + mid} v ${h - 20} M ${w * 0.3} ${top + h / 2 + mid} h ${w * 0.4}`} stroke="#e8b830" strokeWidth={6} />}
+      {design === 'france' && (
+        <g>
+          {fleur(w * 0.34, top + h * 0.34 + wave(0.34), 0.55)}
+          {fleur(w * 0.68, top + h * 0.34 + wave(0.68), 0.55)}
+          {fleur(w * 0.51, top + h * 0.7 + mid, 0.55)}
+        </g>
+      )}
+      {design === 'england' && (
+        <path
+          d={`M ${w * 0.5} ${top + 4 + mid} v ${h - 8} M 6 ${top + h / 2 + wave(0.1)} Q ${w * 0.5} ${top + h / 2 + mid} ${w - 6} ${top + h / 2 + wave(0.9)}`}
+          stroke="#f8f5ec"
+          strokeWidth={11}
+          fill="none"
+        />
+      )}
+      {design === 'burgundy' && (
+        <g stroke="#b8242e" strokeWidth={10} strokeLinecap="round">
+          <line x1={16} y1={top + 12 + wave(0.16)} x2={w - 16} y2={top + h - 12 + wave(0.84)} />
+          <line x1={w - 16} y1={top + 12 + wave(0.84)} x2={16} y2={top + h - 12 + wave(0.16)} />
+        </g>
+      )}
+      {design === 'joan' && (
+        <g>
+          <path d={`M 6 ${top + 10 + wave(0.05)} Q ${w * 0.5} ${top + 10 + mid} ${w - 8} ${top + 10 + wave(0.95)}`} stroke="#e8b830" strokeWidth={4} fill="none" />
+          <path d={`M 6 ${top + h - 10 + wave(0.05)} Q ${w * 0.5} ${top + h - 10 + mid} ${w - 8} ${top + h - 10 + wave(0.95)}`} stroke="#e8b830" strokeWidth={4} fill="none" />
+          {fleur(w * 0.28, top + h * 0.5 + wave(0.28), 0.65)}
+          {fleur(w * 0.54, top + h * 0.5 + mid, 0.85)}
+          {fleur(w * 0.8, top + h * 0.5 + wave(0.8), 0.65)}
+        </g>
+      )}
     </g>
   );
 };
@@ -308,6 +388,94 @@ export const ItemShape: React.FC<{item: Held; frame: number}> = ({item, frame}) 
           <rect x={-40} y={4} width={80} height={56} rx={6} fill="#5a3a22" />
           <line x1={-40} y1={22} x2={40} y2={22} strokeWidth={3} />
           <rect x={-6} y={16} width={12} height={10} fill="#d9b13a" strokeWidth={2.5} />
+        </g>
+      );
+    case 'joanBanner':
+      return (
+        <g>
+          <rect x={-4} y={-230} width={8} height={310} rx={3} fill="#6e4b28" {...st} />
+          <path d="M 0 -258 L 8 -234 L 0 -226 L -8 -234 Z" fill="#f2c43a" {...st} strokeWidth={3} />
+          <g transform="translate(2 0)">
+            <FlagCloth frame={frame} design="joan" top={-224} />
+          </g>
+        </g>
+      );
+    case 'flagFrance':
+    case 'flagEngland':
+    case 'flagBurgundy':
+      return (
+        <g>
+          <rect x={-4} y={-174} width={8} height={236} rx={3} fill="#5a3c22" {...st} />
+          <circle cx={0} cy={-180} r={8} fill="#d9b13a" {...st} strokeWidth={3} />
+          <g transform="translate(2 0)">
+            <FlagCloth frame={frame} design={id === 'flagFrance' ? 'france' : id === 'flagEngland' ? 'england' : 'burgundy'} top={-170} />
+          </g>
+        </g>
+      );
+    case 'longsword':
+      return (
+        <g {...st}>
+          <path d="M -7 -16 L -6 -136 L 0 -156 L 6 -136 L 7 -16 Z" fill="#dce3ee" />
+          <line x1={0} y1={-22} x2={0} y2={-138} stroke="#8f9aa8" strokeWidth={2.5} />
+          <rect x={-26} y={-20} width={52} height={9} rx={3} fill="#e4b632" />
+          <rect x={-5} y={-11} width={10} height={30} rx={4} fill="#5a301a" />
+          <circle cx={0} cy={23} r={8} fill="#e4b632" />
+        </g>
+      );
+    case 'battleAxe':
+      return (
+        <g {...st}>
+          <rect x={-5} y={-152} width={10} height={198} rx={4} fill="#6a4220" />
+          <path d="M 4 -146 Q 48 -160 54 -116 Q 48 -74 4 -88 Z" fill="#aeb7c4" />
+          <path d="M 42 -144 Q 52 -116 42 -88" fill="none" stroke="#eef4fa" strokeWidth={4} />
+          <path d="M -5 -134 L -22 -122 L -5 -104 Z" fill="#8b94a2" />
+        </g>
+      );
+    case 'moneyBag':
+      return (
+        <g {...st}>
+          <path d="M -14 14 L -8 2 L 8 2 L 14 14 Q 36 28 34 54 Q 30 74 0 76 Q -30 74 -34 54 Q -36 28 -14 14 Z" fill="#c79e5e" />
+          <rect x={-12} y={10} width={24} height={7} rx={3} fill="#9e2a2b" />
+          <text x={0} y={52} textAnchor="middle" fontFamily="Amiri" fontWeight={700} fontSize={text ? 14 : 26} fill="#3a2410" stroke="none" direction="rtl">
+            {text ?? 'ذهب'}
+          </text>
+        </g>
+      );
+    case 'rattle':
+      return (
+        <g {...st}>
+          <rect x={-4} y={-36} width={8} height={48} rx={4} fill="#e4b632" />
+          <circle cx={0} cy={-50} r={20} fill="#f2c94c" />
+          <circle cx={-7} cy={-54} r={4} fill="#c0262d" strokeWidth={2} />
+          <circle cx={7} cy={-46} r={4} fill="#2452a4" strokeWidth={2} />
+          <path d="M -10 -70 L -6 -82 L 0 -74 L 6 -82 L 10 -70 Z" fill="#f2c94c" strokeWidth={3} />
+        </g>
+      );
+    case 'spyglass':
+      return (
+        <g {...st}>
+          <path d="M -7 4 L -12 -74 L 12 -74 L 7 4 Z" fill="#c99a32" />
+          <rect x={-10} y={-34} width={20} height={8} fill="#7a5216" />
+          <rect x={-13} y={-78} width={26} height={8} rx={2} fill="#8a621c" />
+          <ellipse cx={0} cy={-78} rx={10} ry={4} fill="#7ec8f2" strokeWidth={2} />
+        </g>
+      );
+    case 'quill':
+      return (
+        <g {...st}>
+          <path d="M 0 12 L 2 -14" stroke="#3a2e22" strokeWidth={3.5} />
+          <path d="M 2 -10 Q -16 -52 10 -96 Q 24 -56 4 -10 Z" fill="#f8f5ec" />
+          <path d="M 2 -12 Q 6 -52 10 -92" fill="none" stroke="#c8c0b0" strokeWidth={2} />
+        </g>
+      );
+    case 'mug':
+      return (
+        <g {...st}>
+          <path d="M 14 -36 Q 30 -36 30 -20 Q 30 -6 14 -6" fill="none" stroke="#8e96a2" strokeWidth={7} />
+          <path d="M 14 -36 Q 30 -36 30 -20 Q 30 -6 14 -6" fill="none" />
+          <rect x={-18} y={-44} width={34} height={44} rx={4} fill="#9ea6b2" />
+          <line x1={-18} y1={-32} x2={16} y2={-32} strokeWidth={2.5} />
+          <line x1={-18} y1={-12} x2={16} y2={-12} strokeWidth={2.5} />
         </g>
       );
     default:

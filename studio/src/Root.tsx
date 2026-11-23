@@ -6,6 +6,17 @@ import {SheetBuild, SheetFaces, SheetWomen} from './CharacterSheet';
 import {MOTION_TEST_FRAMES, MotionTest} from './MotionTest';
 import {SCRIPT_TEST_FRAMES, ScriptTest} from './ScriptTest';
 import {CastHistorical, CastRoles} from './CastSheet';
+import {EuropeMapSheet, JoanCastSheet, JoanRolesSheet} from './JoanBatch0Sheets';
+import {JOAN_TOTAL_FRAMES, JoanOfArcEpisode} from './episodes/joanOfArc/Episode';
+import {SCENE01_TRACK, Scene01} from './episodes/joanOfArc/Scene01';
+import {SCENE02_TRACK, Scene02} from './episodes/joanOfArc/Scene02';
+import {SCENE03_TRACK, Scene03} from './episodes/joanOfArc/Scene03';
+import {SCENE04_TRACK, Scene04} from './episodes/joanOfArc/Scene04';
+import {SCENE05_TRACK, Scene05} from './episodes/joanOfArc/Scene05';
+import {SCENE06_TRACK, Scene06} from './episodes/joanOfArc/Scene06';
+import {SCENE07_TRACK, Scene07} from './episodes/joanOfArc/Scene07';
+import {SCENE08_TRACK, Scene08} from './episodes/joanOfArc/Scene08';
+import {SCENE09_TRACK, Scene09} from './episodes/joanOfArc/Scene09';
 import {ItemPoses, ItemsCatalog, ItemsTurn} from './ItemsSheet';
 import {DepthTurn, DepthWalk} from './DepthSheet';
 import {LightingCompare, LightingSheet} from './LightingSheet';
@@ -29,6 +40,17 @@ export const Root: React.FC = () => (
   <>
     <Composition id="ShipsOverland" component={Episode} durationInFrames={DURATION_S * 30} fps={30} width={1920} height={1080} />
     <Composition id="Suez1956" component={SuezEpisode} durationInFrames={SUEZ_DURATION_S * 30} fps={30} width={1920} height={1080} />
+    {/* حلقة جان دارك (تُبنى مشهد بمشهد) */}
+    <Composition id="JoanOfArc" component={JoanOfArcEpisode} durationInFrames={JOAN_TOTAL_FRAMES} fps={30} width={1920} height={1080} />
+    <Composition id="JoanScene01" component={Scene01} durationInFrames={SCENE01_TRACK.durationFrames} fps={30} width={1920} height={1080} />
+    <Composition id="JoanScene02" component={Scene02} durationInFrames={SCENE02_TRACK.durationFrames} fps={30} width={1920} height={1080} />
+    <Composition id="JoanScene03" component={Scene03} durationInFrames={SCENE03_TRACK.durationFrames} fps={30} width={1920} height={1080} />
+    <Composition id="JoanScene04" component={Scene04} durationInFrames={SCENE04_TRACK.durationFrames} fps={30} width={1920} height={1080} />
+    <Composition id="JoanScene05" component={Scene05} durationInFrames={SCENE05_TRACK.durationFrames} fps={30} width={1920} height={1080} />
+    <Composition id="JoanScene06" component={Scene06} durationInFrames={SCENE06_TRACK.durationFrames} fps={30} width={1920} height={1080} />
+    <Composition id="JoanScene07" component={Scene07} durationInFrames={SCENE07_TRACK.durationFrames} fps={30} width={1920} height={1080} />
+    <Composition id="JoanScene08" component={Scene08} durationInFrames={SCENE08_TRACK.durationFrames} fps={30} width={1920} height={1080} />
+    <Composition id="JoanScene09" component={Scene09} durationInFrames={SCENE09_TRACK.durationFrames} fps={30} width={1920} height={1080} />
     {/* لوحات مرجعية للشخصيات (صور ثابتة) */}
     <Composition id="SheetBuild" component={SheetBuild} durationInFrames={60} fps={30} width={1920} height={1080} />
     <Composition id="SheetFaces" component={SheetFaces} durationInFrames={60} fps={30} width={1920} height={1080} />
@@ -43,6 +65,10 @@ export const Root: React.FC = () => (
     {/* لوحات مكتبة الشخصيات */}
     <Composition id="CastHistorical" component={CastHistorical} durationInFrames={30} fps={30} width={1920} height={1080} />
     <Composition id="CastRoles" component={CastRoles} durationInFrames={30} fps={30} width={1920} height={1080} />
+    {/* لوحات الدفعة 0 — شخصيات وخرائط جان دارك */}
+    <Composition id="JoanCastSheet" component={JoanCastSheet} durationInFrames={60} fps={30} width={1920} height={1080} />
+    <Composition id="JoanRolesSheet" component={JoanRolesSheet} durationInFrames={60} fps={30} width={1920} height={1080} />
+    <Composition id="EuropeMapSheet" component={EuropeMapSheet} durationInFrames={60} fps={30} width={1920} height={1080} />
     {/* لوحات مكتبة المباني */}
     <Composition id="BuildingsSheetA" component={BuildingsSheetA} durationInFrames={30} fps={30} width={1920} height={1080} />
     <Composition id="BuildingsSheetB" component={BuildingsSheetB} durationInFrames={30} fps={30} width={1920} height={1080} />

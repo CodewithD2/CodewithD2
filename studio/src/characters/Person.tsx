@@ -8,7 +8,7 @@ import {CharLight, CharLightCtx} from './light';
  * جسم صغير وأذرع مرنة. نقطة الأصل (0,0) عند القدمين، والطول ≈ 270 وحدة.
  */
 
-export type Expr = 'neutral' | 'smug' | 'shock' | 'think' | 'strain' | 'idea' | 'sleepy' | 'happy' | 'speak' | 'shout' | 'angry' | 'laugh' | 'sad';
+export type Expr = 'neutral' | 'smug' | 'shock' | 'think' | 'strain' | 'idea' | 'sleepy' | 'happy' | 'speak' | 'shout' | 'angry' | 'laugh' | 'sad' | 'dizzy' | 'determined';
 /** نمط الحركة: still ثابت (السلوك القديم)، idle وقوف حي، walk مشي، run جري */
 export type Motion = 'still' | 'idle' | 'walk' | 'run';
 /** الاتجاه: front 0°، threeQuarter 45°، side 90°، threeQuarterBack 135°، back 180° — أو أي زاوية رقمية */
@@ -16,10 +16,28 @@ export type View = 'front' | 'threeQuarter' | 'side' | 'threeQuarterBack' | 'bac
 export const VIEW_YAW: Record<View, number> = {front: 0, threeQuarter: 45, side: 90, threeQuarterBack: 135, back: 180};
 /** حالات تمثيل جاهزة تجمع التعبير والوضعية وحركة الجسم والمؤثرات */
 export type Act = 'angry' | 'laugh' | 'sad' | 'scared' | 'orate' | 'cheer';
-export type Hat = 'sultan' | 'vizier' | 'byzHelmet' | 'bork' | 'cap' | 'officerCap' | 'hijab' | 'crown' | 'none';
-export type Outfit = 'robe' | 'suit' | 'uniform' | 'dress' | 'skirt' | 'abaya';
+export type Hat =
+  | 'sultan'
+  | 'vizier'
+  | 'byzHelmet'
+  | 'bork'
+  | 'cap'
+  | 'officerCap'
+  | 'hijab'
+  | 'crown'
+  | 'tiltedCrown'
+  | 'oversizedCrown'
+  | 'nobleHat'
+  | 'chaperon'
+  | 'mitre'
+  | 'medievalHelmet'
+  | 'scholarCap'
+  | 'none';
+export type Outfit = 'robe' | 'suit' | 'uniform' | 'dress' | 'skirt' | 'abaya' | 'armor' | 'royal' | 'peasant' | 'cleric' | 'baby';
 /** تسريحات الشعر */
-export type HairStyle = 'short' | 'long' | 'bun' | 'ponytail' | 'bob' | 'braid';
+export type HairStyle = 'short' | 'long' | 'bun' | 'ponytail' | 'bob' | 'braid' | 'bowlCut' | 'messy';
+/** شعار على الصدر (عصور وسطى أوروبية) */
+export type Emblem = 'fleur' | 'cross' | 'saltire';
 /** البنية الجسدية */
 export type Build = 'normal' | 'broad' | 'belly' | 'slim' | 'female' | 'femaleFull';
 /** شكل الوجه */
@@ -121,6 +139,30 @@ export type PersonProps = {
   scarf?: string;
   /** لون التنورة في outfit='skirt' */
   skirt?: string;
+  /** لون النصف الثاني لرداء مقسّم لونين (مثل هنري الخامس) */
+  robe2?: string;
+  /** رداء علوي قصير فوق الدرع (مثل جان دارك) */
+  surcoat?: string;
+  /** شعار على الصدر: زهرة زنبق / صليب / صليب مائل X */
+  emblem?: Emblem;
+  /** حواف فرو (أبيض/قاقم) للنبلاء والملوك */
+  fur?: string;
+  /** قضبان حديدية مخيطة في الرداء (شارل السادس) */
+  ironRods?: boolean;
+  /** لون المريلة في زي القرية */
+  apron?: string;
+  /** نظارات دائرية صغيرة (للعلماء) */
+  glasses?: boolean;
+  /** قطرة عرق دائمة بجانب الجبهة */
+  sweat?: boolean;
+  /** خدان ورديان دائمان (للأطفال) */
+  rosy?: boolean;
+  /** حاجبان سميكان غاضبان (مثل لا هير) */
+  heavyBrows?: boolean;
+  /** شارب كثيف مقوس للأسفل (مثل بودريكور) */
+  droopMustache?: boolean;
+  /** عيون شاردة/حلزونية (مثل شارل السادس) */
+  spiralEyes?: boolean;
   look?: [number, number];
   /** 0..1 للانتقال الحاد في التعبير (مثل قفزة الصدمة) */
   jolt?: number;
@@ -196,36 +238,82 @@ const Arm: React.FC<{from: Pt; mid: Pt; to: Pt; robe: string; skin: string}> = (
   );
 };
 
-const Eyes: React.FC<{expr: Expr; blink: boolean; look: [number, number]; skin: string; lashes?: boolean; only?: 0 | 1}> = ({expr, blink, look, skin, lashes, only}) => {
+const Eyes: React.FC<{expr: Expr; blink: boolean; look: [number, number]; skin: string; lashes?: boolean; spiralEyes?: boolean; glasses?: boolean; only?: 0 | 1}> = ({
+  expr,
+  blink,
+  look,
+  skin,
+  lashes,
+  spiralEyes,
+  glasses,
+  only,
+}) => {
   const [lx, ly] = look;
   const E = only === undefined ? [-21, 21] : [[-21, 21][only]];
   const ey = -206;
+  const spec = glasses ? (
+    <g fill="rgba(255,255,255,0.22)" stroke={INK} strokeWidth={3.5}>
+      {E.map((x) => (
+        <circle key={`gl${x}`} cx={x} cy={ey} r={14} />
+      ))}
+      {only !== 1 && <line x1={-7} y1={ey} x2={0} y2={ey} />}
+      {only !== 0 && <line x1={0} y1={ey} x2={7} y2={ey} />}
+    </g>
+  ) : null;
   if (expr === 'strain') {
     return (
-      <g stroke={INK} strokeWidth={5} strokeLinecap="round" fill="none">
-        {E.map((x) => {
-          const k = Math.sign(x);
-          return <path key={x} d={`M ${x + k * 9} ${ey - 7} L ${x - k * 6} ${ey} L ${x + k * 9} ${ey + 7}`} />;
-        })}
+      <g>
+        <g stroke={INK} strokeWidth={5} strokeLinecap="round" fill="none">
+          {E.map((x) => {
+            const k = Math.sign(x);
+            return <path key={x} d={`M ${x + k * 9} ${ey - 7} L ${x - k * 6} ${ey} L ${x + k * 9} ${ey + 7}`} />;
+          })}
+        </g>
+        {spec}
       </g>
     );
   }
   if (expr === 'laugh') {
     // عيون مغمضة من الضحك ^ ^
     return (
-      <g stroke={INK} strokeWidth={5} strokeLinecap="round" fill="none">
-        {E.map((x) => (
-          <path key={x} d={`M ${x - 9} ${ey + 3} Q ${x} ${ey - 10} ${x + 9} ${ey + 3}`} />
-        ))}
+      <g>
+        <g stroke={INK} strokeWidth={5} strokeLinecap="round" fill="none">
+          {E.map((x) => (
+            <path key={x} d={`M ${x - 9} ${ey + 3} Q ${x} ${ey - 10} ${x + 9} ${ey + 3}`} />
+          ))}
+        </g>
+        {spec}
       </g>
     );
   }
   if (expr === 'sleepy' || blink) {
     return (
-      <g stroke={INK} strokeWidth={5} strokeLinecap="round">
+      <g>
+        <g stroke={INK} strokeWidth={5} strokeLinecap="round">
+          {E.map((x) => (
+            <line key={x} x1={x - 8} y1={ey + 2} x2={x + 8} y2={ey + 2} />
+          ))}
+        </g>
+        {spec}
+      </g>
+    );
+  }
+  if (expr === 'dizzy' || (spiralEyes && expr !== 'shock')) {
+    return (
+      <g>
         {E.map((x) => (
-          <line key={x} x1={x - 8} y1={ey + 2} x2={x + 8} y2={ey + 2} />
+          <g key={x}>
+            <circle cx={x} cy={ey - 2} r={15} fill="#fff" stroke={INK} strokeWidth={3.5} />
+            <path
+              d={`M ${x} ${ey - 2} m -2 0 a 2 2 0 1 1 4 0 a 5 5 0 1 1 -10 0 a 8.5 8.5 0 1 1 17 0`}
+              fill="none"
+              stroke={INK}
+              strokeWidth={2.5}
+              strokeLinecap="round"
+            />
+          </g>
         ))}
+        {spec}
       </g>
     );
   }
@@ -238,6 +326,7 @@ const Eyes: React.FC<{expr: Expr; blink: boolean; look: [number, number]; skin: 
             <circle cx={x + lx * 4} cy={ey - 4 + ly * 4} r={4.5} fill={INK} />
           </g>
         ))}
+        {spec}
       </g>
     );
   }
@@ -257,18 +346,27 @@ const Eyes: React.FC<{expr: Expr; blink: boolean; look: [number, number]; skin: 
             </g>
           );
         })}
-      {expr === 'smug' &&
+      {(expr === 'smug' || expr === 'determined') &&
         E.map((x) => (
           <g key={`lid${x}`}>
-            <rect x={x - 12} y={ey - 16} width={24} height={14} fill={skin} />
-            <line x1={x - 10} y1={ey - 2} x2={x + 10} y2={ey - 2} stroke={INK} strokeWidth={4} strokeLinecap="round" />
+            <rect x={x - 12} y={ey - 16} width={24} height={expr === 'determined' ? 11 : 14} fill={skin} />
+            <line
+              x1={x - 10}
+              y1={ey - (expr === 'determined' ? 5 : 2)}
+              x2={x + 10}
+              y2={ey - (expr === 'determined' ? 5 : 2)}
+              stroke={INK}
+              strokeWidth={4}
+              strokeLinecap="round"
+            />
           </g>
         ))}
+      {spec}
     </g>
   );
 };
 
-const Brows: React.FC<{expr: Expr; only?: 0 | 1}> = ({expr, only}) => {
+const Brows: React.FC<{expr: Expr; heavy?: boolean; only?: 0 | 1}> = ({expr, heavy, only}) => {
   const y = -228;
   const b: Record<Expr, [number, number, number, number]> = {
     // [ارتفاع اليسار, ميل اليسار, ارتفاع اليمين, ميل اليمين]
@@ -285,12 +383,16 @@ const Brows: React.FC<{expr: Expr; only?: 0 | 1}> = ({expr, only}) => {
     laugh: [-8, -3, -8, 3],
     sad: [-4, -10, -4, 10],
     shout: [2, 8, 2, -8],
+    dizzy: [-10, -4, -10, 4],
+    determined: [3, 6, 3, -6],
   };
   const [ly, ls, ry, rs] = b[expr];
+  const sw = heavy ? 10 : 6;
+  const extraTilt = heavy && (expr === 'neutral' || expr === 'speak') ? 8 : 0;
   return (
-    <g stroke={INK} strokeWidth={6} strokeLinecap="round">
-      {only !== 1 && <line x1={-33} y1={y + ly - ls} x2={-11} y2={y + ly + ls} />}
-      {only !== 0 && <line x1={11} y1={y + ry + rs} x2={33} y2={y + ry - rs} />}
+    <g stroke={INK} strokeWidth={sw} strokeLinecap="round">
+      {only !== 1 && <line x1={-35} y1={y + ly - ls - extraTilt * 0.4} x2={heavy ? -4 : -11} y2={y + ly + ls + extraTilt} />}
+      {only !== 0 && <line x1={heavy ? 4 : 11} y1={y + ry + rs + extraTilt} x2={35} y2={y + ry - rs - extraTilt * 0.4} />}
     </g>
   );
 };
@@ -373,6 +475,10 @@ const Mouth: React.FC<{expr: Expr; frame: number; lips?: string; talk?: number}>
       const o = 6 + 6 * Math.abs(Math.sin(frame / 14));
       return <ellipse cx={0} cy={y + 2} rx={7} ry={o} fill={INK} />;
     }
+    case 'dizzy':
+      return <path d={`M -18 ${y + 2} Q -9 ${y + 10} 0 ${y} Q 9 ${y - 7} 18 ${y + 4}`} stroke={INK} strokeWidth={4.5} fill="none" strokeLinecap="round" />;
+    case 'determined':
+      return <path d={`M -12 ${y + 2} Q 0 ${y - 3} 14 ${y - 1}`} stroke={INK} strokeWidth={5} fill="none" strokeLinecap="round" />;
     default:
       return <line x1={-10} y1={y} x2={10} y2={y} stroke={INK} strokeWidth={5} strokeLinecap="round" />;
   }
@@ -468,6 +574,93 @@ const HatShape: React.FC<{hat: Hat; trim: string; cy?: number; sy?: number}> = (
           <path d="M -58 -240 Q 0 -262 58 -240" fill="none" strokeWidth={3} />
         </g>
       );
+    case 'tiltedCrown':
+      // تاج مائل قليلاً (شارل السادس المجنون)
+      return (
+        <g transform="rotate(15 0 -262)" stroke={INK} strokeWidth={4} strokeLinejoin="round">
+          <path d="M -44 -250 L -48 -302 L -22 -276 L 0 -314 L 22 -276 L 48 -302 L 44 -250 Z" fill="#e8b830" />
+          <rect x={-46} y={-260} width={92} height={14} rx={4} fill="#d9a020" />
+          <Front>
+            {[-26, 0, 26].map((cx, i) => (
+              <circle key={cx} cx={cx} cy={-253} r={5} fill={['#2f6fae', '#c0262d', '#2f6fae'][i]} strokeWidth={2} />
+            ))}
+          </Front>
+        </g>
+      );
+    case 'oversizedCrown':
+      // تاج ذهبي عملاق ينزلق فوق العينين (الملك الرضيع هنري السادس)
+      return (
+        <g transform="rotate(-8 0 -230)" stroke={INK} strokeWidth={4.5} strokeLinejoin="round">
+          <path d="M -68 -216 Q -66 -286 0 -290 Q 66 -286 68 -216 Z" fill="#9e1e2b" />
+          <path d="M -76 -208 L -84 -292 L -40 -254 L 0 -308 L 40 -254 L 84 -292 L 76 -208 Z" fill="#f0c434" />
+          <rect x={-78} y={-224} width={156} height={20} rx={6} fill="#dba61e" />
+          <Front>
+            {[-46, 0, 46].map((cx, i) => (
+              <circle key={cx} cx={cx} cy={-214} r={7} fill={['#c0262d', '#2860a8', '#c0262d'][i]} strokeWidth={2.5} />
+            ))}
+          </Front>
+        </g>
+      );
+    case 'nobleHat':
+      // قبعة نبلاء العصور الوسطى المنتفخة بريشة (الدوفين شارل السابع والنبلاء)
+      return (
+        <g stroke={INK} strokeWidth={SW} strokeLinejoin="round">
+          <path d="M -22 -296 Q -44 -356 14 -372 Q -2 -334 8 -296 Z" fill="#f6f1e4" strokeWidth={4} />
+          <path d="M -68 -244 Q -84 -304 -18 -314 Q 68 -316 74 -256 Q 68 -238 56 -238 L -58 -238 Q -66 -238 -68 -244 Z" fill={trim} />
+          <path d="M -62 -246 Q 0 -258 62 -246" fill="none" stroke="#e8b830" strokeWidth={5} />
+          <Front>
+            <circle cx={-12} cy={-266} r={10} fill="#e8b830" strokeWidth={3} />
+          </Front>
+        </g>
+      );
+    case 'chaperon':
+      // قبعة العصور الوسطى الملفوفة الضخمة (Chaperon — دوق بورغوندي)
+      return (
+        <g stroke={INK} strokeWidth={SW} strokeLinejoin="round">
+          {/* الذيل المتدلي على الجانب */}
+          <path d="M 46 -264 Q 90 -248 92 -184 Q 82 -164 66 -170 Q 74 -216 42 -244 Z" fill={trim} />
+          {/* اللفة المنتفخة حول الرأس */}
+          <path d="M -78 -248 Q -88 -304 -14 -314 Q 76 -318 82 -260 Q 82 -232 52 -236 L -56 -236 Q -76 -232 -78 -248 Z" fill={trim} />
+          <path d="M -66 -254 Q -10 -276 58 -254" fill="none" strokeWidth={3.5} />
+          <path d="M -52 -284 Q 8 -298 62 -276" fill="none" strokeWidth={3} />
+          <Front>
+            <circle cx={0} cy={-258} r={9} fill="#e8b830" strokeWidth={3} />
+          </Front>
+        </g>
+      );
+    case 'mitre':
+      // قبعة أسقفية طويلة (Mitre — الأسقف بيير كوشون)
+      return (
+        <g stroke={INK} strokeWidth={SW} strokeLinejoin="round">
+          <path d="M -52 -244 L -46 -324 L 0 -374 L 46 -324 L 52 -244 Z" fill="#8e1b2a" />
+          <rect x={-56} y={-256} width={112} height={18} rx={4} fill={trim} />
+          <Front>
+            <path d="M 0 -358 L 0 -256 M -26 -310 L 26 -310" stroke={trim} strokeWidth={8} strokeLinecap="round" />
+            <circle cx={0} cy={-310} r={7} fill="#fff4d0" strokeWidth={2.5} />
+          </Front>
+        </g>
+      );
+    case 'medievalHelmet':
+      // خوذة معدنية أوروبية من العصور الوسطى (Sallet / Kettle — الجنود وبودريكور)
+      return (
+        <g stroke={INK} strokeWidth={SW} strokeLinejoin="round">
+          <path d="M -66 -236 Q -68 -308 0 -312 Q 68 -308 66 -236 Z" fill="#9ca6b4" />
+          <path d="M -36 -294 Q -10 -304 16 -296" fill="none" stroke="#dce4ee" strokeWidth={5} strokeLinecap="round" />
+          <path d="M -78 -236 Q 0 -248 78 -236 Q 74 -222 0 -226 Q -74 -222 -78 -236 Z" fill="#7d8794" />
+          <Front>
+            <rect x={-5} y={-292} width={10} height={54} rx={3} fill={trim} strokeWidth={2.5} />
+          </Front>
+        </g>
+      );
+    case 'scholarCap':
+      // قبعة علماء بواتييه المربعة السوداء
+      return (
+        <g stroke={INK} strokeWidth={4.5} strokeLinejoin="round">
+          <path d="M -56 -242 Q -56 -278 0 -280 Q 56 -278 56 -242 Z" fill="#23222c" />
+          <path d="M -68 -268 L 0 -296 L 68 -268 L 0 -250 Z" fill="#2b2a36" />
+          <circle cx={0} cy={-274} r={6} fill={trim} strokeWidth={2.5} />
+        </g>
+      );
     default:
       return null;
   }
@@ -502,6 +695,18 @@ export const Person: React.FC<PersonProps> = ({
   earrings,
   scarf,
   skirt,
+  robe2,
+  surcoat,
+  emblem,
+  fur,
+  ironRods,
+  apron,
+  glasses,
+  sweat,
+  rosy,
+  heavyBrows,
+  droopMustache,
+  spiralEyes,
   look: lookIn = [0, 0],
   jolt = 0,
   motion = 'still',
@@ -843,7 +1048,7 @@ export const Person: React.FC<PersonProps> = ({
       );
   }
 
-  const longDress = outfit === 'dress' || outfit === 'abaya';
+  const longDress = outfit === 'dress' || outfit === 'abaya' || outfit === 'peasant' || outfit === 'cleric' || outfit === 'baby';
   const isFemale = build === 'female' || build === 'femaleFull';
   const showLashes = lashes ?? isFemale;
   const hijabColor = scarf ?? trim;
@@ -876,8 +1081,24 @@ export const Person: React.FC<PersonProps> = ({
   const backOnTop = cy < -0.2;
 
   // ===== منطقة الشعر =====
+  const noDefaultHair =
+    hat === 'none' ||
+    hat === 'sultan' ||
+    hat === 'vizier' ||
+    hat === 'crown' ||
+    hat === 'tiltedCrown' ||
+    hat === 'oversizedCrown' ||
+    hat === 'mitre';
   const hairKind: HairlineKind | null =
-    hat === 'hijab' ? 'hijab' : hair ? (hairStyle === 'bun' || hairStyle === 'ponytail' || hairStyle === 'braid' ? 'pulled' : hairStyle) : hat !== 'none' && hat !== 'sultan' && hat !== 'vizier' && hat !== 'crown' ? 'short' : null;
+    hat === 'hijab'
+      ? 'hijab'
+      : hair
+        ? hairStyle === 'bun' || hairStyle === 'ponytail' || hairStyle === 'braid'
+          ? 'pulled'
+          : hairStyle
+        : !noDefaultHair
+          ? 'short'
+          : null;
   const hairColor = hat === 'hijab' ? hijabColor : hair ?? '#2a1d16';
   const bunBehind = hairStyle === 'bun' && hair && hat !== 'hijab' ? onHead(180, 46) : null;
   const hairRegion = hairKind ? (
@@ -933,12 +1154,25 @@ export const Person: React.FC<PersonProps> = ({
           strokeWidth={SW}
           strokeLinejoin="round"
         />
+        {robe2 && (
+          <g>
+            <defs>
+              <clipPath id={`r2${uid}`}>
+                <path d={B.d} />
+              </clipPath>
+            </defs>
+            <rect x={0} y={-160} width={110} height={140} fill={robe2} clipPath={`url(#r2${uid})`} />
+            <path d={B.d} fill="none" stroke={INK} strokeWidth={SW} strokeLinejoin="round" />
+          </g>
+        )}
         {(longDress || outfit === 'skirt') && (
           <path
             d={
-              longDress
-                ? `M ${B.belt[0]} ${(B.beltY ?? -78) + 4} Q ${B.belt[0] - 20} -40 ${-62 + hemSway} -6 Q ${hemSway} ${4 + Math.abs(hemSway) * 0.2} ${62 + hemSway} -6 Q ${-B.belt[0] + 20} -40 ${-B.belt[0]} ${(B.beltY ?? -78) + 4} Z`
-                : `M ${B.belt[0]} ${(B.beltY ?? -78) + 4} Q ${B.belt[0] - 16} -50 -56 -20 Q 0 -10 56 -20 Q ${-B.belt[0] + 16} -50 ${-B.belt[0]} ${(B.beltY ?? -78) + 4} Z`
+              outfit === 'baby'
+                ? `M ${B.belt[0] - 8} -122 Q ${B.belt[0] - 32} -56 ${-74 + hemSway} -6 Q ${hemSway} 8 ${74 + hemSway} -6 Q ${-B.belt[0] + 32} -56 ${-B.belt[0] + 8} -122 Q 0 -138 ${B.belt[0] - 8} -122 Z`
+                : longDress
+                  ? `M ${B.belt[0]} ${(B.beltY ?? -78) + 4} Q ${B.belt[0] - 20} -40 ${-62 + hemSway} -6 Q ${hemSway} ${4 + Math.abs(hemSway) * 0.2} ${62 + hemSway} -6 Q ${-B.belt[0] + 20} -40 ${-B.belt[0]} ${(B.beltY ?? -78) + 4} Z`
+                  : `M ${B.belt[0]} ${(B.beltY ?? -78) + 4} Q ${B.belt[0] - 16} -50 -56 -20 Q 0 -10 56 -20 Q ${-B.belt[0] + 16} -50 ${-B.belt[0]} ${(B.beltY ?? -78) + 4} Z`
             }
             fill={outfit === 'skirt' ? skirt ?? trim : robe}
             stroke={INK}
@@ -949,17 +1183,77 @@ export const Person: React.FC<PersonProps> = ({
         {/* تفاصيل الواجهة الأمامية تنزاح وتضيق مع الالتفات وتختفي في الخلفي */}
         {cy > -0.05 ? (
           <g transform={`translate(${(sy * 22) / bodyW} 0) scale(${Math.max(0.22, cy)} 1)`}>
-        {longDress && (
+        {longDress && outfit !== 'baby' && (
           <g stroke={mixColor(robe.length === 7 ? robe : '#444444', '#1b1a22', 0.35)} strokeWidth={3} fill="none" opacity={0.6}>
             <path d="M -14 -70 Q -20 -40 -26 -8" />
             <path d="M 14 -70 Q 20 -40 26 -8" />
           </g>
         )}
-        {B.bust && (
+        {B.bust && outfit !== 'armor' && (
           <path d="M -26 -112 Q -15 -100 -3 -108 M 3 -108 Q 15 -100 26 -112" stroke={INK} strokeWidth={3} fill="none" strokeLinecap="round" opacity={0.55} />
         )}
         {(outfit === 'dress' || outfit === 'skirt') && (
           <rect x={B.belt[0]} y={(B.beltY ?? -78) - 2} width={B.belt[1]} height={9} rx={4} fill={trim} stroke={INK} strokeWidth={3} />
+        )}
+        {outfit === 'peasant' && (
+          <g stroke={INK} strokeWidth={3.5} strokeLinejoin="round">
+            {/* مريلة القرية البيضاء */}
+            <path d={`M ${B.belt[0] + 6} ${(B.beltY ?? -86) + 2} L ${-B.belt[0] - 6} ${(B.beltY ?? -86) + 2} L ${36 + hemSway * 0.5} -12 Q ${hemSway * 0.5} -4 ${-36 + hemSway * 0.5} -12 Z`} fill={apron ?? '#f6f2e8'} />
+            <rect x={B.belt[0]} y={(B.beltY ?? -86) - 3} width={B.belt[1]} height={9} rx={4} fill={apron ?? '#f6f2e8'} />
+          </g>
+        )}
+        {outfit === 'cleric' && (
+          <g stroke={INK} strokeWidth={3} strokeLinejoin="round">
+            <path d="M -16 -138 L 16 -138 L 22 -14 L -22 -14 Z" fill={trim} />
+            <path d="M -14 -138 Q 0 -126 14 -138" fill="#f6f2e8" />
+            <path d="M 0 -116 L 0 -86 M -10 -104 L 10 -104" stroke="#e8b830" strokeWidth={4} strokeLinecap="round" />
+          </g>
+        )}
+        {outfit === 'baby' && (
+          <g stroke={INK} strokeWidth={3} strokeLinejoin="round">
+            <path d="M -32 -130 Q -16 -108 0 -118 Q 16 -108 32 -130 Q 0 -140 -32 -130 Z" fill="#f7f4ec" />
+            <path d="M 0 -118 L 0 -6" stroke={trim} strokeWidth={8} />
+          </g>
+        )}
+        {outfit === 'royal' && (
+          <g stroke={INK} strokeWidth={3} strokeLinejoin="round">
+            {fur && (
+              <>
+                <path d={`M ${-B.sh - 4} -136 Q 0 -114 ${B.sh + 4} -136 Q 0 -152 ${-B.sh - 4} -136 Z`} fill={fur} />
+                {[-20, -6, 8, 22].map((fx) => (
+                  <circle key={fx} cx={fx} cy={-134} r={2} fill={INK} stroke="none" />
+                ))}
+                <rect x={-9} y={-124} width={18} height={86} fill={fur} />
+              </>
+            )}
+            {!fur && <path d="M 0 -142 L 0 -40" stroke={trim} strokeWidth={6} />}
+            <rect x={B.belt[0]} y={B.beltY ?? -78} width={B.belt[1]} height={11} rx={3} fill={trim} />
+            <rect x={-8} y={(B.beltY ?? -78) - 2} width={16} height={15} rx={3} fill="#e8b830" />
+            {ironRods && (
+              <g stroke={INK} strokeWidth={2.5}>
+                {/* قضبان حديدية مخيطة داخل رداء شارل السادس */}
+                <rect x={-B.sh - 10} y={-118} width={8} height={82} rx={3} fill="#a8b2be" />
+                <rect x={B.sh + 2} y={-118} width={8} height={82} rx={3} fill="#a8b2be" />
+                <rect x={-26} y={-48} width={52} height={7} rx={2} fill="#a8b2be" />
+                <circle cx={-B.sh - 6} cy={-96} r={2} fill="#3a404a" stroke="none" />
+                <circle cx={B.sh + 6} cy={-96} r={2} fill="#3a404a" stroke="none" />
+              </g>
+            )}
+          </g>
+        )}
+        {outfit === 'armor' && (
+          <g stroke={INK} strokeWidth={3} strokeLinejoin="round">
+            {/* درع فولاذي + كتفان معدنيان + لمعة */}
+            <path d="M -26 -130 L -6 -108 L 14 -130" fill="none" stroke="#eef4fa" strokeWidth={4} opacity={0.75} />
+            <path d="M -32 -88 Q 0 -80 32 -88 M -34 -64 Q 0 -56 34 -64" fill="none" stroke="#626b78" strokeWidth={3} />
+            <ellipse cx={-B.sh - 4} cy={-126} rx={17} ry={12} fill="#b8c2ce" />
+            <ellipse cx={B.sh + 4} cy={-126} rx={17} ry={12} fill="#b8c2ce" />
+            {surcoat && (
+              <path d={`M -28 -134 L 28 -134 L 34 -40 Q 0 -30 -34 -40 Z`} fill={surcoat} stroke={INK} strokeWidth={3.5} />
+            )}
+            <rect x={B.belt[0]} y={B.beltY ?? -78} width={B.belt[1]} height={10} rx={3} fill="#6a4626" />
+            <rect x={-7} y={(B.beltY ?? -78) - 2} width={14} height={14} rx={2} fill={trim} />
+          </g>
         )}
         {outfit === 'robe' && (
           <>
@@ -983,6 +1277,27 @@ export const Person: React.FC<PersonProps> = ({
             <rect x={-B.sh - 10} y={-136} width={26} height={8} rx={3} fill={trim} />
             <rect x={B.sh - 16} y={-136} width={26} height={8} rx={3} fill={trim} />
             <path d="M -14 -142 L 0 -122 L 14 -142" fill="none" />
+          </g>
+        )}
+        {/* شعارات العصور الوسطى على الصدر */}
+        {emblem === 'fleur' && (
+          <g transform="translate(0 -106) scale(0.9)" fill="#f2c43a" stroke={INK} strokeWidth={2.4} strokeLinejoin="round">
+            <path d="M 0 -20 Q 8 -8 4 4 L -4 4 Q -8 -8 0 -20 Z" />
+            <path d="M -3 3 Q -20 -8 -16 6 Q -10 12 -3 6 Z" />
+            <path d="M 3 3 Q 20 -8 16 6 Q 10 12 3 6 Z" />
+            <rect x={-10} y={4} width={20} height={5} rx={2} />
+            <path d="M -5 9 L 0 18 L 5 9 Z" />
+          </g>
+        )}
+        {emblem === 'cross' && (
+          <g transform="translate(0 -106)" stroke={INK} strokeWidth={2.5} strokeLinejoin="round">
+            <path d="M -6 -20 L 6 -20 L 6 -6 L 20 -6 L 20 6 L 6 6 L 6 20 L -6 20 L -6 6 L -20 6 L -20 -6 L -6 -6 Z" fill="#f7f4ec" />
+          </g>
+        )}
+        {emblem === 'saltire' && (
+          <g transform="translate(0 -106)" stroke="#c0262d" strokeWidth={9} strokeLinecap="round">
+            <line x1={-16} y1={-16} x2={16} y2={16} />
+            <line x1={16} y1={-16} x2={-16} y2={16} />
           </g>
         )}
           </g>
@@ -1009,10 +1324,20 @@ export const Person: React.FC<PersonProps> = ({
           {act === 'angry' && <path d={F.d} fill="#e0301e" opacity={(0.12 + 0.18 * energy) * (0.75 + 0.25 * Math.sin(frame / 4))} />}
           {shadeOn && <Shade id={`f${uid}`} d={F.d} color={shadeOf(skin, 0.34)} light={lightOf(skin)} mode={shadeMode} dx={14 * ldir} dy={-12} highlight={[26 * ldir, F.top + 34]} />}
           {L && <LightFX id={`hl${uid}`} d={F.d} L={L} ldir={ldir} pt={pt} />}
-          {shadeMode === 'cel' && shadeOn &&
+          {(rosy || (shadeMode === 'cel' && shadeOn)) &&
             [-36, 36].map((th) => {
               const p = onHead(th, 60);
-              return p.z > 0.2 ? <ellipse key={th} cx={p.x} cy={-178} rx={11 * Math.min(1, p.z * 1.2)} ry={6} fill="#e0706a" opacity={0.28} /> : null;
+              return p.z > 0.2 ? (
+                <ellipse
+                  key={th}
+                  cx={p.x}
+                  cy={-178}
+                  rx={(rosy ? 14 : 11) * Math.min(1, p.z * 1.2)}
+                  ry={rosy ? 8 : 6}
+                  fill={rosy ? '#f27c82' : '#e0706a'}
+                  opacity={rosy ? 0.52 : 0.28}
+                />
+              ) : null;
             })}
           {/* الأذنان: تظهران عند الالتفات */}
           {yawDeg > 12 &&
@@ -1046,8 +1371,17 @@ export const Person: React.FC<PersonProps> = ({
             const sx = Math.max(0.35, Math.min(1, p.z * 1.25));
             return (
               <g key={i} transform={`translate(${p.x} 0) scale(${sx} 1) translate(${-ex} 0)`}>
-                <Brows expr={expr} only={i as 0 | 1} />
-                <Eyes expr={expr} blink={blink && expr !== 'shock'} look={[Math.max(-1, Math.min(1, look[0] + 0.7 * sy)), look[1]]} skin={skin} lashes={showLashes} only={i as 0 | 1} />
+                <Brows expr={expr} heavy={heavyBrows} only={i as 0 | 1} />
+                <Eyes
+                  expr={expr}
+                  blink={blink && expr !== 'shock' && expr !== 'dizzy' && !spiralEyes}
+                  look={[Math.max(-1, Math.min(1, look[0] + 0.7 * sy)), look[1]]}
+                  skin={skin}
+                  lashes={showLashes}
+                  spiralEyes={spiralEyes}
+                  glasses={glasses}
+                  only={i as 0 | 1}
+                />
               </g>
             );
           })}
@@ -1066,13 +1400,24 @@ export const Person: React.FC<PersonProps> = ({
           })()}
           {onHead(0, 60).z > -0.12 && (
             <g transform={`translate(${onHead(0, 58).x} 0) scale(${Math.max(0.42, onHead(0).z)} 1)`}>
-              {mustache && <path d="M -30 -186 Q -14 -198 0 -190 Q 14 -198 30 -186 Q 16 -176 0 -182 Q -16 -176 -30 -186 Z" fill={mustache} stroke={INK} strokeWidth={3} />}
+              {mustache &&
+                (droopMustache ? (
+                  <path
+                    d="M -38 -164 Q -26 -196 0 -188 Q 26 -196 38 -164 Q 24 -170 16 -178 Q 0 -178 -16 -178 Q -24 -170 -38 -164 Z"
+                    fill={mustache}
+                    stroke={INK}
+                    strokeWidth={3.5}
+                    strokeLinejoin="round"
+                  />
+                ) : (
+                  <path d="M -30 -186 Q -14 -198 0 -190 Q 14 -198 30 -186 Q 16 -176 0 -182 Q -16 -176 -30 -186 Z" fill={mustache} stroke={INK} strokeWidth={3} />
+                ))}
               <Mouth expr={expr} frame={frame} lips={lips} talk={talk} />
             </g>
           )}
-          {expr === 'strain' && cy > -0.2 && (
+          {(expr === 'strain' || sweat) && cy > -0.2 && (
             <path
-              d={`M 62 -236 q 9 ${14 + (frame % 20)} 0 ${20 + (frame % 20)} q -9 -6 0 -${20 + (frame % 20)} Z`}
+              d={`M ${sweat ? 48 : 62} ${sweat ? -224 : -238} q 9 ${14 + (sweat ? Math.sin(frame / 10) * 3 : frame % 20)} 0 ${21 + (sweat ? Math.sin(frame / 10) * 3 : frame % 20)} q -9 -7 0 -${21 + (sweat ? Math.sin(frame / 10) * 3 : frame % 20)} Z`}
               fill="#7fc8ff"
               stroke={INK}
               strokeWidth={3}
@@ -1158,6 +1503,15 @@ const BackHair: React.FC<{style: HairStyle; color: string; frame: number; seed: 
       return <path d={`M -68 -222 Q -84 -150 -66 -92 Q -30 -84 0 -88 Q 30 -84 66 -92 Q 84 -150 68 -222 Q 0 -300 -68 -222 Z`} {...st} />;
     case 'bob':
       return <path d="M -74 -214 Q -80 -160 -62 -136 Q 0 -128 62 -136 Q 80 -160 74 -214 Q 0 -296 -74 -214 Z" {...st} />;
+    case 'bowlCut':
+      return <path d="M -72 -224 Q -74 -290 0 -292 Q 74 -290 72 -224 L 68 -216 L -68 -216 Z" {...st} />;
+    case 'messy':
+      return (
+        <path
+          d="M -70 -206 L -92 -236 L -68 -248 L -82 -278 L -46 -272 L -36 -302 L -8 -282 L 18 -304 L 36 -276 L 78 -282 L 66 -250 L 92 -236 L 68 -206 Q 0 -184 -70 -206 Z"
+          {...st}
+        />
+      );
     case 'ponytail':
       return (
         <g transform={tail}>
@@ -1457,7 +1811,7 @@ export const yawAt = (frame: number, keys: {f: number; view: View | number}[]): 
 };
 
 /* ===================== خط الشعر حول الرأس ===================== */
-export type HairlineKind = 'short' | 'bob' | 'long' | 'pulled' | 'hijab';
+export type HairlineKind = 'short' | 'bob' | 'long' | 'pulled' | 'hijab' | 'bowlCut' | 'messy';
 
 /**
  * ارتفاع خط الشعر (y) حسب الزاوية حول الرأس: 0 = منتصف الجبهة، 90 = فوق الأذن، 180 = مؤخرة الرأس.
@@ -1469,6 +1823,8 @@ const HAIRLINE: Record<HairlineKind, {pts: [number, number][]; vol: number}> = {
   bob: {pts: [[0, -232], [32, -228], [58, -204], [74, -168], [92, -146], [180, -146]], vol: 1.1},
   long: {pts: [[0, -236], [30, -232], [56, -208], [72, -170], [92, -140], [180, -140]], vol: 1.1},
   hijab: {pts: [[0, -250], [28, -244], [48, -212], [62, -160], [76, -112], [180, -100]], vol: 1.13},
+  bowlCut: {pts: [[0, -224], [55, -224], [90, -222], [135, -218], [180, -216]], vol: 1.09},
+  messy: {pts: [[0, -240], [32, -228], [64, -222], [95, -204], [135, -188], [180, -178]], vol: 1.08},
 };
 
 const hairlineY = (kind: HairlineKind, theta: number) => {

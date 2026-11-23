@@ -97,4 +97,80 @@ export const protester = defineRole({
   vary: {robe: ['#f2ece0', '#d9cfb8', '#8fa3b8', '#b89a78'], hair: DARK_HAIR, skin: SKINS, mustache: [undefined, '#1a1512'], build: ['slim', 'normal'], face: ['round', 'long', 'square']},
 });
 
-export const ROLES = {byzGuard, janissary, ottomanWorker, egyptOfficer, egyptCivilian, woman1950s, womanHijab, fellah, protester};
+/* =================== أدوار العصور الوسطى الأوروبية =================== */
+
+const EURO_SKINS = ['#f4cbb0', '#efc29b', '#e6b692', '#f0c8a8'];
+
+export const frenchSoldier = defineRole({
+  id: 'frenchSoldier',
+  name: 'جندي فرنسي — القرن ١٥',
+  era: 'القرن ١٥',
+  voices: [{name: 'ar-SY-LaithNeural'}, {name: 'ar-LB-RamiNeural'}, {name: 'ar-JO-TaimNeural', pitch: '-4Hz'}],
+  base: {outfit: 'armor', robe: '#9aa4b2', surcoat: '#2653a4', emblem: 'fleur', trim: '#e8b830', hat: 'medievalHelmet', skin: '#efc29b'},
+  vary: {skin: EURO_SKINS, build: ['normal', 'normal', 'broad'], face: ['round', 'jaw', 'square'], mustache: [undefined, '#4a3220', '#2a1a12'], beard: [undefined, undefined, '#3a2416']},
+});
+
+export const englishSoldier = defineRole({
+  id: 'englishSoldier',
+  name: 'جندي إنجليزي — القرن ١٥',
+  era: 'القرن ١٥',
+  voices: [{name: 'ar-BH-AliNeural'}, {name: 'ar-AE-HamdanNeural', pitch: '+4Hz'}, {name: 'ar-YE-SalehNeural'}],
+  base: {outfit: 'armor', robe: '#9aa4b2', surcoat: '#c0262d', emblem: 'cross', trim: '#f2c43a', hat: 'medievalHelmet', skin: '#f4cbb0'},
+  vary: {skin: EURO_SKINS, build: ['normal', 'broad'], face: ['square', 'round', 'jaw'], mustache: [undefined, '#5a3a22'], beard: [undefined, '#5a3a22']},
+});
+
+export const burgundianSoldier = defineRole({
+  id: 'burgundianSoldier',
+  name: 'جندي بورغوندي — القرن ١٥',
+  era: 'القرن ١٥',
+  voices: [{name: 'ar-EG-ShakirNeural', pitch: '+4Hz'}, {name: 'ar-KW-FahedNeural'}],
+  base: {outfit: 'armor', robe: '#9aa4b2', surcoat: '#f4f0e6', emblem: 'saltire', trim: '#b8242e', hat: 'medievalHelmet', skin: '#efc29b'},
+  vary: {skin: EURO_SKINS, build: ['normal', 'broad'], face: ['round', 'square', 'jaw'], beard: [undefined, '#4a3220']},
+});
+
+export const medievalNoble = defineRole({
+  id: 'medievalNoble',
+  name: 'نبيل أوروبي — القرن ١٥',
+  era: 'القرن ١٥',
+  voices: [{name: 'ar-LB-RamiNeural', pitch: '+4Hz'}, {name: 'ar-OM-AbdullahNeural'}, {name: 'ar-SY-LaithNeural', pitch: '-4Hz'}],
+  base: {outfit: 'royal', robe: '#522c72', trim: '#8a2c5a', fur: '#f6f2e8', hat: 'nobleHat', skin: '#f0c8a8'},
+  vary: {
+    robe: ['#522c72', '#26538a', '#2e6a4a', '#8a2a38', '#7a5228'],
+    trim: ['#8a2c5a', '#2c4a98', '#3c7a52', '#a8343a', '#9a6a2a'],
+    skin: EURO_SKINS,
+    build: ['slim', 'normal', 'belly'],
+    face: ['long', 'pointy', 'wide', 'round'],
+    mustache: [undefined, '#4a3220'],
+  },
+});
+
+export const poitiersScholar = defineRole({
+  id: 'poitiersScholar',
+  name: 'عالم ولاهوتي — بواتييه',
+  era: 'القرن ١٥',
+  voices: [{name: 'ar-OM-AbdullahNeural', rate: '-6%', pitch: '-6Hz'}, {name: 'ar-QA-MoazNeural', rate: '-4%'}, {name: 'ar-SY-LaithNeural', rate: '-4%', pitch: '-6Hz'}],
+  base: {outfit: 'cleric', robe: '#25242e', trim: '#4c4a5c', hat: 'scholarCap', glasses: true, beard: '#9c968c', skin: '#ebd0bc'},
+  vary: {
+    beard: ['#9c968c', '#c6c2ba', '#6e6a64'],
+    face: ['long', 'pointy', 'round'],
+    build: ['slim', 'normal', 'belly'],
+    skin: EURO_SKINS,
+  },
+});
+
+export const ROLES = {
+  byzGuard,
+  janissary,
+  ottomanWorker,
+  egyptOfficer,
+  egyptCivilian,
+  woman1950s,
+  womanHijab,
+  fellah,
+  protester,
+  frenchSoldier,
+  englishSoldier,
+  burgundianSoldier,
+  medievalNoble,
+  poitiersScholar,
+};

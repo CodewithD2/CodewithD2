@@ -3,6 +3,7 @@ import {random} from 'remotion';
 export const clamp = (v: number, a = 0, b = 1) => Math.max(a, Math.min(b, v));
 export const prog = (t: number, a: number, b: number) => clamp((t - a) / (b - a));
 export const easeInOut = (t: number) => (t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2);
+export const easeOut = (t: number) => 1 - (1 - t) ** 3;
 export const easeOutBack = (t: number) => {
   const c1 = 1.70158;
   const c3 = c1 + 1;

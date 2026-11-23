@@ -6,9 +6,17 @@ import type {ActorState, Scene} from './script';
  * المؤثرات الصوتية — ملفات `public/sfx/*.wav` مولّدة بـ `narrator/sfx_synth.py` (بلا حقوق).
  * قصيرة: step step2 run land whoosh clang pop boom — ممتدة (تتكرر): waves wind fire murmur cheer
  */
-export const SFX_NAMES = ['step', 'step2', 'run', 'land', 'whoosh', 'clang', 'pop', 'boom', 'waves', 'wind', 'fire', 'murmur', 'cheer'];
+export const SFX_NAMES = [
+  'step', 'step2', 'run', 'land', 'whoosh', 'clang', 'pop', 'boom',
+  'drumroll', 'scratch', 'buzzer', 'knock', 'doorSlam', 'glass', 'snip', 'trumpet', 'stamp', 'jawDrop',
+  'waves', 'wind', 'fire', 'murmur', 'cheer',
+];
 export const SFX_LOOPS = new Set(['waves', 'wind', 'fire', 'murmur', 'cheer']);
-const SFX_LEN: Record<string, number> = {step: 0.22, step2: 0.22, run: 0.18, land: 0.35, whoosh: 0.45, clang: 1.4, pop: 0.15, boom: 2.5, waves: 7.5, wind: 7.5, fire: 7.5, murmur: 7.5, cheer: 6};
+const SFX_LEN: Record<string, number> = {
+  step: 0.22, step2: 0.22, run: 0.18, land: 0.35, whoosh: 0.45, clang: 1.4, pop: 0.15, boom: 2.5,
+  drumroll: 1.6, scratch: 0.45, buzzer: 0.65, knock: 0.9, doorSlam: 0.55, glass: 0.75, snip: 0.42, trumpet: 1.25, stamp: 0.35, jawDrop: 0.55,
+  waves: 7.5, wind: 7.5, fire: 7.5, murmur: 7.5, cheer: 6,
+};
 
 export type SfxEvent = {t: number; name: string; vol: number; dur?: number; who?: string};
 
