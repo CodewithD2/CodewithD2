@@ -1,12 +1,13 @@
 import React from 'react';
 import {AbsoluteFill, random} from 'remotion';
 import {camAt} from '../../lib/stage';
-import {Halo, GodRays} from '../../lib/fx';
+import {Halo, GodRays, Motes} from '../../lib/fx';
 import {INK, clamp, easeInOut, lerp, prog, ridgePath} from '../../lib/util';
 import type {LonLat} from '../../world/maps/europeData';
 import {Bird, FarBirds, vFormation} from './Bird';
 import {Globe, GlobeProj, densify, geoLine, gproj} from './Globe';
 import {Hud, VArt, VLayer, VStage} from './vstage';
+import {BirdLight, Breath, Butterfly, Feathers, Fireflies, Grade, Petals, ShootingStar, WindStreaks, hand} from './polish';
 import {ChannelBadge, Txt, fade, pop} from './common';
 import {FPS, S, wordAt} from './track';
 import type {SceneProps} from './ScenesA';
@@ -29,6 +30,7 @@ const DIPPER: [number, number][] = [
 const POLARIS: [number, number] = [700, 330];
 
 export const SceneNav: React.FC<SceneProps> = ({t, f}) => {
+  const L: BirdLight = {lx: 1, shadow: '#070c26', rim: '#9fd8ff', ambient: '#1a2a6a', ambientOp: 0.25};
   const t0 = S('s5_1') - 0.3;
   const t1 = S('s6_1');
   const tQ = wordAt('s5_1', 'كيف');
@@ -37,12 +39,12 @@ export const SceneNav: React.FC<SceneProps> = ({t, f}) => {
   const tMag = wordAt('s5_2', 'المجال');
   const tCompass = wordAt('s5_2', 'بوصلة');
   const globeK = prog(t, tMag - 0.2, tMag + 0.6);
-  const cam = camAt(f, [
+  const cam = hand(camAt(f, [
     {f: F(t0), z: 0, y: 0},
     {f: F(tMag - 0.2), z: 80, y: 0},
     {f: F(tCompass - 0.3), z: 80, y: 0},
     {f: F(tCompass + 0.5), z: 380, y: 200, x: 90},
-  ]);
+  ]), t, 0.9);
   const g: GlobeProj = {cx: 540, cy: 560, R: 300 * (0.6 + 0.4 * easeInOut(globeK)), lon0: 20 - t * 12, lat0: 15};
   const birdY = lerp(820, 1010, globeK);
   return (
@@ -51,6 +53,7 @@ export const SceneNav: React.FC<SceneProps> = ({t, f}) => {
         <VLayer d={2400}>
           <VArt>
             <Stars n={140} seed="nv" f={f} />
+            <ShootingStar t={t} at={t0 + 0.9} x={-100} y={150} />
             {/* الدب الأكبر والنجم القطبي */}
             <g opacity={prog(t, tStars - 0.2, tStars + 0.4)}>
               <path d={'M ' + DIPPER.map((p) => p.join(' ')).join(' L ') + ' L 420 580'} stroke="#9fd0ff" strokeWidth={3} fill="none" strokeDasharray="8 8" />
@@ -69,6 +72,11 @@ export const SceneNav: React.FC<SceneProps> = ({t, f}) => {
             {Array.from({length: 30}, (_, i) => (
               <circle key={i} cx={-300 + random(`lt${i}`) * 1700} cy={1520 + random(`lt2${i}`) * 200} r={4} fill="#ffd27a" opacity={0.8} />
             ))}
+          </VArt>
+        </VLayer>
+        <VLayer d={1000}>
+          <VArt>
+            <Fireflies t={t} n={22} seed="nv-ff" y0={1350} y1={1800} />
           </VArt>
         </VLayer>
         <VLayer d={700}>
@@ -106,10 +114,11 @@ export const SceneNav: React.FC<SceneProps> = ({t, f}) => {
         </VLayer>
         <VLayer d={0}>
           <VArt>
-            <Bird kind="swallow" mode="glide" x={540} y={birdY} s={1.45} frame={f} expr={t < tSun ? 'think' : 'happy'} />
+            <Bird light={L} kind="swallow" mode="glide" x={540} y={birdY} s={1.45} frame={f} expr={t < tSun ? 'think' : 'happy'} />
           </VArt>
         </VLayer>
       </VStage>
+      <Grade g={{top: '#3a4ab0', bottom: '#03061a', opacity: 0.45, light: '#9fd8ff', at: [65, 17], strength: 0.18}} />
       <Hud>
         {/* السؤال */}
         <g transform={`translate(700 640) scale(${pop(t, tQ - 0.1)})`} opacity={1 - prog(t, tSun - 0.3, tSun)}>
@@ -175,6 +184,7 @@ const ROUTE: LonLat[] = densify([
 const AR_DIG = (n: number) => n.toLocaleString('ar-EG');
 
 export const SceneTern: React.FC<SceneProps> = ({t, f}) => {
+  const L: BirdLight = {lx: -1, shadow: '#7a8aa8', rim: '#ffffff'};
   const t0 = S('s6_1') - 0.3;
   const t1 = S('s7_1');
   const tName = wordAt('s6_1', 'الخرشنة');
@@ -193,16 +203,17 @@ export const SceneTern: React.FC<SceneProps> = ({t, f}) => {
   const [px, py] = gproj(g, prev);
   const ang = (Math.atan2(hy - py, hx - px) * 180) / Math.PI;
   const km = Math.round(70000 * easeInOut(clamp(prog(t, tGo, tKm + 0.3))) / 100) * 100;
-  const cam = camAt(f, [
+  const cam = hand(camAt(f, [
     {f: F(t0), z: 0},
     {f: F(t1), z: 120},
-  ]);
+  ]), t, 0.7);
   return (
     <AbsoluteFill style={{background: 'radial-gradient(circle at 50% 38%, #1f3f7a 0%, #0b1533 70%)'}}>
       <VStage cam={cam}>
         <VLayer d={1600}>
           <VArt>
             <Stars n={110} seed="tn" f={f} />
+            <ShootingStar t={t} at={tName - 0.2} x={-120} y={300} />
           </VArt>
         </VLayer>
         <VLayer d={300}>
@@ -222,7 +233,7 @@ export const SceneTern: React.FC<SceneProps> = ({t, f}) => {
               <path d={geoLine(g, ROUTE.slice(0, n))} stroke="#fff" strokeWidth={14} fill="none" strokeLinecap="round" opacity={0.35} />
               <path d={geoLine(g, ROUTE.slice(0, n))} stroke="#ff4f3a" strokeWidth={7} fill="none" strokeLinecap="round" strokeDasharray="16 10" />
             </Globe>
-            {p > 0 && shrink < 0.5 && <Bird kind="tern" mode="fly" x={hx} y={hy} s={0.62} frame={f} rot={ang} flapRate={1.4} />}
+            {p > 0 && shrink < 0.5 && <Bird light={L} kind="tern" mode="fly" x={hx} y={hy} s={0.62} frame={f} rot={ang} flapRate={1.4} />}
             {/* القطبان */}
             <g opacity={1 - shrink}>
               <Txt x={540} y={gproj(g, [0, 90])[1] - 40} size={44} fill="#e9f6ff" sw={7}>
@@ -235,12 +246,13 @@ export const SceneTern: React.FC<SceneProps> = ({t, f}) => {
           </VArt>
         </VLayer>
       </VStage>
+      <Grade g={{top: '#4a6ab0', bottom: '#040a22', opacity: 0.4, light: '#bfe0ff', at: [40, 25], strength: 0.2}} />
       <Hud>
         {/* بطاقة الطائر */}
         <g transform={`translate(540 120) scale(${pop(t, tName - 0.15)})`} opacity={1 - prog(t, tGo + 0.2, tGo + 0.6)}>
           <rect x={-330} y={-70} width={660} height={140} rx={34} fill="#fff" stroke={INK} strokeWidth={6} />
           <g transform="translate(220 10) scale(0.62)">
-            <Bird kind="tern" mode="perch" x={0} y={-20} frame={f} expr="happy" />
+            <Bird light={L} kind="tern" mode="perch" x={0} y={-20} frame={f} expr="happy" />
           </g>
           <Txt x={-60} y={22} size={64} fill={INK} stroke="none" sw={0}>
             الخرشنة القطبية
@@ -269,14 +281,15 @@ export const SceneTern: React.FC<SceneProps> = ({t, f}) => {
 
 /* ===================== ٧) الختام: رحلة بقاء ===================== */
 export const SceneEnd: React.FC<SceneProps> = ({t, f}) => {
+  const L: BirdLight = {lx: 1, shadow: '#3a1838', rim: '#ffd9a0', ambient: '#ff9a6a', ambientOp: 0.2};
   const t0 = S('s7_1') - 0.3;
   const tTrip = wordAt('s7_1', 'رحلة');
   const tLife = wordAt('s7_1', 'بقاء');
   const u = prog(t, t0, t0 + 6);
-  const cam = camAt(f, [
+  const cam = hand(camAt(f, [
     {f: F(t0), z: 0, y: 60},
     {f: F(t0 + 6), z: 260, y: -40},
-  ]);
+  ]), t, 1);
   return (
     <AbsoluteFill style={{background: 'linear-gradient(#3a2a6e 0%, #c3507a 40%, #ff9b5a 70%, #ffd38a 100%)'}}>
       <VStage cam={cam}>
@@ -293,17 +306,42 @@ export const SceneEnd: React.FC<SceneProps> = ({t, f}) => {
             <path d={ridgePath((x) => 1320 - 60 * Math.sin(x / 140 + 3), -900, 2000, 3400)} fill="#4a1f45" />
           </VArt>
         </VLayer>
+        <VLayer d={700}>
+          <VArt>
+            <Motes id="en-m" frame={f} n={50} x0={-200} x1={1300} y0={500} y1={1500} color="#ffe2b0" size={4} />
+          </VArt>
+        </VLayer>
         <VLayer d={200}>
           <VArt>
             {/* السرب يبتعد نحو الشمس */}
             {vFormation(9, 130).map((p) => (
               <g key={p.i} opacity={1 - prog(u, 0.85, 1)}>
-                <Bird kind="goose" x={540 + p.dy * lerp(1.3, 0.35, u) + 0} y={lerp(1150, 820, u) - p.dx * lerp(0.5, 0.15, u)} s={lerp(1.0, 0.28, u) * (1 - p.i * 0.02)} frame={f} seed={p.i} rot={-90} />
+                <Bird light={L} kind="goose" x={540 + p.dy * lerp(1.3, 0.35, u) + 0} y={lerp(1150, 820, u) - p.dx * lerp(0.5, 0.15, u)} s={lerp(1.0, 0.28, u) * (1 - p.i * 0.02)} frame={f} seed={p.i} rot={-90} />
               </g>
             ))}
           </VArt>
         </VLayer>
       </VStage>
+      <AbsoluteFill style={{pointerEvents: 'none'}}>
+        <VStage cam={cam}>
+          <VLayer d={-420} blur={4}>
+            <VArt>
+              {Array.from({length: 18}, (_, i) => (
+                <g key={i}>
+                  <path d={`M ${-300 + i * 95} 2100 q ${(i % 3) * 20 - 20} -200 ${(i % 2) * 40 - 20} -${330 + (i % 4) * 70}`} stroke="#2a0d2a" strokeWidth={14} fill="none" strokeLinecap="round" />
+                  {i % 3 === 0 && <ellipse cx={-300 + i * 95 + (i % 2) * 40 - 20} cy={2100 - 330 - (i % 4) * 70} rx={14} ry={46} fill="#2a0d2a" />}
+                </g>
+              ))}
+            </VArt>
+          </VLayer>
+          <VLayer d={-300} blur={2}>
+            <VArt>
+              <Feathers t={t} n={6} seed="en-fe" color="#ffe0c0" s={1.2} />
+            </VArt>
+          </VLayer>
+        </VStage>
+      </AbsoluteFill>
+      <Grade g={{top: '#ff9a6a', bottom: '#2a0a36', opacity: 0.42, light: '#ffe0a0', at: [50, 46], strength: 0.35}} />
       <Hud>
         <g opacity={fade(t, t0 + 0.2, t0 + 0.6, tTrip - 0.3, tTrip)}>
           <Txt x={540} y={300} size={90} fill="#fff" sw={13}>

@@ -1,6 +1,7 @@
 import React from 'react';
 import {random} from 'remotion';
 import {INK} from '../../lib/util';
+import type {BirdLight} from './polish';
 
 /* =====================================================================
  * طائر كرتوني أصلي بأسلوب القناة: جسم مستدير، عين نقطية، خط أسود سميك، جناحان يرفرفان.
@@ -33,7 +34,10 @@ export const Bird: React.FC<{
   shiver?: number; // 0..1 ارتجاف من البرد
   mouth?: number; // 0..1 منقار مفتوح (زقزقة/صراخ)
   carry?: 'worm' | null;
-}> = ({x, y, s = 1, flip, rot = 0, frame, kind = 'sparrow', mode = 'fly', expr = 'neutral', seed = 0, flapRate = 1, peck = 0, shiver = 0, mouth = 0, carry}) => {
+  light?: BirdLight;
+}> = ({x, y, s = 1, flip, rot = 0, frame, kind = 'sparrow', mode = 'fly', expr = 'neutral', seed = 0, flapRate = 1, peck = 0, shiver = 0, mouth = 0, carry, light}) => {
+  const uid = React.useId().replace(/:/g, '');
+  const lxL = light ? light.lx * (flip ? -1 : 1) : 0;
   const K = KINDS[kind];
   const ph = frame * 0.42 * flapRate + seed * 2.1;
   const flap = mode === 'fly' ? Math.sin(ph) : mode === 'glide' ? 0.15 + 0.08 * Math.sin(ph * 0.3) : 0;
@@ -58,6 +62,25 @@ export const Bird: React.FC<{
     );
   };
   const neckFwd = !!K.neck && mode !== 'perch';
+  /** ظل هلالي + حافة ضوء لشكل (قطع ناقص) — داخل نفس إحداثيات الطائر */
+  const Shade: React.FC<{k: string; cx: number; cy: number; rx: number; ry: number}> = ({k, cx, cy, rx, ry}) =>
+    !light ? null : (
+      <g>
+        <defs>
+          <mask id={`${uid}-${k}-s`} maskUnits="userSpaceOnUse" x={-400} y={-400} width={800} height={800}>
+            <rect x={-400} y={-400} width={800} height={800} fill="#fff" />
+            <ellipse cx={cx + lxL * rx * 0.34} cy={cy - ry * 0.34} rx={rx} ry={ry} fill="#000" />
+          </mask>
+          <mask id={`${uid}-${k}-r`} maskUnits="userSpaceOnUse" x={-400} y={-400} width={800} height={800}>
+            <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill="#fff" />
+            <ellipse cx={cx - lxL * rx * 0.09} cy={cy + ry * 0.07} rx={rx} ry={ry} fill="#000" />
+          </mask>
+        </defs>
+        {light.ambient && <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill={light.ambient} opacity={light.ambientOp ?? 0.15} />}
+        <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill={light.shadow} opacity={0.5} mask={`url(#${uid}-${k}-s)`} />
+        <ellipse cx={cx} cy={cy} rx={rx} ry={ry} fill={light.rim} opacity={0.6} mask={`url(#${uid}-${k}-r)`} />
+      </g>
+    );
   return (
     <g transform={`translate(${x + sx} ${y + bob}) rotate(${rot}) scale(${(flip ? -1 : 1) * s} ${s})`}>
       {/* الظل الأرضي للطائر الواقف */}
@@ -80,12 +103,14 @@ export const Bird: React.FC<{
       {/* الجسم */}
       <ellipse cx={0} cy={0} rx={50} ry={kind === 'goose' ? 36 : 40} fill={K.body} stroke={INK} strokeWidth={sw} />
       <path d="M -26 14 Q 6 44 44 10 Q 20 26 -26 14 Z" fill={K.belly} opacity={0.95} />
+      <Shade k="b" cx={0} cy={0} rx={47} ry={kind === 'goose' ? 33 : 37} />
       {/* الرأس */}
       <g transform={`translate(${headDx} ${headDy})`}>
         {K.neck ? <path d={neckFwd ? 'M 26 -6 Q 52 -12 76 -16' : 'M 26 -10 Q 44 -40 50 -58'} stroke={INK} strokeWidth={26} strokeLinecap="round" fill="none" /> : null}
         {K.neck ? <path d={neckFwd ? 'M 26 -6 Q 52 -12 76 -16' : 'M 26 -10 Q 44 -40 50 -58'} stroke={K.cap} strokeWidth={17} strokeLinecap="round" fill="none" /> : null}
         <g transform={K.neck ? (neckFwd ? 'translate(46 6)' : 'translate(18 -44)') : ''}>
           <circle cx={34} cy={-24} r={30} fill={K.neck ? K.cap : K.body} stroke={INK} strokeWidth={sw} />
+          <Shade k="h" cx={34} cy={-24} rx={27} ry={27} />
           {K.cap && !K.neck && <path d={kind === 'tern' ? 'M 6 -28 Q 30 -62 62 -34 Q 40 -36 30 -26 Q 18 -20 6 -28 Z' : 'M 50 -14 Q 58 -4 52 4 Q 40 0 44 -12 Z'} fill={K.cap} />}
           {K.neck && <path d="M 22 -16 Q 34 -6 46 -14 Q 40 -2 28 -4 Z" fill="#f4f1ea" />}
           {/* المنقار */}

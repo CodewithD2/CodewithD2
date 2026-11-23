@@ -1,10 +1,11 @@
 import React from 'react';
 import {AbsoluteFill, random} from 'remotion';
 import {camAt} from '../../lib/stage';
-import {Cloud, Halo, GodRays} from '../../lib/fx';
+import {Cloud, Halo, GodRays, Motes} from '../../lib/fx';
 import {INK, clamp, easeInOut, lerp, mixColor, prog, ridgePath} from '../../lib/util';
 import {Bird, Chick, FarBirds, vFormation} from './Bird';
 import {Hud, VArt, VLayer, VStage} from './vstage';
+import {BirdLight, Breath, Butterfly, Feathers, Fireflies, Grade, Petals, ShootingStar, WindStreaks, hand} from './polish';
 import {Bug, ChannelBadge, Cross, InfoCard, Seed, Snow, Thermo, Txt, fade, pop} from './common';
 import {E, FPS, S, wordAt} from './track';
 
@@ -13,12 +14,13 @@ const F = (s: number) => Math.round(s * FPS);
 
 /* ===================== ١) الافتتاح: سرب V في السماء + السؤال ===================== */
 export const SceneOpen: React.FC<SceneProps> = ({t, f}) => {
+  const L: BirdLight = {lx: 1, shadow: '#4a4a86', rim: '#fff1c2', ambient: '#ffd9a0', ambientOp: 0.12};
   const t0 = 0;
   const t1 = S('s2_2');
-  const cam = camAt(f, [
+  const cam = hand(camAt(f, [
     {f: F(t0), y: 240, z: 0, rz: -1.5},
     {f: F(t1), y: -120, z: 160, rz: 1},
-  ]);
+  ]), t, 1.2);
   const u = prog(t, t0, t1);
   const lead = {x: lerp(-160, 1180, u), y: lerp(1120, 560, easeInOut(u))};
   const tq = wordAt('s1_2', 'لماذا');
@@ -49,16 +51,23 @@ export const SceneOpen: React.FC<SceneProps> = ({t, f}) => {
         <VLayer d={260}>
           <VArt>
             {vFormation(7, 120).map((p) => (
-              <Bird key={p.i} kind="goose" x={lead.x + p.dx} y={lead.y + p.dy * 0.9 - p.dx * 0.35} s={0.95 - p.i * 0.03} frame={f} seed={p.i} rot={-14} />
+              <Bird light={L} key={p.i} kind="goose" x={lead.x + p.dx} y={lead.y + p.dy * 0.9 - p.dx * 0.35} s={0.95 - p.i * 0.03} frame={f} seed={p.i} rot={-14} />
             ))}
+          </VArt>
+        </VLayer>
+        <VLayer d={-380} blur={3}>
+          <VArt>
+            <Feathers t={t} n={5} seed="op-fe" s={1.3} />
           </VArt>
         </VLayer>
         <VLayer d={-260} blur={6}>
           <VArt>
+            <Motes id="op-m" frame={f} n={40} x0={-200} x1={1300} y0={200} y1={1700} color="#fff4cf" size={4} />
             <Cloud id="op-f1" x={lerp(-100, 300, u)} y={1700} w={900} h={260} lit="#ffffff" shade="#f1e6d6" opacity={0.85} />
           </VArt>
         </VLayer>
       </VStage>
+      <Grade g={{top: '#2f6fc0', bottom: '#ff9f60', opacity: 0.32, light: '#fff1c2', at: [76, 27], strength: 0.3}} />
       <Hud>
         <ChannelBadge x={540} y={150} s={0.9} opacity={fade(t, 0.2, 0.6, tq - 0.4, tq)} />
         {/* «آلاف الكيلومترات» — مسار متقطع خلف السرب */}
@@ -85,12 +94,13 @@ export const SceneOpen: React.FC<SceneProps> = ({t, f}) => {
 /* ===================== ٢) الشمال المتجمد: لا طعام ===================== */
 const SNOW_GROUND = 1120;
 export const SceneWinter: React.FC<SceneProps> = ({t, f}) => {
+  const L: BirdLight = {lx: -1, shadow: '#5d6f96', rim: '#ffffff', ambient: '#bcd2ec', ambientOp: 0.18};
   const t0 = S('s2_2') - 0.3;
   const t1 = S('s3_1');
-  const cam = camAt(f, [
+  const cam = hand(camAt(f, [
     {f: F(t0), z: 0, y: 30},
     {f: F(t1), z: 220, y: 60},
-  ]);
+  ]), t, 0.8, {at: wordAt('s2_2', 'تتجمد'), amp: 12});
   const tFood = wordAt('s2_2', 'الطعام');
   const tWinter = wordAt('s2_2', 'الشتاء');
   const tFreeze = wordAt('s2_2', 'تتجمد');
@@ -133,7 +143,8 @@ export const SceneWinter: React.FC<SceneProps> = ({t, f}) => {
                   opacity={ice}
                 />
               ))}
-            <Bird kind="sparrow" mode="perch" x={430} y={SNOW_GROUND - 56} s={1.7} frame={f} expr={t > tFood ? 'sad' : 'neutral'} shiver={storm} peck={peck} />
+            <Bird light={L} kind="sparrow" mode="perch" x={430} y={SNOW_GROUND - 56} s={1.7} frame={f} expr={t > tFood ? 'sad' : 'neutral'} shiver={storm} peck={peck} />
+            <Breath t={t} x={585} y={1018} />
             {/* آثار أقدام */}
             {[0, 1, 2].map((i) => (
               <path key={i} d={`M ${260 - i * 70} ${SNOW_GROUND + 26} l -8 -10 m 8 10 l 0 -12 m 0 12 l 8 -10`} stroke="#b8c8d8" strokeWidth={4} fill="none" />
@@ -141,8 +152,22 @@ export const SceneWinter: React.FC<SceneProps> = ({t, f}) => {
           </VArt>
         </VLayer>
       </VStage>
+      <AbsoluteFill style={{pointerEvents: 'none'}}>
+        <VStage cam={cam}>
+          <VLayer d={-420} blur={5}>
+            <VArt>
+              <path d="M -300 180 C 0 260 200 230 420 330 C 520 375 600 380 700 360" stroke="#3b2e2a" strokeWidth={46} fill="none" strokeLinecap="round" />
+              <path d="M -300 150 C 0 225 200 196 420 296 C 520 340 600 346 700 330" stroke="#ffffff" strokeWidth={24} fill="none" strokeLinecap="round" />
+              <path d="M 300 300 C 340 400 330 470 380 540" stroke="#3b2e2a" strokeWidth={20} fill="none" strokeLinecap="round" />
+            </VArt>
+          </VLayer>
+        </VStage>
+      </AbsoluteFill>
+      <Grade g={{top: '#a8c4e8', bottom: '#3d4e72', opacity: 0.42, light: '#ffffff', at: [18, 8], strength: 0.2}} />
       <Hud>
         <Snow frame={f} n={Math.round(60 + 90 * storm)} seed="w-sn" speed={3 + 5 * storm} />
+        <WindStreaks t={t} n={Math.round(14 * storm)} seed="w-ws" opacity={0.35 * storm} speed={1400} />
+        <Snow frame={f} n={14} seed="w-sn2" speed={9} size={16} opacity={0.75} />
         {/* فقاعة تفكير: أين الطعام؟ */}
         {(() => {
           const k = pop(t, tFood - 0.1);
@@ -184,6 +209,7 @@ const BareTree: React.FC<{x: number; y: number; s?: number}> = ({x, y, s = 1}) =
 /* ===================== ٣) الرحلة جنوباً: من الثلج إلى الدفء ===================== */
 // شريط عمودي طويل: الشمال في الأعلى والجنوب في الأسفل، والكاميرا تنزل مع السرب
 export const SceneSouth: React.FC<SceneProps> = ({t, f}) => {
+  const L: BirdLight = {lx: 1, shadow: '#3a2f6a', rim: '#ffe6a8'};
   const t0 = S('s3_1') - 0.3;
   const t1 = S('s4_1');
   const tWarm = wordAt('s3_1', 'الدفء');
@@ -192,7 +218,7 @@ export const SceneSouth: React.FC<SceneProps> = ({t, f}) => {
     {f: F(t0), y: -4500},
     {f: F(tWarm + 0.3), y: 230},
   ]).y;
-  const cam = {x: 0, y: cy, z: 0, rx: 0, ry: 0, rz: 0, fov: 45};
+  const cam = hand({x: 0, y: cy, z: 0, rx: 0, ry: 0, rz: 2.2 * Math.sin(t * 1.3), fov: 45}, t, 1.6);
   const flockY = cy + 760 + 30 * Math.sin(t * 2);
   const arrive = prog(t, tWarm, t1);
   return (
@@ -232,7 +258,7 @@ export const SceneSouth: React.FC<SceneProps> = ({t, f}) => {
         <VLayer d={0}>
           <VArt y0={-5000} h={8000}>
             {vFormation(5, 170).map((p) => (
-              <Bird key={p.i} kind="swallow" x={540 + p.dy * 1.3} y={flockY + p.dx * 1.0} s={1.05 - p.i * 0.05} frame={f} seed={p.i} rot={90} flapRate={1.3} />
+              <Bird light={L} key={p.i} kind="swallow" x={540 + p.dy * 1.3} y={flockY + p.dx * 1.0} s={1.05 - p.i * 0.05} frame={f} seed={p.i} rot={90} flapRate={1.3} />
             ))}
             {/* حشرات وفيرة عند الوصول */}
             {arrive > 0 &&
@@ -244,7 +270,9 @@ export const SceneSouth: React.FC<SceneProps> = ({t, f}) => {
           </VArt>
         </VLayer>
       </VStage>
+      <Grade g={{top: '#ffd590', bottom: '#4a3a70', opacity: 0.3, light: '#fff0c0', at: [50, 0], strength: 0.25}} />
       <Hud>
+        <WindStreaks t={t} n={16} seed="s-ws" vertical speed={-1600} opacity={0.3 * (1 - prog(t, tWarm - 0.2, tWarm + 0.4))} />
         {/* بوصلة الاتجاه: جنوباً */}
         <g transform="translate(930 260)">
           <circle r={82} fill="#fff" stroke={INK} strokeWidth={6} />
@@ -280,18 +308,19 @@ export const SceneSouth: React.FC<SceneProps> = ({t, f}) => {
 
 /* ===================== ٤) الربيع في الشمال: لماذا العودة؟ + العش ===================== */
 export const SceneSpring: React.FC<SceneProps> = ({t, f}) => {
+  const L: BirdLight = {lx: -1, shadow: '#36557a', rim: '#fff6c0', ambient: '#fff3c0', ambientOp: 0.1};
   const t0 = S('s4_1') - 0.3;
   const t1 = S('s5_1');
   const tNest = S('s4_2');
   const tLong = wordAt('s4_1', 'أطول');
   const tMore = wordAt('s4_1', 'أكثر');
   const tLess = wordAt('s4_1', 'أقل');
-  const cam = camAt(f, [
+  const cam = hand(camAt(f, [
     {f: F(t0), x: 0, y: 80, z: 0},
     {f: F(tNest - 0.3), x: 0, y: 40, z: 60},
     {f: F(tNest + 0.9), x: 170, y: -160, z: 900},
     {f: F(t1), x: 180, y: -170, z: 980},
-  ]);
+  ]), t, 1);
   const flyIn = prog(t, t0, t0 + 3.2);
   const parentLand = prog(t, tNest + 0.5, tNest + 1.8);
   return (
@@ -341,15 +370,30 @@ export const SceneSpring: React.FC<SceneProps> = ({t, f}) => {
             </g>
             {/* الأب يصل بدودة */}
             {t > tNest + 0.3 && (
-              <Bird kind="swallow" mode={parentLand < 1 ? 'fly' : 'perch'} x={lerp(1100, 790, parentLand)} y={lerp(640, 885, parentLand)} s={0.95} frame={f} flip carry="worm" expr="happy" />
+              <Bird light={L} kind="swallow" mode={parentLand < 1 ? 'fly' : 'perch'} x={lerp(1100, 790, parentLand)} y={lerp(640, 885, parentLand)} s={0.95} frame={f} flip carry="worm" expr="happy" />
             )}
+          </VArt>
+        </VLayer>
+        <VLayer d={60}>
+          <VArt>
+            <Butterfly x={300 + Math.sin(t * 0.9) * 140} y={1180 + Math.cos(t * 1.3) * 60} t={t} />
+            <Butterfly x={960 + Math.sin(t * 1.1 + 2) * 120} y={1060 + Math.cos(t * 0.8) * 70} t={t + 0.3} color="#8fd0ff" s={0.85} />
+            <Motes id="sp-m" frame={f} n={36} x0={-100} x1={1200} y0={400} y1={1500} color="#fff6b0" size={3.5} />
+          </VArt>
+        </VLayer>
+        <VLayer d={-360} blur={4}>
+          <VArt>
+            {Array.from({length: 26}, (_, i) => (
+              <path key={i} d={`M ${-260 + i * 62} 2000 q ${(i % 3) * 14 - 14} -160 ${(i % 2) * 30 - 10} -${260 + (i % 4) * 50}`} stroke={i % 2 ? '#4f9a3e' : '#3e8030'} strokeWidth={22} fill="none" strokeLinecap="round" />
+            ))}
+            <Petals t={t} n={16} seed="sp-pt" />
           </VArt>
         </VLayer>
         <VLayer d={0}>
           <VArt>
             {/* السرب عائد للشمال */}
             {vFormation(5, 100).map((p) => (
-              <Bird key={p.i} kind="swallow" x={lerp(-200, 1250, flyIn) + p.dx} y={lerp(1150, 380, flyIn) + p.dy - p.dx * 0.4} s={0.9} frame={f} seed={p.i} rot={-30} />
+              <Bird light={L} key={p.i} kind="swallow" x={lerp(-200, 1250, flyIn) + p.dx} y={lerp(1150, 380, flyIn) + p.dy - p.dx * 0.4} s={0.9} frame={f} seed={p.i} rot={-30} />
             ))}
             {t > tMore - 0.3 && t < tNest + 0.5 &&
               Array.from({length: 14}, (_, i) => (
@@ -358,6 +402,7 @@ export const SceneSpring: React.FC<SceneProps> = ({t, f}) => {
           </VArt>
         </VLayer>
       </VStage>
+      <Grade g={{top: '#fff0b0', bottom: '#2f5a44', opacity: 0.3, light: '#fff6c0', at: [28, 20], strength: 0.3}} />
       <Hud>
         {(() => {
           const out = 1 - prog(t, tNest - 0.2, tNest + 0.2);
@@ -366,7 +411,7 @@ export const SceneSpring: React.FC<SceneProps> = ({t, f}) => {
             <g opacity={out}>
               <InfoCard x={540} y={200} k={pop(t, tLong - 0.15)} label="نهار أطول" w={620} icon={<g><circle r={34} fill="#ffd84a" stroke={INK} strokeWidth={5} />{[0, 1, 2, 3, 4, 5, 6, 7].map((i) => <path key={i} d="M 0 -44 L 0 -56" stroke={INK} strokeWidth={6} strokeLinecap="round" transform={`rotate(${i * 45})`} />)}</g>} />
               <InfoCard x={540} y={350} k={pop(t, tMore - 0.15)} label="طعام أكثر" w={620} icon={<g><Bug x={-16} y={8} s={1.3} frame={f} /><Bug x={20} y={-14} s={1.1} frame={f} seed={2} /></g>} />
-              <InfoCard x={540} y={500} k={pop(t, tLess - 0.15)} label="منافسة أقل" w={620} icon={<g transform="scale(0.42)"><Bird kind="sparrow" mode="perch" x={0} y={-10} frame={f} expr="happy" /></g>} />
+              <InfoCard x={540} y={500} k={pop(t, tLess - 0.15)} label="منافسة أقل" w={620} icon={<g transform="scale(0.42)"><Bird light={L} kind="sparrow" mode="perch" x={0} y={-10} frame={f} expr="happy" /></g>} />
             </g>
           );
         })()}
