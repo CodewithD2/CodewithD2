@@ -3,7 +3,7 @@ import {AbsoluteFill, random} from 'remotion';
 import {camAt} from '../../lib/stage';
 import {Cloud, Halo, GodRays, Motes} from '../../lib/fx';
 import {INK, clamp, easeInOut, lerp, mixColor, prog, ridgePath} from '../../lib/util';
-import {Bird, Chick, FarBirds, vFormation} from './Bird';
+import {Bird, Chick, FarBirds, Flock, bezier, vFormation} from './Bird';
 import {Hud, VArt, VLayer, VStage} from './vstage';
 import {BirdLight, Breath, Butterfly, Feathers, Fireflies, Grade, Petals, ShootingStar, WindStreaks, hand} from './polish';
 import {Bug, ChannelBadge, Cross, InfoCard, Seed, Snow, Thermo, Txt, fade, pop} from './common';
@@ -17,10 +17,14 @@ export const SceneOpen: React.FC<SceneProps> = ({t, f}) => {
   const L: BirdLight = {lx: 1, shadow: '#4a4a86', rim: '#fff1c2', ambient: '#ffd9a0', ambientOp: 0.12};
   const t0 = 0;
   const t1 = S('s2_2');
-  const cam = hand(camAt(f, [
+  const u0 = prog(t, t0, t1);
+  // متابعة السرب بتأخير: الكاميرا تنظر لموضع القائد قبل ٠٫٤ث
+  const lagP = bezier([[-420, 1320], [180, 820], [760, 1180], [1950, 380]], Math.max(0, Math.min(1, prog(t - 0.4, t0, t1) * 1.08)));
+  const base = camAt(f, [
     {f: F(t0), y: 240, z: 0, rz: -1.5},
     {f: F(t1), y: -120, z: 160, rz: 1},
-  ]), t, 1.2);
+  ]);
+  const cam = hand({...base, x: (Math.max(-200, Math.min(1300, lagP.x)) - 540) * 0.22 * (1 - prog(u0, 0.75, 1)), rz: base.rz + (lagP.ang / 30) * 0.8}, t, 1.2);
   const u = prog(t, t0, t1);
   const lead = {x: lerp(-160, 1800, u), y: lerp(1120, 420, easeInOut(u))};
   const tq = wordAt('s1_2', 'لماذا');
@@ -50,9 +54,7 @@ export const SceneOpen: React.FC<SceneProps> = ({t, f}) => {
         </VLayer>
         <VLayer d={260}>
           <VArt>
-            {vFormation(7, 120).map((p) => (
-              <Bird light={L} key={p.i} kind="goose" x={lead.x + p.dx} y={lead.y + p.dy * 0.9 - p.dx * 0.35} s={0.95 - p.i * 0.03} frame={f} seed={p.i} rot={-14} />
-            ))}
+            <Flock path={[[-420, 1320], [180, 820], [760, 1180], [1950, 380]]} u={u * 1.08} frame={f} n={7} gap={120} kind="goose" s={0.95} light={L} maxTilt={24} />
           </VArt>
         </VLayer>
         <VLayer d={-380} blur={3}>
@@ -257,9 +259,7 @@ export const SceneSouth: React.FC<SceneProps> = ({t, f}) => {
         </VLayer>
         <VLayer d={0}>
           <VArt y0={-5000} h={8000}>
-            {vFormation(5, 170).map((p) => (
-              <Bird light={L} key={p.i} kind="swallow" x={540 + p.dy * 1.3} y={flockY + p.dx * 1.0} s={1.05 - p.i * 0.05} frame={f} seed={p.i} rot={90} flapRate={1.3} />
-            ))}
+            <Flock path={[[300, flockY - 200], [450, flockY - 100], [620, flockY + 10], [800, flockY + 130]]} u={0.72 + 0.06 * Math.sin(t * 1.4)} frame={f} n={5} gap={150} kind="swallow" s={1.05} light={L} bursts={false} tilt={34} seed={3} />
             {/* حشرات وفيرة عند الوصول */}
             {arrive > 0 &&
               Array.from({length: 18}, (_, i) => (
@@ -322,7 +322,12 @@ export const SceneSpring: React.FC<SceneProps> = ({t, f}) => {
     {f: F(t1), x: 180, y: -170, z: 980},
   ]), t, 1);
   const flyIn = prog(t, t0, t0 + 4.6);
-  const parentLand = prog(t, tNest + 0.5, tNest + 1.8);
+  const tLand = tNest + 1.7;
+  const landU = prog(t, tNest + 0.35, tLand);
+  const landP = bezier([[1300, 470], [1080, 520], [920, 760], [790, 885]], 1 - (1 - landU) * (1 - landU));
+  const since = t - tLand;
+  const shake = since > 0 ? 3.2 * Math.exp(-since * 4) * Math.sin(since * 26) : 0;
+  const squash = since > 0 ? Math.exp(-since * 6) * Math.sin(since * 22) * 10 : 0;
   return (
     <AbsoluteFill style={{background: 'linear-gradient(#4aa6ec 0%, #a9dcf7 55%, #e9f7e2 100%)'}}>
       <VStage cam={cam}>
@@ -358,10 +363,11 @@ export const SceneSpring: React.FC<SceneProps> = ({t, f}) => {
             {Array.from({length: 22}, (_, i) => (
               <circle key={i} cx={560 + random(`bl${i}`) * 420} cy={600 + random(`bl2${i}`) * 260} r={10} fill="#ffc4d6" stroke={INK} strokeWidth={2.5} />
             ))}
-            {/* العش */}
+            {/* العش + الأب: يهتزان معاً حين يهبط الأب على الغصن */}
+            <g transform={`rotate(${shake} 560 940)`}>
             <g transform="translate(640 930)">
               {[0, 1, 2].map((i) => (
-                <Chick key={i} x={-46 + i * 46} y={-34} s={0.85} frame={f} seed={i} chirp={t > tNest ? 1 : 0.2} />
+                <Chick key={i} x={-46 + i * 46 + (since > 0 ? Math.min(1, since * 3) * (8 + i * 6) : 0)} y={-34 - (since > 0 ? Math.abs(Math.sin(since * 9 + i)) * 14 * Math.exp(-since * 0.8) : 0)} s={0.85} frame={f} seed={i} chirp={t > tNest ? 1 : 0.2} />
               ))}
               <path d="M -110 -20 Q 0 70 110 -20 Q 90 30 0 40 Q -90 30 -110 -20 Z" fill="#a87a4a" stroke={INK} strokeWidth={5} />
               {[-80, -40, 0, 40, 80].map((x) => (
@@ -369,9 +375,24 @@ export const SceneSpring: React.FC<SceneProps> = ({t, f}) => {
               ))}
             </g>
             {/* الأب يصل بدودة */}
-            {t > tNest + 0.3 && (
-              <Bird light={L} kind="swallow" mode={parentLand < 1 ? 'fly' : 'perch'} x={lerp(1100, 790, parentLand)} y={lerp(640, 885, parentLand)} s={0.95} frame={f} flip carry="worm" expr="happy" />
+            {t > tNest + 0.35 && (
+              <Bird
+                light={L}
+                kind="swallow"
+                mode={since < 0 ? 'fly' : 'perch'}
+                x={landP.x}
+                y={landP.y + squash}
+                s={0.95}
+                frame={f}
+                flip
+                carry="worm"
+                expr="happy"
+                flare={since < 0 ? prog(landU, 0.5, 0.95) : 0}
+                legs={since < 0 ? prog(landU, 0.4, 0.85) : 0}
+                rot={since < 0 ? -12 * (1 - landU) : 0}
+              />
             )}
+            </g>
           </VArt>
         </VLayer>
         <VLayer d={60}>
@@ -392,9 +413,7 @@ export const SceneSpring: React.FC<SceneProps> = ({t, f}) => {
         <VLayer d={0}>
           <VArt>
             {/* السرب عائد للشمال */}
-            {flyIn < 1 && vFormation(5, 100).map((p) => (
-              <Bird light={L} key={p.i} kind="swallow" x={lerp(-250, 1750, flyIn) + p.dx} y={lerp(1150, 20, flyIn) + p.dy - p.dx * 0.4} s={0.9} frame={f} seed={p.i} rot={-30} />
-            ))}
+            {flyIn < 1 && <Flock path={[[-350, 1300], [250, 760], [720, 820], [1850, -150]]} u={flyIn * 1.12} frame={f} n={5} gap={105} kind="swallow" s={0.9} light={L} seed={5} />}
             {t > tMore - 0.3 && t < tNest + 0.5 &&
               Array.from({length: 14}, (_, i) => (
                 <Bug key={i} x={120 + random(`spb${i}`) * 800 + Math.sin(f * 0.1 + i) * 30} y={900 + random(`spb2${i}`) * 300 + Math.cos(f * 0.13 + i) * 20} s={1.1} frame={f} seed={i} />

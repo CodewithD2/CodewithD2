@@ -4,7 +4,7 @@ import {camAt} from '../../lib/stage';
 import {Halo, GodRays, Motes} from '../../lib/fx';
 import {INK, clamp, easeInOut, lerp, prog, ridgePath} from '../../lib/util';
 import type {LonLat} from '../../world/maps/europeData';
-import {Bird, FarBirds, vFormation} from './Bird';
+import {Bird, FarBirds, Flock, vFormation} from './Bird';
 import {Globe, GlobeProj, densify, geoLine, gproj} from './Globe';
 import {Hud, VArt, VLayer, VStage} from './vstage';
 import {BirdLight, Breath, Butterfly, Feathers, Fireflies, Grade, Petals, ShootingStar, WindStreaks, hand} from './polish';
@@ -203,10 +203,12 @@ export const SceneTern: React.FC<SceneProps> = ({t, f}) => {
   const [px, py] = gproj(g, prev);
   const ang = (Math.atan2(hy - py, hx - px) * 180) / Math.PI;
   const km = Math.round(70000 * easeInOut(clamp(prog(t, tGo, tKm + 0.3))) / 100) * 100;
-  const cam = hand(camAt(f, [
+  const kick = Math.sin(Math.PI * prog(t, tNum - 0.1, tNum + 0.5)) * 140;
+  const camBase = hand(camAt(f, [
     {f: F(t0), z: 0},
     {f: F(t1), z: 120},
   ]), t, 0.7);
+  const cam = {...camBase, z: camBase.z + kick};
   return (
     <AbsoluteFill style={{background: 'radial-gradient(circle at 50% 38%, #1f3f7a 0%, #0b1533 70%)'}}>
       <VStage cam={cam}>
@@ -285,7 +287,7 @@ export const SceneEnd: React.FC<SceneProps> = ({t, f}) => {
   const t0 = S('s7_1') - 0.3;
   const tTrip = wordAt('s7_1', 'رحلة');
   const tLife = wordAt('s7_1', 'بقاء');
-  const u = prog(t, t0, t0 + 6);
+  const u = prog(t, t0, t0 + 4.8);
   const cam = hand(camAt(f, [
     {f: F(t0), z: 0, y: 60},
     {f: F(t0 + 6), z: 260, y: -40},
@@ -314,11 +316,9 @@ export const SceneEnd: React.FC<SceneProps> = ({t, f}) => {
         <VLayer d={200}>
           <VArt>
             {/* السرب يبتعد نحو الشمس */}
-            {vFormation(9, 130).map((p) => (
-              <g key={p.i} opacity={1 - prog(u, 0.85, 1)}>
-                <Bird light={L} kind="goose" x={540 + p.dy * lerp(1.3, 0.35, u) + 0} y={lerp(1150, 820, u) - p.dx * lerp(0.5, 0.15, u)} s={lerp(1.0, 0.28, u) * (1 - p.i * 0.02)} frame={f} seed={p.i} rot={-90} />
-              </g>
-            ))}
+            <g opacity={1 - prog(u, 0.9, 1)}>
+              <Flock path={[[-80, 1260], [200, 980], [420, 1060], [545, 880]]} u={u} frame={f} n={9} gap={130} kind="goose" s={(uu) => lerp(0.95, 0.12, uu * uu)} light={L} maxTilt={28} seed={9} />
+            </g>
           </VArt>
         </VLayer>
       </VStage>

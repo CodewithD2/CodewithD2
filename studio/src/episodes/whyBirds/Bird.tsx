@@ -35,22 +35,40 @@ export const Bird: React.FC<{
   mouth?: number; // 0..1 منقار مفتوح (زقزقة/صراخ)
   carry?: 'worm' | null;
   light?: BirdLight;
-}> = ({x, y, s = 1, flip, rot = 0, frame, kind = 'sparrow', mode = 'fly', expr = 'neutral', seed = 0, flapRate = 1, peck = 0, shiver = 0, mouth = 0, carry, light}) => {
+  /** نوبات رفرفة يتخللها انزلاق (طيران طبيعي للمسافات الطويلة) */
+  bursts?: boolean;
+  /** 0..1 فرملة الهبوط: الجناحان يرتفعان ويتقدمان والجسم يميل للأعلى */
+  flare?: number;
+  /** 0..1 الرجلان ممدودتان للأمام استعداداً للهبوط */
+  legs?: number;
+}> = ({x, y, s = 1, flip, rot = 0, frame, kind = 'sparrow', mode = 'fly', expr = 'neutral', seed = 0, flapRate = 1, peck = 0, shiver = 0, mouth = 0, carry, light, bursts = false, flare = 0, legs = 0}) => {
   const uid = React.useId().replace(/:/g, '');
   const lxL = light ? light.lx * (flip ? -1 : 1) : 0;
   const K = KINDS[kind];
-  const ph = frame * 0.42 * flapRate + seed * 2.1;
-  const flap = mode === 'fly' ? Math.sin(ph) : mode === 'glide' ? 0.15 + 0.08 * Math.sin(ph * 0.3) : 0;
-  const bob = mode === 'fly' ? -Math.cos(ph) * 6 : mode === 'perch' ? Math.sin(frame * 0.12 + seed) * 1.5 : 0;
+  const ph = frame * 0.42 * flapRate * (1 + flare * 0.8) + seed * 2.1;
+  // ضربة لأسفل سريعة (٤٠٪ من الدورة) ورجوع لأعلى أبطأ
+  const cyc = (((ph / (Math.PI * 2)) % 1) + 1) % 1;
+  const ez = (v: number) => v * v * (3 - 2 * v);
+  const stroke = cyc < 0.4 ? 1 - 2 * ez(cyc / 0.4) : -1 + 2 * ez((cyc - 0.4) / 0.6);
+  // نوبات: رفرفة ~1.8ث ثم انزلاق ~1.2ث (طور مختلف لكل طائر)
+  const burstW = bursts ? Math.min(1, Math.max(0, (Math.sin(frame * 0.07 + seed * 1.9) + 0.35) * 2.2)) : 1;
+  const flyFlap = stroke * burstW + (1 - burstW) * 0.18;
+  const flap = mode === 'fly' ? flyFlap * (1 - flare) + flare * (0.75 + 0.25 * stroke) : mode === 'glide' ? 0.15 + 0.08 * Math.sin(ph * 0.3) : 0;
+  const upstroke = mode === 'fly' && cyc >= 0.4 ? Math.sin(((cyc - 0.4) / 0.6) * Math.PI) * burstW : 0;
+  // الجسم يرتفع مع الضربة لأسفل؛ الرأس يثبت نسبياً
+  const bob = mode === 'fly' ? flap * 7 : mode === 'perch' ? Math.sin(frame * 0.12 + seed) * 1.5 : mode === 'glide' ? Math.sin(frame * 0.06 + seed) * 4 : 0;
+  const tailRot = mode === 'perch' ? Math.sin(frame * 0.09 + seed) * 3 : Math.sin(ph - 1.3) * 7 * burstW - flare * 14;
+  const bodyTilt = -flare * 24;
   const sx = shiver ? Math.sin(frame * 2.7 + seed) * 3 * shiver : 0;
   const blink = (frame + seed * 37 + 50) % 97 < 4;
-  const headDy = peck * 26;
+  const headDy = peck * 26 - (mode === 'fly' ? bob * 0.7 : 0) + flare * 6;
   const headDx = peck * 10;
   const sw = 5;
-  const L = kind === 'tern' || kind === 'swallow' ? 112 : kind === 'goose' ? 104 : 86;
+  const L0 = kind === 'tern' || kind === 'swallow' ? 112 : kind === 'goose' ? 104 : 86;
   /** جناح بريش: مرسوم على المحور +x بطول L ثم يُدار حول الكتف. flap=1 لأعلى، −1 لأسفل */
   const Wing: React.FC<{a: number; fill: string; dx?: number; dy?: number; op?: number}> = ({a, fill, dx = 0, dy = 0, op = 1}) => {
-    const A = mode === 'glide' ? -158 + a * 14 : 150 + (-100 - 150) * ((a + 1) / 2);
+    const A = (mode === 'glide' ? -158 + a * 14 : 150 + (-100 - 150) * ((a + 1) / 2)) + flare * 28;
+    const L = L0 * (1 - 0.24 * upstroke);
     const d =
       `M 0 -15 C ${L * 0.35} -32 ${L * 0.78} -26 ${L} -2 ` +
       `L ${L * 0.88} 8 L ${L * 0.8} 2 L ${L * 0.7} 13 L ${L * 0.6} 5 L ${L * 0.48} 15 L ${L * 0.36} 7 Q ${L * 0.16} 20 0 15 Z`;
@@ -82,16 +100,25 @@ export const Bird: React.FC<{
       </g>
     );
   return (
-    <g transform={`translate(${x + sx} ${y + bob}) rotate(${rot}) scale(${(flip ? -1 : 1) * s} ${s})`}>
+    <g transform={`translate(${x + sx} ${y + bob * s}) rotate(${rot + (flip ? -bodyTilt : bodyTilt)}) scale(${(flip ? -1 : 1) * s} ${s})`}>
       {/* الظل الأرضي للطائر الواقف */}
       {mode === 'perch' && <ellipse cx={0} cy={56} rx={40} ry={8} fill="#000" opacity={0.16} />}
       {/* الجناح البعيد */}
       {mode !== 'perch' && <Wing a={Math.max(-1, Math.min(1, flap * 0.9 + 0.1))} fill={K.wing} dx={10} dy={-4} op={0.85} />}
       {/* الذيل */}
-      {K.tail === 'fork' ? (
-        <path d="M -40 -6 L -92 -26 L -70 -2 L -96 16 L -40 8 Z" fill={K.wing} stroke={INK} strokeWidth={sw} strokeLinejoin="round" />
-      ) : (
-        <path d="M -38 -10 Q -76 -18 -78 2 Q -70 16 -38 10 Z" fill={K.wing} stroke={INK} strokeWidth={sw} strokeLinejoin="round" />
+      <g transform={`rotate(${tailRot} -38 0)`}>
+        {K.tail === 'fork' ? (
+          <path d={`M -40 -6 L -92 ${-26 - flare * 12} L -70 -2 L -96 ${16 + flare * 12} L -40 8 Z`} fill={K.wing} stroke={INK} strokeWidth={sw} strokeLinejoin="round" />
+        ) : (
+          <path d={`M -38 -10 Q -76 ${-18 - flare * 10} -78 2 Q -70 ${16 + flare * 10} -38 10 Z`} fill={K.wing} stroke={INK} strokeWidth={sw} strokeLinejoin="round" />
+        )}
+      </g>
+      {/* الرجلان ممدودتان للهبوط */}
+      {mode !== 'perch' && legs > 0 && (
+        <g stroke="#e3953a" strokeWidth={5} strokeLinecap="round" fill="none" opacity={Math.min(1, legs * 2)}>
+          <path d={`M -4 32 L ${-4 + 22 * legs} ${32 + 24 * legs} m -8 2 l 16 -2`} />
+          <path d={`M 12 32 L ${12 + 24 * legs} ${32 + 20 * legs} m -8 2 l 16 -2`} />
+        </g>
       )}
       {/* الأرجل */}
       {mode === 'perch' && (
@@ -183,4 +210,77 @@ export const vFormation = (n: number, gap = 90): {dx: number; dy: number; i: num
     out.push({dx: -k * gap, dy: (i % 2 ? -1 : 1) * k * gap * 0.55, i});
   }
   return out;
+};
+
+/** نقطة على منحنى بيزيه تكعيبي + زاوية المماس بالدرجات */
+export type Pt = [number, number];
+export const bezier = (p: [Pt, Pt, Pt, Pt], u: number) => {
+  const v = 1 - u;
+  const x = v * v * v * p[0][0] + 3 * v * v * u * p[1][0] + 3 * v * u * u * p[2][0] + u * u * u * p[3][0];
+  const y = v * v * v * p[0][1] + 3 * v * v * u * p[1][1] + 3 * v * u * u * p[2][1] + u * u * u * p[3][1];
+  const dx = 3 * v * v * (p[1][0] - p[0][0]) + 6 * v * u * (p[2][0] - p[1][0]) + 3 * u * u * (p[3][0] - p[2][0]);
+  const dy = 3 * v * v * (p[1][1] - p[0][1]) + 6 * v * u * (p[2][1] - p[1][1]) + 3 * u * u * (p[3][1] - p[2][1]);
+  return {x, y, ang: (Math.atan2(dy, dx) * 180) / Math.PI};
+};
+
+/**
+ * سرب حي على مسار منحنٍ: تشكيل V يتبع مماس المسار، كل طائر يتمايل حول مكانه
+ * بإيقاع رفرفة مختلف، والطيور الخلفية تتأخر قليلاً على المسار (فينثني التشكيل مع المنعطفات).
+ */
+export const Flock: React.FC<{
+  path: [Pt, Pt, Pt, Pt];
+  u: number;
+  frame: number;
+  n?: number;
+  gap?: number;
+  kind?: BirdKind;
+  s?: number | ((u: number) => number);
+  light?: BirdLight;
+  bursts?: boolean;
+  maxTilt?: number;
+  tilt?: number;
+  seed?: number;
+}> = ({path, u, frame, n = 7, gap = 110, kind = 'goose', s = 1, light, bursts = true, maxTilt = 30, tilt, seed = 0}) => {
+  const birds = vFormation(n, gap);
+  const lead = bezier(path, Math.min(1, Math.max(0, u)));
+  const flip = Math.abs(lead.ang) > 90;
+  return (
+    <g>
+      {birds
+        .slice()
+        .reverse()
+        .map((b) => {
+          // الطيور الخلفية متأخرة على المسار بقدر بُعدها
+          const uu = Math.max(0, Math.min(1, u - Math.abs(b.dx) * 0.00018));
+          const P = bezier(path, uu);
+          const ang = P.ang;
+          const sc = typeof s === 'function' ? s(uu) : s;
+          // تدوير إزاحة التشكيل مع اتجاه المسار
+          const a = (ang * Math.PI) / 180;
+          const ox = b.dx * Math.cos(a) - b.dy * 0.9 * Math.sin(a);
+          const oy = b.dx * Math.sin(a) + b.dy * 0.9 * Math.cos(a);
+          const r = random(`flock-${seed}-${b.i}`);
+          const wx = Math.sin(frame * 0.05 + r * 9) * 14 + Math.sin(frame * 0.017 + r * 4) * 10;
+          const wy = Math.cos(frame * 0.043 + r * 7) * 12;
+          const rotRaw = flip ? ang - 180 * Math.sign(ang) : ang;
+          const rot = tilt ?? Math.max(-maxTilt, Math.min(maxTilt, flip ? -rotRaw : rotRaw));
+          return (
+            <Bird
+              key={b.i}
+              kind={kind}
+              x={P.x + (ox + wx) * sc}
+              y={P.y + (oy + wy) * sc}
+              s={sc * (1 - b.i * 0.02)}
+              flip={flip}
+              rot={flip ? -rot : rot}
+              frame={frame}
+              seed={b.i + seed * 7}
+              flapRate={0.88 + r * 0.26}
+              bursts={bursts}
+              light={light}
+            />
+          );
+        })}
+    </g>
+  );
 };
