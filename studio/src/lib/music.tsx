@@ -1,5 +1,6 @@
 import React from 'react';
 import {Audio, staticFile, useVideoConfig} from 'remotion';
+import {OUTPUT} from './output';
 
 /* =====================================================================
  * موسيقى خلفية هادئة لكل فيديو (قرار صاحب المشروع: دائماً موسيقى في الخلفية).
@@ -39,6 +40,7 @@ export const BackgroundMusic: React.FC<{
   mute?: Span[];
 }> = ({src, speech = [], high = 0.22, low = 0.1, fadeIn = 1.2, fadeOut = 2, startFrom = 0, loop = true, mute = []}) => {
   const {fps, durationInFrames} = useVideoConfig();
+  if (!OUTPUT.music) return null; // المفتاح العام (lib/output.ts)
   const total = durationInFrames / fps;
   const clamp = (v: number) => Math.max(0, Math.min(1, v));
   const duck = (t: number) => {

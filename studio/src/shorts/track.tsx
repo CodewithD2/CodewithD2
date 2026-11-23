@@ -1,6 +1,7 @@
 import React from 'react';
 import {Audio, Sequence, interpolate, staticFile, useCurrentFrame} from 'remotion';
 import {BackgroundMusic} from '../lib/music';
+import {OUTPUT} from '../lib/output';
 
 /* =====================================================================
  * محرك الصوت العام للشورتس: مقطع لكل جملة (narrator/joan_audio.py) + توقيت كل كلمة
@@ -59,14 +60,14 @@ export const makeTrack = (o: {
 
   const TrackAudio: React.FC<{sfx: SfxCue[]; music?: string; musicHigh?: number; musicLow?: number; musicMute?: {t0: number; t1: number}[]}> = ({sfx, music, musicHigh = 0.24, musicLow = 0.1, musicMute = []}) => (
     <>
-      {Object.values(CLIPS).map((c) => (
+      {OUTPUT.voice && Object.values(CLIPS).map((c) => (
         <Sequence key={c.id} from={Math.round(c.t0 * FPS)} durationInFrames={Math.ceil((c.e.dur + 0.3) * FPS)} layout="none">
           <Audio src={staticFile(`${o.dir}/${c.id}.mp3`)} />
         </Sequence>
       ))}
       {sfx.map((q, i) => {
         const file = files[q.name];
-        if (!file) return null;
+        if (!file || !OUTPUT.sfx) return null;
         const dur = Math.ceil((q.dur ?? 2) * FPS);
         const fi = (q.fadeIn ?? 0.2) * FPS;
         const fo = (q.fadeOut ?? 0.4) * FPS;
@@ -84,6 +85,7 @@ export const makeTrack = (o: {
   const Subtitles: React.FC = () => {
     const f = useCurrentFrame();
     const t = f / FPS;
+    if (!OUTPUT.subtitles) return null;
     const c = Object.values(CLIPS).find((x) => t >= x.t0 - 0.05 && t <= x.t1 + 0.12);
     if (!c) return null;
     const a = interpolate(t, [c.t0 - 0.05, c.t0 + 0.12, c.t1, c.t1 + 0.12], [0, 1, 1, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});

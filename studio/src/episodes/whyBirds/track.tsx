@@ -2,6 +2,7 @@ import React from 'react';
 import {Audio, Sequence, interpolate, staticFile, useCurrentFrame} from 'remotion';
 import AUDIO_RAW from './audio.json';
 import SFX_FILES from './sfx.json';
+import {OUTPUT} from '../../lib/output';
 
 /* =====================================================================
  * صوت الشورت: مقطع لكل جملة (narrator/joan_audio.py) + توقيت كل كلمة + مؤثرات حقيقية.
@@ -71,14 +72,14 @@ const FILES = SFX_FILES as Partial<Record<SfxName, string>>;
 /** يشغّل الجمل + المؤثرات المتوفرة فقط (الناقص يُتجاهل بصمت حتى تصل الملفات) */
 export const ShortAudio: React.FC<{sfx: SfxCue[]}> = ({sfx}) => (
   <>
-    {Object.values(CLIPS).map((c) => (
+    {OUTPUT.voice && Object.values(CLIPS).map((c) => (
       <Sequence key={c.id} from={Math.round(c.t0 * FPS)} durationInFrames={Math.ceil((c.e.dur + 0.3) * FPS)} layout="none">
         <Audio src={staticFile(`whybirds/${c.id}.mp3`)} />
       </Sequence>
     ))}
     {sfx.map((q, i) => {
       const file = FILES[q.name];
-      if (!file) return null;
+      if (!file || !OUTPUT.sfx) return null;
       const dur = Math.ceil((q.dur ?? 2) * FPS);
       const fi = (q.fadeIn ?? 0.2) * FPS;
       const fo = (q.fadeOut ?? 0.4) * FPS;
@@ -95,6 +96,7 @@ export const ShortAudio: React.FC<{sfx: SfxCue[]}> = ({sfx}) => (
 export const ShortSubtitles: React.FC = () => {
   const f = useCurrentFrame();
   const t = f / FPS;
+  if (!OUTPUT.subtitles) return null;
   const c = Object.values(CLIPS).find((x) => t >= x.t0 - 0.05 && t <= x.t1 + 0.12);
   if (!c) return null;
   const a = interpolate(t, [c.t0 - 0.05, c.t0 + 0.12, c.t1, c.t1 + 0.12], [0, 1, 1, 0], {extrapolateLeft: 'clamp', extrapolateRight: 'clamp'});
