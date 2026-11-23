@@ -1,9 +1,10 @@
 import React from 'react';
 import {AbsoluteFill, interpolate, useCurrentFrame} from 'remotion';
 import {FilmLook} from '../../shots/common';
+import {BackgroundMusic, MUSIC} from '../../lib/music';
 import {SceneEnd, SceneNav, SceneTern} from './ScenesB';
 import {SceneOpen, SceneProps, SceneSouth, SceneSpring, SceneWinter} from './ScenesA';
-import {FPS, S, ShortAudio, ShortSubtitles, SfxCue, TOTAL_FRAMES, TOTAL_S, wordAt} from './track';
+import {CLIPS, FPS, S, ShortAudio, ShortSubtitles, SfxCue, TOTAL_FRAMES, TOTAL_S, wordAt} from './track';
 
 /* =====================================================================
  * شورت «ليه ولماذا؟» — لماذا تهاجر الطيور؟ (1080×1920، أقل من دقيقة)
@@ -61,6 +62,7 @@ export const WhyBirdsShort: React.FC = () => {
       <ShortSubtitles />
       <AbsoluteFill style={{background: '#000', opacity: fadeBlack}} />
       <ShortAudio sfx={WHY_BIRDS_SFX} />
+      <BackgroundMusic src={MUSIC.lighthouse} speech={Object.values(CLIPS)} high={0.24} low={0.1} />
     </AbsoluteFill>
   );
 };
