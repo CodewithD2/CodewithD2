@@ -190,7 +190,34 @@ export const wallBuilder = defineRole({
   vary: {robe: ['#8a7a5a', '#6a5a4a', '#7a6a3a', '#5a5a4a'], skin: ['#e3b48a', '#d9a27a', '#c98f68'], build: ['normal', 'broad', 'slim']},
 });
 
+export const chineseEmperor = defineRole({
+  id: 'chineseEmperor',
+  name: 'إمبراطور صيني',
+  era: 'عام',
+  base: {robe: '#c9a020', trim: '#a8322c', outfit: 'royal', hat: 'mianguan', mustache: '#1a1512', beard: '#1a1512', skin: '#e3b48a', face: 'long', build: 'broad'},
+  vary: {robe: ['#c9a020', '#1f1b22'], face: ['long', 'jaw']},
+});
+
+export const silkMerchant = defineRole({
+  id: 'silkMerchant',
+  name: 'تاجر على طريق الحرير',
+  era: 'عام',
+  base: {robe: '#7a3a6a', trim: '#e2b23a', hat: 'vizier', skin: '#d9a27a', beard: '#2a1a10'},
+  vary: {robe: ['#7a3a6a', '#2f6a8a', '#8a5a2a', '#3a7a4a', '#a8322c'], trim: ['#e2b23a', '#f0e6d0', '#5a2a1a'], skin: ['#d9a27a', '#c98f68', '#e2b48c', '#efc29b'], beard: ['#2a1a10', '#4a3426', undefined], build: ['normal', 'belly', 'broad']},
+});
+
+export const bandit = defineRole({
+  id: 'bandit',
+  name: 'قاطع طريق',
+  era: 'عام',
+  base: {robe: '#3a3a3a', trim: '#7a2a22', hat: 'nomadFur', skin: '#c98f68', mustache: '#1a1210', beard: '#1a1210', build: 'broad', face: 'jaw'},
+  vary: {robe: ['#3a3a3a', '#4a3a2a'], trim: ['#7a2a22', '#3a5a3a']},
+});
+
 export const ROLES = {
+  chineseEmperor,
+  silkMerchant,
+  bandit,
   steppeRider,
   mingSoldier,
   chineseFarmer,

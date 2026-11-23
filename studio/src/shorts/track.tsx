@@ -31,6 +31,8 @@ export const makeTrack = (o: {
   sfxFiles?: Record<string, string>;
   lead?: number;
   tail?: number;
+  /** طول الجملة = نهاية آخر كلمة + 0.12ث (يحذف صمت نهاية مقاطع edge-tts ≈0.75ث لكل جملة) */
+  tight?: boolean;
 }) => {
   const AUDIO = o.audio as Record<string, Entry>;
   const CLIPS: Record<string, Clip> = {};
@@ -38,8 +40,10 @@ export const makeTrack = (o: {
   for (const [id, gap] of o.order) {
     const e = AUDIO[id];
     if (!e) throw new Error(`صوت ناقص: ${id} — شغّل narrator/joan_audio.py بملف المانيفست`);
-    CLIPS[id] = {id, t0: cur, t1: cur + e.dur, e};
-    cur += e.dur + gap;
+    const last = e.words[e.words.length - 1];
+    const len = o.tight && last ? Math.min(e.dur, last.t + last.d + 0.12) : e.dur;
+    CLIPS[id] = {id, t0: cur, t1: cur + len, e};
+    cur += len + gap;
   }
   const TOTAL_S = cur + (o.tail ?? 0.8);
   const S = (id: string) => CLIPS[id].t0;
@@ -53,7 +57,7 @@ export const makeTrack = (o: {
   };
   const files = o.sfxFiles ?? {};
 
-  const TrackAudio: React.FC<{sfx: SfxCue[]; music?: string; musicHigh?: number; musicLow?: number}> = ({sfx, music, musicHigh = 0.24, musicLow = 0.1}) => (
+  const TrackAudio: React.FC<{sfx: SfxCue[]; music?: string; musicHigh?: number; musicLow?: number; musicMute?: {t0: number; t1: number}[]}> = ({sfx, music, musicHigh = 0.24, musicLow = 0.1, musicMute = []}) => (
     <>
       {Object.values(CLIPS).map((c) => (
         <Sequence key={c.id} from={Math.round(c.t0 * FPS)} durationInFrames={Math.ceil((c.e.dur + 0.3) * FPS)} layout="none">
@@ -72,7 +76,7 @@ export const makeTrack = (o: {
           </Sequence>
         );
       })}
-      {music && <BackgroundMusic src={music} speech={Object.values(CLIPS)} high={musicHigh} low={musicLow} />}
+      {music && <BackgroundMusic src={music} speech={Object.values(CLIPS)} high={musicHigh} low={musicLow} mute={musicMute} />}
     </>
   );
 

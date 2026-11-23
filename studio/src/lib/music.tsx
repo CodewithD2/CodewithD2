@@ -33,7 +33,9 @@ export const BackgroundMusic: React.FC<{
   fadeOut?: number;
   startFrom?: number;
   loop?: boolean;
-}> = ({src, speech = [], high = 0.22, low = 0.1, fadeIn = 1.2, fadeOut = 2, startFrom = 0, loop = true}) => {
+  /** فترات إسكات كامل (للنكت: خدش أسطوانة + صمت) — تعود الموسيقى بعدها تدريجياً */
+  mute?: Span[];
+}> = ({src, speech = [], high = 0.22, low = 0.1, fadeIn = 1.2, fadeOut = 2, startFrom = 0, loop = true, mute = []}) => {
   const {fps, durationInFrames} = useVideoConfig();
   const total = durationInFrames / fps;
   const clamp = (v: number) => Math.max(0, Math.min(1, v));
@@ -50,7 +52,9 @@ export const BackgroundMusic: React.FC<{
       volume={(f) => {
         const t = f / fps;
         const env = Math.min(clamp(t / fadeIn), clamp((total - t) / fadeOut));
-        return env * (high + (low - high) * duck(t));
+        let m = 1;
+        for (const q of mute) if (t > q.t0 - 0.05 && t < q.t1 + 0.6) m = Math.min(m, t < q.t1 ? 0 : clamp((t - q.t1) / 0.6));
+        return env * m * (high + (low - high) * duck(t));
       }}
     />
   );

@@ -24,6 +24,8 @@ import {CAMERA_TEST_FRAMES, CameraSheet, CameraTest} from './CameraTest';
 import {SFX_TEST_FRAMES, SfxTest} from './SfxTest';
 import {BirdSheet} from './episodes/whyBirds/BirdSheet';
 import {WallAssetSheet} from './episodes/whyWall/AssetSheet';
+import {SilkAssetSheet} from './episodes/whySilk/AssetSheet';
+import {WHY_SILK_FRAMES, WhySilkShort} from './episodes/whySilk/Short';
 import {WHY_WALL_FRAMES, WhyWallShort} from './episodes/whyWall/Short';
 import {WHY_BIRDS_FRAMES, WhyBirdsShort} from './episodes/whyBirds/Short';
 import {DIALOGUE_TEST_FRAMES, DialogueSheet, DialogueTest} from './DialogueTest';
@@ -89,6 +91,8 @@ export const Root: React.FC = () => (
     {/* شورت «ليه ولماذا؟» — عمودي 9:16 */}
     <Composition id="WhyBirdsMigrate" component={WhyBirdsShort} durationInFrames={WHY_BIRDS_FRAMES} fps={30} width={1080} height={1920} />
     <Composition id="WhyGreatWall" component={WhyWallShort} durationInFrames={WHY_WALL_FRAMES} fps={30} width={1080} height={1920} />
+    <Composition id="WhySilkRoad" component={WhySilkShort} durationInFrames={WHY_SILK_FRAMES} fps={30} width={1080} height={1920} />
+    <Composition id="SilkAssetSheet" component={SilkAssetSheet} durationInFrames={30} fps={30} width={1080} height={1920} />
     <Composition id="WallAssetSheet" component={WallAssetSheet} durationInFrames={30} fps={30} width={1920} height={1080} />
     <Composition id="BirdSheet" component={BirdSheet} durationInFrames={30} fps={30} width={1920} height={1080} />
     <Composition id="DialogueSheet" component={DialogueSheet} durationInFrames={60} fps={30} width={1920} height={1080} />
