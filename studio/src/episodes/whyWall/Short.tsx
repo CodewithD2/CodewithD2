@@ -5,6 +5,7 @@ import {MUSIC} from '../../lib/music';
 import {FPS, SfxCue} from '../../shorts/track';
 import {SceneBeacons, SceneNomads, SceneOpen, SceneProps, SceneUnify} from './ScenesA';
 import {SceneEnd, SceneMing, SceneSilk} from './ScenesB';
+import {SceneWallHook} from './Wall3D';
 import {S, T, TOTAL_FRAMES, TOTAL_S, wordAt} from './track';
 
 /* =====================================================================
@@ -15,7 +16,8 @@ export const WHY_WALL_FRAMES = TOTAL_FRAMES;
 const XF = 0.3;
 
 const SCENES: {from: number; C: React.FC<SceneProps>}[] = [
-  {from: 0, C: SceneOpen},
+  {from: 0, C: SceneWallHook},
+  {from: S('s1_2') - 0.3, C: SceneOpen},
   {from: S('s2_1') - 0.3, C: SceneNomads},
   {from: S('s3_1') - 0.3, C: SceneUnify},
   {from: S('s4_1') - 0.3, C: SceneBeacons},
@@ -27,6 +29,8 @@ const SCENES: {from: number; C: React.FC<SceneProps>}[] = [
 /** مواضع المؤثرات الحقيقية (تعمل حين تُسجَّل ملفاتها في sfx.json) */
 export const WHY_WALL_SFX: SfxCue[] = [
   {at: 0.1, name: 'mountainWind', vol: 0.1, dur: S('s2_1')},
+  // الهوك ثلاثي الأبعاد: ووش عند عبور قوس البوابة
+  {at: S('s1_2') * 0.6, name: 'whoosh', vol: 0.3, dur: 1.4, loop: false},
   {at: wordAt('s1_2', 'فلماذا') - 0.15, name: 'whoosh', vol: 0.22, dur: 1.2, loop: false},
   {at: S('s2_1') - 0.3, name: 'gallop', vol: 0.2, dur: wordAt('s2_1', 'يختفون') - S('s2_1') + 1.2},
   {at: wordAt('s2_1', 'يغيرون') - 0.1, name: 'warDrums', vol: 0.18, dur: 2.4},
