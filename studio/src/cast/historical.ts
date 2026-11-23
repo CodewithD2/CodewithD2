@@ -280,6 +280,22 @@ export const baudricourt = defineCharacter({
   },
 });
 
+export const qinShiHuang = defineCharacter({
+  id: 'qinShiHuang',
+  name: 'تشين شي هوانغ',
+  era: '259–210 ق.م',
+  ref: 'أول إمبراطور للصين الموحدة: رداء أسود (لون أسرة تشين) بحواف حمراء وذهبية، تاج ميان-قوان بخيوط الخرز، شارب ولحية قصيرة',
+  look: {robe: '#1f1b22', trim: '#c9302c', outfit: 'royal', hat: 'mianguan', mustache: '#1a1512', beard: '#1a1512', skin: '#e3b48a', face: 'long', build: 'broad', seed: 23},
+});
+
+export const richthofen = defineCharacter({
+  id: 'richthofen',
+  name: 'فرديناند فون ريشتهوفن',
+  era: '1833–1905',
+  ref: 'جغرافي ألماني صاغ مصطلح «طريق الحرير» Seidenstraße عام 1877: بدلة داكنة من القرن التاسع عشر، شارب كثيف ضخم، شعر رمادي، نظارة',
+  look: {outfit: 'suit', robe: '#2a2a34', tie: '#6a1e28', hat: 'none', hair: '#8a8a8a', mustache: '#6a6a6a', skin: '#f0c8a8', face: 'long', glasses: true, build: 'normal', seed: 31},
+});
+
 export const HISTORICAL = {
   mehmed2,
   halilPasha,
@@ -295,4 +311,6 @@ export const HISTORICAL = {
   laHire,
   pierreCauchon,
   baudricourt,
+  qinShiHuang,
+  richthofen,
 };
