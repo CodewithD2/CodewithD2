@@ -18,6 +18,8 @@ export const MUSIC = {
   karst: 'music/karst-mountains-guzheng.mp3',
   /** قوجنغ صيني منفرد — 85ث */
   guzheng: 'music/guzheng-solo.mp3',
+  /** يوكوليلي مرح خفيف — 94ث (للشورتس الكوميدية: طريق الحرير) */
+  bluesky: 'music/blue-sky-ukulele.mp3',
 } as const;
 
 export type Span = {t0: number; t1: number};

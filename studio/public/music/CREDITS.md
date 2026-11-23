@@ -10,3 +10,4 @@
 | `relaxation-10.mp3` | موسيقى استرخاء (89.6ث) | relaxation music #10 | ZHRØ | https://freesound.org/s/521947/ | CC0 1.0 |
 | `karst-mountains-guzheng.mp3` | قوجنغ صيني هادئ — جبال (≈109ث) | Karst mountains | neolein | https://freesound.org/s/664200/ | CC0 1.0 |
 | `guzheng-solo.mp3` | قوجنغ صيني منفرد (≈85ث) | guzheng solo | neolein | https://freesound.org/s/472707/ | CC0 1.0 |
+| `blue-sky-ukulele.mp3` | يوكوليلي مرح خفيف (≈94ث) — للشورتس الكوميدية | Blue Sky.mp3 | Sergmusic | https://freesound.org/s/639933/ | CC0 1.0 |

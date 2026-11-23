@@ -67,7 +67,7 @@ export const WhySilkShort: React.FC = () => {
       <FilmLook frame={f} />
       <T.Subtitles />
       <AbsoluteFill style={{background: '#000', opacity: fadeBlack}} />
-      <T.Audio sfx={WHY_SILK_SFX} music={MUSIC.lighthouse} musicMute={SILK_MUSIC_MUTE} />
+      <T.Audio sfx={WHY_SILK_SFX} music={MUSIC.bluesky} musicHigh={0.22} musicLow={0.1} musicMute={SILK_MUSIC_MUTE} />
     </AbsoluteFill>
   );
 };
