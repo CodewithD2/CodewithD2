@@ -45,14 +45,20 @@ const Plane: React.FC<{left: number; top: number; w: number; h: number; origin: 
   </div>
 );
 
-/** لوحة قائمة على عمق z (بلا تعويض حجم: تصغر بالمنظور الحقيقي) */
-const Stand: React.FC<{z: number; children: React.ReactNode}> = ({z, children}) => (
-  <div style={{position: 'absolute', left: 0, top: 0, width: VW, height: VH, transform: `translateZ(${z}px)`}}>
-    <svg width={VW} height={VH} style={{overflow: 'visible'}}>
+/**
+ * لوحة قائمة على عمق z بحدود ضيقة [x0..x1]×[y0..y1] (بإحداثيات العالم).
+ * ⚠️ الحدود الضيقة ضرورية: لوحة تعبر الحاجزين أو تنزل تحت الأرضية «تتقاطع» معهما
+ * فيقطّعها المتصفح (خطوط قطع رأسية عبر الجنود). لا تجعل أي لوحة تعبر x=540±HALF أو y=FLOOR_Y.
+ */
+const Stand: React.FC<{z: number; x0?: number; x1?: number; y0?: number; y1?: number; children: React.ReactNode}> = ({z, x0 = 0, x1 = VW, y0 = 0, y1 = VH, children}) => (
+  <div style={{position: 'absolute', left: x0, top: y0, width: x1 - x0, height: y1 - y0, transform: `translateZ(${z}px)`, overflow: 'hidden'}}>
+    <svg width={x1 - x0} height={y1 - y0} viewBox={`${x0} ${y0} ${x1 - x0} ${y1 - y0}`} style={{display: 'block'}}>
       {children}
     </svg>
   </div>
 );
+const IN0 = 540 - HALF + 2;
+const IN1 = 540 + HALF - 2;
 
 const SOLDIERS: {x: number; z: number; seed: number; flip?: boolean; item?: 'spear' | 'flagByz'; look?: number}[] = [
   {x: 540 - 250, z: 700, seed: 1, item: 'spear'},
@@ -105,23 +111,28 @@ export const WallWalk3D: React.FC<{cam: Cam; t: number; f: number}> = ({cam, t, 
           ),
         ),
       )}
-      {/* برج البوابة: واجهة بقوس تعبره الكاميرا */}
-      {visible(GATE_Z, cam.z, 10) && (
-        <Stand z={GATE_Z}>
-          <path d={`M -500 ${FLOOR_Y} L -500 ${FLOOR_Y - 760} L 1580 ${FLOOR_Y - 760} L 1580 ${FLOOR_Y} L ${540 + 230} ${FLOOR_Y} L ${540 + 230} ${FLOOR_Y - 330} Q 540 ${FLOOR_Y - 560} ${540 - 230} ${FLOOR_Y - 330} L ${540 - 230} ${FLOOR_Y} Z`} fill={fog('#c2a77e', GATE_Z)} stroke={INK} strokeWidth={8} strokeLinejoin="round" />
-          {[1, 2, 3, 4].map((r) => (
-            <line key={r} x1={-500} y1={FLOOR_Y - r * 150} x2={1580} y2={FLOOR_Y - r * 150} stroke={fog('#8a765c', GATE_Z)} strokeWidth={4} />
-          ))}
-          {Array.from({length: 14}, (_, i) => (
-            <rect key={i} x={-480 + i * 150} y={FLOOR_Y - 830} width={90} height={70} fill={fog('#c2a77e', GATE_Z)} stroke={INK} strokeWidth={6} />
-          ))}
-          <rect x={540 - 260} y={FLOOR_Y - 1110} width={520} height={280} fill="#b8322c" stroke={INK} strokeWidth={8} />
-          <PagodaRoof x={540} y={FLOOR_Y - 1110} w={680} h={110} />
-          <rect x={540 - 90} y={FLOOR_Y - 700} width={180} height={70} rx={8} fill="#1f2a4a" stroke="#d9a520" strokeWidth={6} />
-        </Stand>
-      )}
+      {/* برج البوابة: ثلاث قطع لا تعبر الحاجزين (يسار الممشى، فوق الممشى بقوس، يمين الممشى) */}
+      {visible(GATE_Z, cam.z, 10) &&
+        ([
+          [-560, IN0 - 4],
+          [IN0, IN1],
+          [IN1 + 4, 1640],
+        ] as [number, number][]).map(([gx0, gx1], gi) => (
+          <Stand key={'g' + gi} z={GATE_Z} x0={gx0} x1={gx1} y0={FLOOR_Y - 1240} y1={FLOOR_Y}>
+            <path d={`M -500 ${FLOOR_Y} L -500 ${FLOOR_Y - 760} L 1580 ${FLOOR_Y - 760} L 1580 ${FLOOR_Y} L ${540 + 230} ${FLOOR_Y} L ${540 + 230} ${FLOOR_Y - 330} Q 540 ${FLOOR_Y - 560} ${540 - 230} ${FLOOR_Y - 330} L ${540 - 230} ${FLOOR_Y} Z`} fill={fog('#c2a77e', GATE_Z)} stroke={INK} strokeWidth={8} strokeLinejoin="round" />
+            {[1, 2, 3, 4].map((r) => (
+              <line key={r} x1={-500} y1={FLOOR_Y - r * 150} x2={1580} y2={FLOOR_Y - r * 150} stroke={fog('#8a765c', GATE_Z)} strokeWidth={4} />
+            ))}
+            {Array.from({length: 14}, (_, i) => (
+              <rect key={i} x={-480 + i * 150} y={FLOOR_Y - 830} width={90} height={70} fill={fog('#c2a77e', GATE_Z)} stroke={INK} strokeWidth={6} />
+            ))}
+            <rect x={540 - 260} y={FLOOR_Y - 1110} width={520} height={280} fill="#b8322c" stroke={INK} strokeWidth={8} />
+            <PagodaRoof x={540} y={FLOOR_Y - 1110} w={680} h={110} />
+            <rect x={540 - 90} y={FLOOR_Y - 700} width={180} height={70} rx={8} fill="#1f2a4a" stroke="#d9a520" strokeWidth={6} />
+          </Stand>
+        ))}
       {/* برج النهاية البعيد */}
-      <Stand z={Z_FAR + 200}>
+      <Stand z={Z_FAR - 20} x0={-200} x1={1280} y0={FLOOR_Y - 1000} y1={FLOOR_Y}>
         <rect x={540 - 420} y={FLOOR_Y - 640} width={840} height={640} fill={fog('#c2a77e', Z_FAR)} stroke={fog(INK, Z_FAR)} strokeWidth={8} />
         <PagodaRoof x={540} y={FLOOR_Y - 640} w={980} h={150} color={fog('#2f5a4a', Z_FAR)} under={fog('#c9302c', Z_FAR)} />
         <path d={`M ${540 - 140} ${FLOOR_Y} L ${540 - 140} ${FLOOR_Y - 220} Q 540 ${FLOOR_Y - 340} ${540 + 140} ${FLOOR_Y - 220} L ${540 + 140} ${FLOOR_Y} Z`} fill={fog('#2a1e1a', Z_FAR)} />
@@ -132,16 +143,16 @@ export const WallWalk3D: React.FC<{cam: Cam; t: number; f: number}> = ({cam, t, 
         const side = i % 2 ? 1 : -1;
         if (!visible(z, cam.z, 300)) return null;
         return (
-          <Stand key={'b' + i} z={z}>
-            <Banner x={540 + side * (HALF + 10)} y={FLOOR_Y - PH - 40} h={360} color={i % 3 === 0 ? '#2f5a9a' : '#c9302c'} frame={f} seed={i} />
+          <Stand key={'b' + i} z={z} x0={side < 0 ? 540 - HALF - 260 : IN1 + 6} x1={side < 0 ? IN0 - 6 : 540 + HALF + 260} y0={FLOOR_Y - PH - 460} y1={FLOOR_Y - PH - 20}>
+            <Banner x={540 + side * (HALF + 22)} y={FLOOR_Y - PH - 40} h={360} color={i % 3 === 0 ? '#2f5a9a' : '#c9302c'} frame={f} seed={i} />
           </Stand>
         );
       })}
       {/* الجنود */}
       {SOLDIERS.map((s) =>
         !visible(s.z, cam.z, 280) ? null : (
-          <Stand key={'s' + s.seed} z={s.z}>
-            <Person {...extra('mingSoldier', s.seed)} light={L} x={s.x} y={FLOOR_Y + 6} s={1.15} frame={f} seed={s.seed} flip={s.flip} view={s.flip ? 30 : 30} holdR={s.item} pose={s.item === 'spear' ? 'stand' : 'cross'} motion="idle" energy={0.3} />
+          <Stand key={'s' + s.seed} z={s.z} x0={Math.max(IN0, s.x - 150)} x1={Math.min(IN1, s.x + 150)} y0={FLOOR_Y - 560} y1={FLOOR_Y}>
+            <Person {...extra('mingSoldier', s.seed)} light={L} x={s.x} y={FLOOR_Y - 2} s={1.15} frame={f} seed={s.seed} flip={s.flip} view={s.flip ? 30 : 30} holdR={s.item} pose={s.item === 'spear' ? 'stand' : 'cross'} motion="idle" energy={0.3} />
           </Stand>
         ),
       )}
