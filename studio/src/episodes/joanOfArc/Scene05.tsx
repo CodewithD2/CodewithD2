@@ -2,7 +2,7 @@ import React from 'react';
 import {AbsoluteFill, useCurrentFrame} from 'remotion';
 import {extra, look} from '../../cast';
 import {Person} from '../../characters/Person';
-import {SwearBubble, TitleBanner} from '../../lib/comicFx';
+import {SwearBubble} from '../../lib/comicFx';
 import {ColorGrade, Smoke} from '../../lib/fx';
 import {Cam, camAt} from '../../lib/stage';
 import {INK, clamp, easeInOut, easeOut, easeOutBack, lerp, prog} from '../../lib/util';
@@ -160,7 +160,7 @@ export const Scene05: React.FC = () => {
               {splitP > 0.08 && (
                 <>
                   <Standee at={xy([0.1, 46.45])} up={easeOutBack(splitP)} scale={shrink}>
-                    <GamePiece label="الأرمانياك — أنصار ابن الملك" color="#1d3e8a" w={372} fs={31}>
+                    <GamePiece color="#1d3e8a" w={372} fs={31}>
                       <Person x={0} y={0} s={0.98} frame={f} {...extra('medievalNoble', 1, {robe: '#244b96', trim: '#1a3875'})} act="angry" energy={0.95} shading="cel" />
                     </GamePiece>
                   </Standee>
@@ -186,7 +186,7 @@ export const Scene05: React.FC = () => {
               {/* هنري الخامس يطل من إنجلترا بالمنظار */}
               {henryPop > 0.02 && (
                 <Standee at={xy(HENRY_AT)} up={henryPop} scale={1.12}>
-                  <GamePiece label="الملك هنري الخامس — إنجلترا" color="#8a1620" w={380} fs={31}>
+                  <GamePiece label="هنري الخامس — إنجلترا" color="#8a1620" w={380} fs={31}>
                     <Person
                       x={0}
                       y={0}
@@ -235,11 +235,6 @@ export const Scene05: React.FC = () => {
       <ColorGrade p={WAR_TABLE} lightAt={[12, 78]} lightStrength={0.22 + 0.02 * Math.sin(f * 0.6)} />
       <SoftFilm frame={f} />
       <Hud>
-        {pullP < 0.75 && (
-          <g opacity={1 - pullP * 1.35}>
-            <TitleBanner y={88} title="حرب أهلية فرنسية — الأرمانياك ضد بورغوندي" accent="#7b2242" />
-          </g>
-        )}
         {henryBub && <HenryBubble cam={cam} age={henryBub.age} left={henryBub.left} />}
       </Hud>
       <SceneTrackAudio track={SCENE05_TRACK} sfx={sfx} />

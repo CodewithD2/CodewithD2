@@ -163,7 +163,7 @@ const Intro: React.FC<{f: number; p: number}> = ({f, p}) => {
         <Layer d={-120}>
           <Art>
             <text x={960} y={392} textAnchor="middle" fontFamily="Amiri" fontWeight={700} fontSize={82} fill="#f2c43a" direction="rtl" opacity={clamp((p * 1.52) / 0.45, 0, 1)} stroke="#1a0a0c" strokeWidth={10} style={{paintOrder: 'stroke'}}>
-              مَمْلَكَةُ فَرَنْسَا
+              فَرَنْسَا
             </text>
             <Embers id="s01e1" x={500} y={1120} frame={f} n={34} spread={1300} rise={1000} size={5} wind={120} life={60} />
             <Embers id="s01e2" x={1500} y={1120} frame={f + 22} n={34} spread={1300} rise={1000} size={5} wind={-90} life={64} />
@@ -253,7 +253,7 @@ const WarMap: React.FC<{f: number; t: number; revealT: number; c2t: number; c3t:
             {/* النبلاء يتقاتلون فيما بينهم */}
             {noblesFight > 0.02 && fade > 0.02 && (
               <Standee at={xy([5.0, 45.75])} up={easeOutBack(noblesFight)} scale={0.35 + 0.65 * fade}>
-                <GamePiece label="نبلاء فرنسا" color="#4a2a52" w={360} fs={36}>
+                <GamePiece color="#4a2a52" w={360} fs={36}>
                   <Person x={-84} y={0} s={0.72} frame={f} {...extra('medievalNoble', 1)} act="angry" energy={0.95} shading="cel" />
                   <Person x={84} y={0} s={0.72} flip frame={f + 5} {...look('philipGood')} act="angry" energy={0.95} shading="cel" />
                   <SwearBubble x={0} y={-236} frame={f} scale={1.05} />
@@ -302,14 +302,11 @@ const WarMap: React.FC<{f: number; t: number; revealT: number; c2t: number; c3t:
       <Hud>
         {/* شارة السنة والعنوان */}
         <g transform="translate(42 36)">
-          <rect x={5} y={7} width={450} height={82} rx={14} fill="#000" opacity={0.3} />
-          <rect x={0} y={0} width={450} height={82} rx={14} fill="#fdfaf2" fillOpacity={0.96} stroke={INK} strokeWidth={4} />
+          <rect x={5} y={7} width={132} height={82} rx={14} fill="#000" opacity={0.3} />
+          <rect x={0} y={0} width={132} height={82} rx={14} fill="#fdfaf2" fillOpacity={0.96} stroke={INK} strokeWidth={4} />
           <rect x={8} y={8} width={116} height={66} rx={10} fill="#c8242e" stroke={INK} strokeWidth={3} />
           <text x={66} y={56} textAnchor="middle" fontFamily="Amiri" fontWeight={700} fontSize={40} fill="#fff">
             ١٤٢٩
-          </text>
-          <text x={286} y={54} textAnchor="middle" fontFamily="Amiri" fontWeight={700} fontSize={34} fill={INK} direction="rtl">
-            كابوس مملكة فرنسا
           </text>
         </g>
         <MapLegend x={1490} y={36} />
@@ -325,10 +322,10 @@ const CastleLabel: React.FC<{cam: Cam; p: number}> = ({cam, p}) => {
   const at = mapToScreen(makeProjection(MAP_CENTER, MAP_ZOOM).toXY(CITIES_1429.chinon.pos), cam, -34);
   return (
     <g transform={`translate(${at.x} ${Math.min(at.y, 850)}) scale(${p})`}>
-      <rect x={-256} y={-30} width={520} height={68} rx={14} fill="#000" opacity={0.3} />
-      <rect x={-260} y={-36} width={520} height={68} rx={14} fill="#fdfaf2" stroke={INK} strokeWidth={4} />
+      <rect x={-176} y={-30} width={360} height={68} rx={14} fill="#000" opacity={0.3} />
+      <rect x={-180} y={-36} width={360} height={68} rx={14} fill="#fdfaf2" stroke={INK} strokeWidth={4} />
       <text x={0} y={12} textAnchor="middle" fontFamily="Amiri" fontWeight={700} fontSize={36} fill={INK} direction="rtl">
-        ولي العهد شارل السابع — قلعة شينون
+        شارل السابع — شينون
       </text>
     </g>
   );

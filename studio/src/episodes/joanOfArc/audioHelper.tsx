@@ -19,6 +19,13 @@ export const JOAN_AUDIO = AUDIO_RAW as Record<string, AudioEntry>;
 
 export const FPS = 30;
 
+/**
+ * مفاتيح الإخراج — قرار صاحب المشروع: سيسجّل التعليق بالمصري بنفسه ويضيف المؤثرات بنفسه.
+ * التوقيت ما زال يُحسب من مدد audio.json (إيقاع المشاهد كما هو) لكن لا يُشغَّل أي صوت.
+ * voice: مقاطع edge-tts · sfx: المؤثرات · subtitles: الترجمة أسفل الشاشة · bubbles: فقاعات كلام الشخصيات
+ */
+export const JOAN_OUTPUT = {voice: false, sfx: false, subtitles: false, bubbles: false};
+
 export type TrackStep =
   | {kind: 'clip'; id: string; vol?: number; padAfter?: number}
   | {kind: 'pause'; sec: number};
@@ -75,6 +82,7 @@ export const talkOf = (track: SceneTrack, id: string, t: number): number | undef
 
 /** هل المقطع يعمل الآن؟ يعيد {age, left} للفقاعات أو null */
 export const bubbleOf = (track: SceneTrack, id: string, t: number): {age: number; left: number; text: string} | null => {
+  if (!JOAN_OUTPUT.bubbles) return null;
   const c = track.byId[id];
   if (!c || t < c.t0 || t > c.t1 + 0.28) return null;
   return {age: t - c.t0, left: c.t1 + 0.28 - t, text: c.entry.display};
@@ -86,7 +94,7 @@ export const SceneTrackAudio: React.FC<{
   sfx?: {at: number; name: string; vol?: number; dur?: number}[];
 }> = ({track, sfx = []}) => (
   <>
-    {track.clips.map((c) => (
+    {JOAN_OUTPUT.voice && track.clips.map((c) => (
       <Sequence
         key={c.id}
         from={Math.max(0, Math.round(c.t0 * FPS))}
@@ -96,7 +104,7 @@ export const SceneTrackAudio: React.FC<{
         <Audio src={staticFile(`joan/${c.id}.mp3`)} volume={c.vol} />
       </Sequence>
     ))}
-    {sfx.map((e, i) => (
+    {JOAN_OUTPUT.sfx && sfx.map((e, i) => (
       <Sequence
         key={`sfx-${i}`}
         from={Math.max(0, Math.round(e.at * FPS))}
@@ -113,6 +121,7 @@ export const SceneTrackAudio: React.FC<{
 export const SceneTrackSubtitles: React.FC<{track: SceneTrack; hideDialogue?: boolean}> = ({track, hideDialogue = false}) => {
   const f = useCurrentFrame();
   const t = f / FPS;
+  if (!JOAN_OUTPUT.subtitles) return null;
   const active = track.clips.find((c) => t >= c.t0 - 0.04 && t <= c.t1 + 0.14 && (!hideDialogue || c.entry.speaker === 'narrator'));
   if (!active) return null;
   const isChar = active.entry.speaker !== 'narrator';

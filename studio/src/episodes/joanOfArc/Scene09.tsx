@@ -2,7 +2,7 @@ import React from 'react';
 import {AbsoluteFill, useCurrentFrame} from 'remotion';
 import {extra, look} from '../../cast';
 import {Person} from '../../characters/Person';
-import {BigStamp, TitleBanner} from '../../lib/comicFx';
+import {TitleBanner} from '../../lib/comicFx';
 import {Cloud, ColorGrade, Embers, Halo, Smoke} from '../../lib/fx';
 import {Art, Cam, Layer, Sky, camAt} from '../../lib/stage';
 import {INK, clamp, easeOut, easeOutBack, prog, scatter} from '../../lib/util';
@@ -123,7 +123,6 @@ export const Scene09: React.FC = () => {
 
 /* ================= المراحل 1 و 2 و 4: طاولة الحرب (فرنسا المقسمة ← ريمس ← دومريمي) ================= */
 const DividedMap: React.FC<{f: number; t: number; stickerT: number; reimsT: number; orleansT: number; domT: number; hopeT: number}> = ({f, t, stickerT, reimsT, orleansT, domT, hopeT}) => {
-  const stickerP = prog(t, stickerT, stickerT + 0.25);
   const reimsPop = easeOutBack(prog(t, reimsT + 2.6, reimsT + 3.2));
   const reimsArrowP = easeOut(prog(t, reimsT + 2.6, reimsT + 3.8));
   const domremy = t >= domT;
@@ -193,11 +192,6 @@ const DividedMap: React.FC<{f: number; t: number; stickerT: number; reimsT: numb
                     <GamePiece label="شارل السابع" color="#1d3e8a" w={250} fs={36}>
                       <Person x={0} y={0} s={0.9} frame={f} {...look('charles7')} act="sad" energy={0.8} shading="cel" />
                     </GamePiece>
-                    {stickerP > 0 && (
-                      <g transform="translate(0 -150) scale(0.74)">
-                        <BigStamp x={0} y={0} text="ملك بورج الصغير" color="#c8242e" progress={stickerP} rot={-7} />
-                      </g>
-                    )}
                   </Standee>
                   {/* كاتدرائية ريمس تنبثق في قلب أراضي العدو */}
                   {reimsPop > 0.03 && (
@@ -205,7 +199,7 @@ const DividedMap: React.FC<{f: number; t: number; stickerT: number; reimsT: numb
                       <Halo id="s09rh" cx={0} cy={-120} r={240} color="#ffd87a" opacity={0.55} />
                       <ReimsCathedral />
                       <g transform="translate(0 24)">
-                        <NamePlate x={0} y={0} text="كاتدرائية ريمس" color="#7b2242" fs={34} />
+                        <NamePlate x={0} y={0} text="ريمس" color="#7b2242" fs={34} />
                       </g>
                     </Standee>
                   )}
@@ -245,7 +239,7 @@ const DividedMap: React.FC<{f: number; t: number; stickerT: number; reimsT: numb
                     ))}
                   </Standee>
                   <Standee at={[dx, dy + 6]} up={villageP}>
-                    <NamePlate x={0} y={-6} text="قرية دومريمي — Domrémy" color="#146c3a" fs={34} />
+                    <NamePlate x={0} y={-6} text="دومريمي" color="#146c3a" fs={34} />
                   </Standee>
                   {hopePop > 0.02 && (
                     <Standee at={[dx, dy - 10]}>
@@ -298,7 +292,7 @@ const DividedMap: React.FC<{f: number; t: number; stickerT: number; reimsT: numb
       <Hud>
         {!domremy && (
           <>
-            <TitleBanner y={82} title="فرنسا المقسّمة — ١٤٢٨" accent="#c8242e" />
+            <TitleBanner y={82} title="فرنسا — ١٤٢٨" accent="#c8242e" />
             <MapLegend x={1490} y={36} />
           </>
         )}
@@ -309,7 +303,7 @@ const DividedMap: React.FC<{f: number; t: number; stickerT: number; reimsT: numb
             <rect x={-296} y={-60} width={592} height={100} rx={22} fill="#1f4896" stroke={INK} strokeWidth={6} />
             <rect x={-282} y={-46} width={564} height={72} rx={14} fill="none" stroke="#f2c43a" strokeWidth={4} />
             <text x={0} y={10} textAnchor="middle" fontFamily="Amiri" fontWeight={700} fontSize={54} fill="#fff6dc" direction="rtl">
-              جان دارك — ١٦ عاماً
+              جان دارك
             </text>
           </g>
         )}
@@ -706,7 +700,7 @@ const OrleansSiege: React.FC<{f: number; t: number; t0: number; endT: number; bo
       <Hud>
         <NamePlate x={lblO.x} y={lblO.y + 6} text="أورليان" color="#2452a4" fs={48} />
         <NamePlate x={lblT.x + 320} y={lblT.y} text="قلعة ليه توريل" color="#a8202a" fs={36} />
-        <TitleBanner y={82} title="حصار أورليان — أكتوبر ١٤٢٨" sub="البوابة الأخيرة لفرنسا" accent="#c8242e" />
+        <TitleBanner y={82} title="أورليان — أكتوبر ١٤٢٨" accent="#c8242e" />
       </Hud>
       <AbsoluteFill style={{background: '#1a100a', opacity: 1 - easeOut(prog(t, t0, t0 + 0.45)), pointerEvents: 'none'}} />
     </>

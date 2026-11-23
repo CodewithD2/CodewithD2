@@ -2,7 +2,7 @@ import React from 'react';
 import {AbsoluteFill, useCurrentFrame} from 'remotion';
 import {extra, look} from '../../cast';
 import {Person} from '../../characters/Person';
-import {CalloutTag, DizzyBirds, TitleBanner} from '../../lib/comicFx';
+import {DizzyBirds, TitleBanner} from '../../lib/comicFx';
 import {SpeechBubble} from '../../lib/dialogue';
 import {Cypress, TorchFX} from '../../lib/epic';
 import {Bloom, Cloud, ColorGrade, Embers, Halo, MistBand, Motes} from '../../lib/fx';
@@ -14,7 +14,7 @@ import type {LonLat} from '../../world/maps/europeData';
 import {CITIES_1429} from '../../world/maps/france1429';
 import {GamePiece} from './MapPieces';
 import {CityStandee, MapTable, Standee} from './MapTable';
-import {CLEAR_DAY, FarArmy, Floor3D, FloorTiles, GOLDEN, Hud, LIGHTS, LitStage, Rays, SEA_NIGHT, STORM, SoftFilm, WAR_TABLE, gy, mix, mixLight, mixPalette, toScreen} from './stage3d';
+import {CLEAR_DAY, FarArmy, Floor3D, FloorTiles, GOLDEN, Hud, LIGHTS, LitStage, Rays, SEA_NIGHT, STORM, SoftFilm, WAR_TABLE, gy, mix, mixLight, mixPalette} from './stage3d';
 import {FPS, SceneTrackAudio, SceneTrackSubtitles, bubbleOf, buildTrack, talkOf} from './audioHelper';
 
 /* =====================================================================
@@ -190,7 +190,6 @@ const EnglishChannel: React.FC<{f: number; lf: number; dur: number; fastCycle: b
   const tone = (c: string, k = 0) => mix(mix(c, P.haze, k), '#1a2448', night * 0.55);
 
   const yB = 735;
-  const claimAt = toScreen(440, yB - 392, 180, cam);
 
   return (
     <>
@@ -335,11 +334,6 @@ const EnglishChannel: React.FC<{f: number; lf: number; dur: number; fastCycle: b
       <ColorGrade p={P} lightAt={[dayness > 0.5 ? clamp(sunX / 19.2, 5, 95) : clamp(moonX / 19.2, 5, 95), 24]} lightStrength={0.18 + dusk * 0.14} />
       <SoftFilm frame={f} />
       <Hud>
-        {showClaim > 0.02 && (
-          <g opacity={clamp(showClaim)}>
-            <CalloutTag x={Math.max(360, claimAt.x + 60)} y={Math.max(110, claimAt.y - 150)} lines={['مهلاً! أنا قريب لملك فرنسا..', 'إذن العرش الفرنسي من حقي!']} arrowTo={[claimAt.x, claimAt.y]} accent="#c8242e" scale={showClaim * 1.4} />
-          </g>
-        )}
         {yearText && (
           <g transform="translate(960 108)">
             <rect x={-188} y={-46} width={388} height={108} rx={20} fill="#000" opacity={0.35} />
@@ -445,7 +439,7 @@ const HundredYears: React.FC<{f: number; t: number; c2t: number; buzzerT: number
             {/* مؤرخ يصاب بالصداع من الرياضيات */}
             {histPop > 0.02 && (
               <Standee at={xy([-3.9, 47.15])} up={histPop} z={10} scale={1.12}>
-                <GamePiece label="مؤرخ محترم" color="#3c3346" w={250} fs={36}>
+                <GamePiece color="#3c3346" w={250} fs={36}>
                   <Person x={0} y={0} s={1.12} frame={f} {...extra('poitiersScholar', 1)} expr="dizzy" pose="cower" shading="cel" />
                   <DizzyBirds x={0} y={-345} frame={f} r={74} />
                 </GamePiece>
@@ -478,18 +472,13 @@ const HundredYears: React.FC<{f: number; t: number; c2t: number; buzzerT: number
                   </text>
                 </Bloom>
                 <path d="M -160 -54 L 60 -54 L 10 10 L -160 10 Z" fill="#fff" opacity={0.07} />
-                {buzzed && (
-                  <text x={0} y={120} textAnchor="middle" fontFamily="Amiri" fontWeight={700} fontSize={38} fill="#ff8a80" direction="rtl">
-                    عاماً.. وليست ١٠٠!
-                  </text>
-                )}
               </g>
             )}
           </Art>
         </Layer>
       </LitStage>
       <Hud>
-        <TitleBanner y={96} title="حرب المائة عام — ١٣٣٧ إلى ١٤٥٣" sub="الفصل الأول" accent="#c8242e" scale={bannerPop} />
+        <TitleBanner y={96} title="١٣٣٧ — ١٤٥٣" accent="#c8242e" scale={bannerPop} />
       </Hud>
     </>
   );
@@ -697,7 +686,7 @@ const StormPalace: React.FC<{f: number; t: number; at: number}> = ({f, t, at}) =
       <SoftFilm frame={f} strength={0.5} />
       {lightning > 0 && <AbsoluteFill style={{background: '#dbe8ff', opacity: lightning * 0.6, pointerEvents: 'none'}} />}
       <Hud>
-        <TitleBanner y={92} title="القصر الملكي الفرنسي — باريس" accent="#2452a4" scale={easeOutBack(prog(t, at + 0.1, at + 0.5))} />
+        <TitleBanner y={92} title="باريس" accent="#2452a4" scale={easeOutBack(prog(t, at + 0.1, at + 0.5))} />
       </Hud>
     </>
   );

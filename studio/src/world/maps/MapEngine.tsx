@@ -369,9 +369,9 @@ export const MapLegend: React.FC<{x?: number; y?: number}> = ({x = 1490, y = 36}
   <g transform={`translate(${x} ${y})`}>
     <rect x={0} y={0} width={390} height={158} rx={14} fill="#fdfaf2" fillOpacity={0.95} stroke={INK} strokeWidth={3.5} />
     {[
-      {c: '#2b5eb8', label: 'فرنسا الملكية — شارل السابع'},
-      {c: '#c8242e', label: 'مناطق الإنجليز'},
-      {c: '#7b2242', label: 'حلفاء دوق بورغوندي'},
+      {c: '#2b5eb8', label: 'فرنسا — شارل السابع'},
+      {c: '#c8242e', label: 'إنجلترا'},
+      {c: '#7b2242', label: 'دوق بورغوندي'},
     ].map((it, i) => (
       <g key={i} transform={`translate(22 ${38 + i * 44})`}>
         <rect x={312} y={-18} width={34} height={24} rx={5} fill={it.c} stroke={INK} strokeWidth={2.5} />

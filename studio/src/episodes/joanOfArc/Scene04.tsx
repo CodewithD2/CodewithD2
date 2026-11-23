@@ -2,7 +2,7 @@ import React from 'react';
 import {AbsoluteFill, useCurrentFrame} from 'remotion';
 import {extra, look} from '../../cast';
 import {Person} from '../../characters/Person';
-import {BigStamp, CalloutTag, DizzyBirds} from '../../lib/comicFx';
+import {BigStamp, DizzyBirds} from '../../lib/comicFx';
 import {SpeechBubble} from '../../lib/dialogue';
 import {ColorGrade, Halo, Motes, Smoke} from '../../lib/fx';
 import {Art, Cam, Layer, Sky, camAt} from '../../lib/stage';
@@ -448,10 +448,10 @@ const RoyalPortrait: React.FC<{f: number; t: number; madT: number; endT: number}
               <rect x={-392} y={-206} width={784} height={18} rx={9} fill="#244b96" />
               {[-420, 420].map((cx) => [-232, 214].map((cy) => <Fleur key={`${cx}${cy}`} x={cx} y={cy} s={0.42} fill="#fff0b8" />))}
               <text x={0} y={-112} textAnchor="middle" fontFamily="Amiri" fontWeight={700} fontSize={44} fill="#6b5e4c" direction="rtl">
-                ملك فرنسا — ١٣٨٠ إلى ١٤٢٢
+                ١٣٨٠ — ١٤٢٢
               </text>
               <text x={0} y={-6} textAnchor="middle" fontFamily="Amiri" fontWeight={700} fontSize={94} fill="#1c2a54" direction="rtl">
-                الملك شارل السادس
+                شارل السادس
               </text>
               <rect x={-240} y={62} width={480} height={94} rx={18} fill="#2b8a58" stroke={INK} strokeWidth={5} opacity={isMad ? 0.45 : 1} />
               <text x={0} y={126} textAnchor="middle" fontFamily="Amiri" fontWeight={700} fontSize={52} fill="#fff" direction="rtl">
@@ -470,7 +470,7 @@ const RoyalPortrait: React.FC<{f: number; t: number; madT: number; endT: number}
               ))}
             {stampP > 0 && (
               <g transform="translate(1270 500) scale(1.3)">
-                <BigStamp x={0} y={0} text="شارل المجنون!" color="#c8242e" progress={stampP} rot={-8} />
+                <BigStamp x={0} y={0} text="شارل المجنون" color="#c8242e" progress={stampP} rot={-8} />
               </g>
             )}
           </Art>
@@ -493,11 +493,7 @@ const RunAndBonk: React.FC<{f: number; t: number; t0: number; bonkT: number; end
   const bonked = t >= bonkT;
   const bounceP = easeOut(prog(t, bonkT, bonkT + 0.45));
   const kingX = !bonked ? lerp(210, 1140, runP) : lerp(1140, 1010, bounceP);
-  const hitFlash = bonked && t < bonkT + 0.25 ? 1 - (t - bonkT) / 0.25 : 0;
   const shakeX = bonked && t < bonkT + 0.35 ? Math.sin(f * 4.5) * 14 : 0;
-  const q1 = t >= bonkT + 1.2 && t < bonkT + 4.2;
-  const q2 = t >= bonkT + 4.2;
-  const qPop = easeOutBack(prog(t, q2 ? bonkT + 4.2 : bonkT + 1.2, (q2 ? bonkT + 4.2 : bonkT + 1.2) + 0.3));
 
   const F = (s: number) => Math.round(s * FPS);
   const cam = camAt(f, [
@@ -510,7 +506,6 @@ const RunAndBonk: React.FC<{f: number; t: number; t0: number; bonkT: number; end
   cam.y += 58; // يرفع الأقدام فوق شريط الترجمة
   cam.x += shakeX;
   cam.y += shakeX * 0.4;
-  const head = toScreen(kingX, ACT_Y - 320, ACT_D, cam);
 
   return (
     <>
@@ -535,30 +530,6 @@ const RunAndBonk: React.FC<{f: number; t: number; t0: number; bonkT: number; end
         {bonked && <DizzyBirds x={kingX} y={ACT_Y - 408} frame={f} r={84} />}
         {bonked && t < bonkT + 1.6 && <Smoke id="s04dust" x={1230} y={ACT_Y - 10} frame={f - F(bonkT)} color="#e8d8b8" n={8} rise={140} size={34} drift={60} opacity={0.5 * (1 - prog(t, bonkT + 0.8, bonkT + 1.6))} life={50} />}
       </Hall>
-      <Hud>
-        {hitFlash > 0.02 &&
-          (() => {
-            const at = toScreen(1205, ACT_Y - 260, ACT_D, cam);
-            return (
-              <g transform={`translate(${at.x} ${at.y}) scale(${1.1 + hitFlash * 0.8})`} opacity={Math.min(1, hitFlash * 1.6)}>
-                <polygon points="0,-90 24,-30 88,-42 40,8 82,66 18,40 -10,94 -28,34 -92,42 -42,-8 -80,-62 -20,-36" fill="#ffd447" stroke="#c8242e" strokeWidth={6} strokeLinejoin="round" />
-                <text x={0} y={16} textAnchor="middle" direction="rtl" fontFamily="Amiri" fontWeight={700} fontSize={46} fill={INK}>
-                  بونك!
-                </text>
-              </g>
-            );
-          })()}
-        {(q1 || q2) && (
-          <CalloutTag
-            x={head.x - 450}
-            y={Math.max(150, head.y - 60)}
-            lines={[q2 ? 'انتظروا.. هل أنا الملك فعلاً؟!' : 'مهلاً.. ما اسمي اليوم؟!']}
-            arrowTo={[head.x - 96, head.y + 70]}
-            accent={q2 ? '#c8242e' : '#244b96'}
-            scale={1.35 * Math.max(0, qPop)}
-          />
-        )}
-      </Hud>
     </>
   );
 };
@@ -642,9 +613,6 @@ const GlassKing: React.FC<{f: number; t: number; c3t: number; c3e: number; screa
             <rect x={-145} y={-125} width={290} height={248} rx={22} fill="#f2fbff" stroke={INK} strokeWidth={5} />
             <path d="M -42 -72 L 42 -72 L 32 34 L -32 34 Z" fill="#bde8ff" fillOpacity={0.75} stroke={INK} strokeWidth={4.5} strokeLinejoin="round" />
             <line x1={-22} y1={-56} x2={-16} y2={18} stroke="#fff" strokeWidth={7} strokeLinecap="round" />
-            <text x={0} y={92} textAnchor="middle" fontFamily="Amiri" fontWeight={700} fontSize={36} fill="#1f4c7a" direction="rtl">
-              مصنوع من الزجاج!
-            </text>
           </g>
         )}
         {c6Bub && <SpeechBubble text={c6Bub.text} style="shout" headX={head.x} headTop={Math.max(250, head.y)} s={1.1} age={c6Bub.age} left={c6Bub.left} side={-1} />}
@@ -675,7 +643,6 @@ const IronRods: React.FC<{f: number; t: number; c4t: number; c5t: number; clanks
       ]);
   cam.y += 50;
   cam.y += Math.max(0, ...clanks.map(clankPop)) * Math.sin(f * 4) * 5;
-  const tagTo = toScreen(690, ACT_Y - 250, ACT_D, cam);
 
   return (
     <>
@@ -720,21 +687,6 @@ const IronRods: React.FC<{f: number; t: number; c4t: number; c5t: number; clanks
             <line key={i} x1={1035} y1={ACT_Y - 170} x2={1035 + Math.cos(-2.2 + i * 0.7) * 54} y2={ACT_Y - 170 + Math.sin(-2.2 + i * 0.7) * 54} stroke="#ffd447" strokeWidth={6} strokeLinecap="round" />
           ))}
       </Hall>
-      <Hud>
-        {!walking && <CalloutTag x={Math.max(250, tagTo.x - 360)} y={tagTo.y - 170} lines={['خياط ملكي يائس', 'يخيط قضبان حديد!']} arrowTo={[tagTo.x - 6, tagTo.y]} accent="#6b4f3a" scale={1.3} />}
-        {clanks.map((ct, i) => {
-          const p = clankPop(ct);
-          if (p <= 0.02) return null;
-          const at = toScreen(kingX + [-150, 160, -130][i], ACT_Y - [300, 350, 370][i], ACT_D, cam);
-          return (
-            <g key={i} transform={`translate(${at.x} ${at.y - (1 - p) * 35}) rotate(${[-12, 10, -8][i]}) scale(${1 + p * 0.45})`} opacity={Math.min(1, p * 2)}>
-              <text x={0} y={0} textAnchor="middle" direction="rtl" fontFamily="Amiri" fontWeight={700} fontSize={72} fill="#e8eef8" stroke={INK} strokeWidth={12} style={{paintOrder: 'stroke'}} strokeLinejoin="round">
-                كلانك!
-              </text>
-            </g>
-          );
-        })}
-      </Hud>
     </>
   );
 };
@@ -776,7 +728,7 @@ const Relatives: React.FC<{f: number; t: number; at: number}> = ({f, t, at}) => 
         front={
           <Layer d={20}>
             <Art>
-              <Person x={lerp(-260, 470, slideIn)} y={gy(20) - 22} s={1.62} frame={f} {...look('philipGood')} expr="smug" pose="stand" holdL="moneyBag" shading="cel" />
+              <Person x={lerp(-260, 470, slideIn)} y={gy(20) - 22} s={1.62} frame={f} {...look('philipGood')} expr="smug" pose="stand" holdL={{id: 'moneyBag', text: ''}} shading="cel" />
               <Person x={lerp(2180, 1430, slideIn)} y={gy(20) - 22} s={1.62} flip frame={f + 7} {...extra('medievalNoble', 1, {robe: '#244b96', trim: '#1d3c7a'})} expr="smug" pose="chin" shading="cel" />
             </Art>
           </Layer>
@@ -784,16 +736,6 @@ const Relatives: React.FC<{f: number; t: number; at: number}> = ({f, t, at}) => 
       >
         <g />
       </Hall>
-      <Hud>
-        <g transform={`translate(960 116) scale(${Math.max(0, slideIn)})`}>
-          <rect x={-352} y={-46} width={720} height={112} rx={22} fill="#000" opacity={0.35} />
-          <rect x={-360} y={-46} width={720} height={108} rx={22} fill="#4a0e22" stroke={INK} strokeWidth={6} />
-          <rect x={-360} y={-58} width={720} height={108} rx={22} fill="#fdfaf2" stroke={INK} strokeWidth={6} />
-          <text x={0} y={18} textAnchor="middle" fontFamily="Amiri" fontWeight={700} fontSize={60} fill="#7b2242" direction="rtl">
-            أقاربه الطموحون!
-          </text>
-        </g>
-      </Hud>
     </>
   );
 };

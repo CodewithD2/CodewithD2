@@ -2,7 +2,7 @@ import React from 'react';
 import {AbsoluteFill, useCurrentFrame} from 'remotion';
 import {extra, look} from '../../cast';
 import {Person} from '../../characters/Person';
-import {FlipCalendar, TitleBanner} from '../../lib/comicFx';
+import {FlipCalendar} from '../../lib/comicFx';
 import {SpeechBubble} from '../../lib/dialogue';
 import {ColorGrade, Halo} from '../../lib/fx';
 import {Art, Layer, camAt} from '../../lib/stage';
@@ -150,7 +150,7 @@ const TwoKings: React.FC<{f: number; t: number; henryT: number; charlesT: number
               <line x1={1040} x2={1040} y1={-600} y2={215} stroke="#d9b060" strokeWidth={5} />
               <rect x={842} y={188} width={270} height={244} rx={18} fill="#000" opacity={0.35} />
               <g transform={`translate(960 300) scale(1.2 ${1.2 - flip})`}>
-                <FlipCalendar x={0} y={0} year={calYear} sub="عام المفاجآت" scale={1} />
+                <FlipCalendar x={0} y={0} year={calYear} scale={1} />
               </g>
             </g>
           </Art>
@@ -200,23 +200,10 @@ const TwoKings: React.FC<{f: number; t: number; henryT: number; charlesT: number
         <Layer d={A - 30}>
           <Art>
             <NamePlate x={520} y={py + 70} text="هنري الخامس — ١٤٢٢" color="#b8242e" fs={38} />
-            <NamePlate x={1400} y={py + 70} text="شارل السادس — بعد شهرين" color="#244b96" fs={38} />
+            <NamePlate x={1400} y={py + 70} text="شارل السادس — ١٤٢٢" color="#244b96" fs={38} />
           </Art>
         </Layer>
       </CurtainStage>
-      <Hud>
-        {coughing &&
-          (() => {
-            const at = toScreen(660, py - 330, A, cam);
-            return (
-              <g transform={`translate(${at.x} ${at.y}) rotate(${Math.sin(f * 1.4) * 6})`}>
-                <text x={0} y={0} textAnchor="middle" direction="rtl" fontFamily="Amiri" fontWeight={700} fontSize={72} fill="#ffd447" stroke={INK} strokeWidth={12} style={{paintOrder: 'stroke'}} strokeLinejoin="round">
-                  كح! كح!
-                </text>
-              </g>
-            );
-          })()}
-      </Hud>
     </>
   );
 };
@@ -271,7 +258,7 @@ const QuestionMap: React.FC<{f: number; t: number; at: number; endT: number}> = 
               [2.4, 46.6, '#2452a4'],
             ].map(([lo, la, c], i) => (
               <Standee key={i} at={xy([lo as number, la as number])}>
-                <GamePiece color={c as string} w={190} label={i ? 'عرش فرنسا' : 'عرش إنجلترا'} fs={31}>
+                <GamePiece color={c as string} w={190} label={i ? 'فرنسا' : 'إنجلترا'} fs={31}>
                   <g transform={`translate(0 ${-40 + Math.sin(f * 0.15 + i * 2) * 8}) scale(1.15)`}>
                     <FallenCrown />
                   </g>
@@ -305,9 +292,6 @@ const QuestionMap: React.FC<{f: number; t: number; at: number; endT: number}> = 
       </MapTable>
       <ColorGrade p={WAR_TABLE} lightAt={[12, 78]} lightStrength={0.22 + 0.02 * Math.sin(f * 0.6)} />
       <SoftFilm frame={f} strength={0.4} />
-      <Hud>
-        <TitleBanner y={96} title="من سيصبح ملك إنجلترا وفرنسا معاً؟" accent="#c8242e" scale={easeOutBack(prog(t, at + 0.2, at + 0.55))} />
-      </Hud>
     </>
   );
 };
@@ -427,7 +411,7 @@ const BabyThrone: React.FC<{f: number; t: number; at: number}> = ({f, t, at}) =>
         </Layer>
         <Layer d={TD - 70}>
           <Art>
-            <NamePlate x={960} y={ty + 44} text="الملك هنري السادس — العمر: ٩ أشهر فقط!" color="#9c1e2e" fs={38} />
+            <NamePlate x={960} y={ty + 44} text="هنري السادس" color="#9c1e2e" fs={38} />
           </Art>
         </Layer>
         {/* نبيل يدوّن بجدية تامة */}

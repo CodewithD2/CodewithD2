@@ -3,7 +3,6 @@ import {AbsoluteFill, useCurrentFrame} from 'remotion';
 import {extra, look} from '../../cast';
 import {Person} from '../../characters/Person';
 import {CharLightCtx} from '../../characters/light';
-import {CalloutTag} from '../../lib/comicFx';
 import {SpeechBubble} from '../../lib/dialogue';
 import {Campfire, Ridge, TorchFX} from '../../lib/epic';
 import {Cloud, ColorGrade, Embers, GodRays, Halo, MistBand, Motes, Smoke} from '../../lib/fx';
@@ -11,7 +10,7 @@ import {atmos} from '../../lib/palette';
 import {Art, CAM0, Cam, Layer, Sky, camAt} from '../../lib/stage';
 import {INK, clamp, easeInOut, easeOut, easeOutBack, lerp, prog, scatter} from '../../lib/util';
 import {RoundTree} from '../../world/buildings';
-import {ACT_D, CHINON, CLEAR_DAY, FarArmy, Fleur, Floor3D, FloorTiles, GOLDEN, HangingBanner, Hud, LIGHTS, LitStage, Masonry, ROYAL, Rays, SoftFilm, gy, toScreen} from './stage3d';
+import {ACT_D, ACT_Y, CHINON, CLEAR_DAY, FarArmy, Fleur, Floor3D, FloorTiles, GOLDEN, HangingBanner, Hud, LIGHTS, LitStage, Masonry, ROYAL, Rays, SoftFilm, gy, toScreen} from './stage3d';
 import {FPS, SceneTrackAudio, SceneTrackSubtitles, bubbleOf, buildTrack, talkOf} from './audioHelper';
 
 /* =====================================================================
@@ -97,7 +96,6 @@ const CastleGate: React.FC<{f: number; t: number; endT: number}> = ({f, t, endT}
   const isKnocking = t >= 0.22 && t <= 0.98;
 
   const doorOpen = easeOut(prog(t, 1.15, 1.85));
-  const tagPop = easeOutBack(prog(t, 1.5, 1.95));
 
   // صمت شارل السابع + الرمشة البطيئة + الالتفات للمستشارين
   const silenceMid = cJoan.t1 + 0.45;
@@ -144,7 +142,6 @@ const CastleGate: React.FC<{f: number; t: number; endT: number}> = ({f, t, endT}
 
   const headJ = toScreen(joanX, yJ - 322, J2D, cam);
   const headC = toScreen(charlesX, yC - 418, IN_D, cam);
-  const tagTo = toScreen(joanX - 60, yJ - 180, J2D, cam);
 
   return (
     <>
@@ -330,23 +327,6 @@ const CastleGate: React.FC<{f: number; t: number; endT: number}> = ({f, t, endT}
       <ColorGrade p={P} lightAt={[12, 48]} lightStrength={0.2} />
       <SoftFilm frame={f} />
       <Hud>
-        {/* مؤثر بصري للطرقات */}
-        {ks.map((k, i) => {
-          if (k <= 0.05) return null;
-          const at = toScreen([960, 1030, 980][i], [470, 400, 330][i], FAC_D, cam);
-          return (
-            <g key={i} transform={`translate(${at.x} ${at.y}) scale(${0.9 + k * 0.6}) rotate(${[-10, 8, -6][i]})`}>
-              <text x={0} y={0} textAnchor="middle" direction="rtl" fontFamily="Amiri" fontWeight={700} fontSize={84} fill={i === 2 ? '#ff9f43' : '#ffd447'} stroke={INK} strokeWidth={12} style={{paintOrder: 'stroke'}} strokeLinejoin="round">
-                طق!
-              </text>
-            </g>
-          );
-        })}
-        {tagPop > 0.02 && t < cJoan.t1 + 0.1 && (
-          <g opacity={clamp(tagPop)}>
-            <CalloutTag x={240} y={Math.min(760, tagTo.y + 10)} lines={['العمر: ١٧ عاماً', 'الخبرة العسكرية: صفر']} arrowTo={[tagTo.x - 14, tagTo.y]} scale={tagPop * 1.25} />
-          </g>
-        )}
         {joanBub && <SpeechBubble text={joanBub.text} style="say" headX={headJ.x} headTop={headJ.y} s={headJ.s} age={joanBub.age} left={joanBub.left} side={-1} />}
         {charlesBub && <SpeechBubble text={charlesBub.text} style="say" headX={headC.x} headTop={headC.y} s={1} age={charlesBub.age} left={charlesBub.left} side={-1} />}
       </Hud>
@@ -485,10 +465,8 @@ const FacadeStone: React.FC<{by: number}> = React.memo(({by}) => (
   <Masonry seed="s02f" x={330} y={-420} w={2700} h={by + 420} bw={168} rh={86} base="#6b647a" alt="#7a7288" line="#463f58" lit="#ffc9a0" />
 ));
 
-/* ================= المرحلة 2: "الجنون التام.. أم المعجزة التاريخية؟" ================= */
+/* ================= المرحلة 2: لحظة التساؤل — جان وحدها على الخلفية الملكية ================= */
 const Question: React.FC<{f: number; t: number; at: number; endT: number}> = ({f, t, at, endT}) => {
-  const p = easeOutBack(prog(t, at, at + 0.35));
-  const p2 = easeOutBack(prog(t, at + 0.55, at + 0.92));
   const F = (s: number) => Math.round(s * FPS);
   const cam = camAt(f, [
     {f: F(at), z: -180, ry: -9, rx: 2, fov: 48},
@@ -499,26 +477,12 @@ const Question: React.FC<{f: number; t: number; at: number; endT: number}> = ({f
     <>
       <RoyalBackdrop id="s02q" f={f} cam={cam}>
         <LitStage cam={cam} light={LIGHTS.royal}>
-        <Layer d={260}>
+        <Layer d={ACT_D}>
           <Art>
-            <g transform={`translate(960 400) scale(${p})`}>
-              <Plate w={1180} h={186} fill="#c8242e" dark="#6e0f18" />
-              <text x={0} y={34} textAnchor="middle" fontFamily="Amiri" fontWeight={700} fontSize={108} fill="#fffdf6" direction="rtl" stroke="#5a0a12" strokeWidth={10} style={{paintOrder: 'stroke'}}>
-                الجنون التام..
-              </text>
+            {/* جان في المنتصف بدل لوحتي النص (قرار صاحب المشروع: لا نصوص إلا الأسماء والتواريخ) */}
+            <g transform={`translate(960 ${ACT_Y}) scale(${Math.max(0, easeOutBack(prog(t, at, at + 0.45)))})`}>
+              <Person x={0} y={0} s={1.55} frame={f} {...look('joanOfArc', {variant: 'village'})} expr="think" pose="chin" look={[0.2, -0.5]} shading="cel" />
             </g>
-          </Art>
-        </Layer>
-        <Layer d={-40}>
-          <Art>
-            {p2 > 0.02 && (
-              <g transform={`translate(960 665) scale(${p2})`}>
-                <Plate w={1330} h={186} fill="#f2c43a" dark="#9a6c10" />
-                <text x={0} y={34} textAnchor="middle" fontFamily="Amiri" fontWeight={700} fontSize={108} fill={INK} direction="rtl">
-                  أم المعجزة التاريخية؟
-                </text>
-              </g>
-            )}
           </Art>
         </Layer>
         <Layer d={-260} blur={6}>
@@ -538,17 +502,6 @@ const Question: React.FC<{f: number; t: number; at: number; endT: number}> = ({f
     </>
   );
 };
-
-/** لوحة عنوان سميكة (وجه + جانب سفلي + لمعة) */
-const Plate: React.FC<{w: number; h: number; fill: string; dark: string}> = ({w, h, fill, dark}) => (
-  <g>
-    <rect x={-w / 2 + 14} y={-h / 2 + 34} width={w} height={h} rx={30} fill="#000" opacity={0.35} />
-    <rect x={-w / 2} y={-h / 2 + 18} width={w} height={h} rx={28} fill={dark} stroke={INK} strokeWidth={8} />
-    <rect x={-w / 2} y={-h / 2} width={w} height={h} rx={28} fill={fill} stroke={INK} strokeWidth={8} />
-    <rect x={-w / 2 + 18} y={-h / 2 + 14} width={w - 36} height={h * 0.3} rx={18} fill="#fff" opacity={0.18} />
-    <rect x={-w / 2 + 16} y={-h / 2 + 16} width={w - 32} height={h - 32} rx={18} fill="none" stroke="#fff2c0" strokeWidth={3} opacity={0.6} />
-  </g>
-);
 
 /** خلفية ملكية زرقاء بطبقات أشعة وغبار ذهبي */
 const RoyalBackdrop: React.FC<{id: string; f: number; cam: Cam; children: React.ReactNode}> = ({id, f, cam, children}) => (
@@ -898,11 +851,7 @@ const TitleCard: React.FC<{f: number; t: number; at: number}> = ({f, t, at}) => 
               <Fleur key={x} x={x} y={-160} s={0.5} />
             ))}
             <text x={0} y={18} textAnchor="middle" fontFamily="Amiri" fontWeight={700} fontSize={130} fill="#1c2a54" direction="rtl">
-              قصة جان دارك
-            </text>
-            <rect x={-372} y={76} width={744} height={86} rx={18} fill="#c8242e" stroke={INK} strokeWidth={6} />
-            <text x={0} y={134} textAnchor="middle" fontFamily="Amiri" fontWeight={700} fontSize={48} fill="#fffdf6" direction="rtl">
-              بأبسط وأطرف طريقة ممكنة!
+              جان دارك
             </text>
           </g>
         </Art>

@@ -3,7 +3,7 @@ import {AbsoluteFill, useCurrentFrame} from 'remotion';
 import {extra, look} from '../../cast';
 import type {CharLight} from '../../characters/light';
 import {Person} from '../../characters/Person';
-import {CalloutTag, TitleBanner} from '../../lib/comicFx';
+import {TitleBanner} from '../../lib/comicFx';
 import {Banner, Ridge} from '../../lib/epic';
 import {Cloud, ColorGrade, Halo, MistBand, Motes, Smoke} from '../../lib/fx';
 import {Palette, atmos} from '../../lib/palette';
@@ -17,7 +17,7 @@ import {CITIES_1429, ENGLISH_NORTH_1429, HENRY5_INVASION_ROUTE} from '../../worl
 import {GamePiece} from './MapPieces';
 import {CityStandee, MapFlat, MapTable, Standee} from './MapTable';
 import {GoldFrame, Rain, StoneChamber} from './sets';
-import {CLEAR_DAY, FarArmy, Floor3D, Hud, LIGHTS, LitStage, Masonry, SoftFilm, WAR_TABLE, gy, toScreen} from './stage3d';
+import {CLEAR_DAY, FarArmy, Floor3D, Hud, LIGHTS, LitStage, Masonry, SoftFilm, WAR_TABLE, gy} from './stage3d';
 import {FPS, SceneTrackAudio, SceneTrackSubtitles, buildTrack} from './audioHelper';
 
 /* =====================================================================
@@ -164,7 +164,7 @@ const InvasionMap: React.FC<{f: number; t: number; endT: number}> = ({f, t, endT
       <ColorGrade p={WAR_TABLE} lightAt={[12, 78]} lightStrength={0.22 + 0.02 * Math.sin(f * 0.6)} />
       <SoftFilm frame={f} />
       <Hud>
-        <TitleBanner y={88} title="غزو هنري الخامس لشمال فرنسا — ١٤١٥" accent="#c8242e" scale={easeOutBack(prog(t, 0.1, 0.5))} />
+        <TitleBanner y={88} title="هنري الخامس — ١٤١٥" accent="#c8242e" scale={easeOutBack(prog(t, 0.1, 0.5))} />
       </Hud>
     </>
   );
@@ -207,7 +207,6 @@ const Agincourt: React.FC<{f: number; lt: number; dur: number}> = ({f, lt, dur})
   cam.x += Math.sin(f * 0.6) * 2;
   const KD = 170;
   const yK = gy(KD);
-  const tagTo = toScreen(1315, yK - 250, KD, cam);
 
   return (
     <>
@@ -348,8 +347,7 @@ const Agincourt: React.FC<{f: number; lt: number; dur: number}> = ({f, lt, dur})
       <ColorGrade p={P} lightAt={[68, 40]} lightStrength={0.14} />
       <SoftFilm frame={f} strength={0.44} />
       <Hud>
-        <CalloutTag x={Math.min(1560, tagTo.x + 40)} y={300} lines={['دروع ثقيلة + وحل كثيف', '= مصيدة كارثية!']} arrowTo={[tagTo.x, tagTo.y]} accent="#c8242e" scale={1.3 * easeOutBack(prog(lt, 0.5, 0.9))} />
-        <TitleBanner y={88} title="معركة أجينكورت — ١٤١٥" accent="#c8242e" />
+        <TitleBanner y={88} title="أجينكورت — ١٤١٥" accent="#c8242e" />
       </Hud>
     </>
   );
@@ -541,7 +539,7 @@ const Betrayal: React.FC<{f: number; t: number; t0: number; switchT: number; end
       <ColorGrade p={P} lightAt={[22, 16]} lightStrength={0.22} />
       <SoftFilm frame={f} strength={0.24} />
       <Hud>
-        <TitleBanner y={92} title={switched ? 'تحالف بورغوندي مع الإنجليز!' : 'خيانة دوق بورغوندي'} accent={switched ? '#c8242e' : '#7b2242'} />
+        <TitleBanner y={92} title="دوق بورغوندي" accent={switched ? '#c8242e' : '#7b2242'} />
       </Hud>
     </>
   );
@@ -594,10 +592,6 @@ const DauphinRage: React.FC<{f: number; t: number; t0: number; deflateT: number}
             {treatyPop > 0.02 && (
               <g transform={`translate(1330 450) scale(${Math.max(0, treatyPop) * 0.98})`}>
                 <GoldFrame w={800} h={640}>
-                  <rect x={-346} y={-268} width={692} height={88} rx={14} fill="#244b96" stroke={INK} strokeWidth={5} />
-                  <text x={0} y={-208} textAnchor="middle" fontFamily="Amiri" fontWeight={700} fontSize={48} fill="#fff" direction="rtl">
-                    أسوأ صفقة في تاريخ فرنسا!
-                  </text>
                   <rect x={-346} y={-168} width={692} height={424} rx={12} fill="#d8c4a0" />
                   <defs>
                     <clipPath id="s06tc">
@@ -615,7 +609,7 @@ const DauphinRage: React.FC<{f: number; t: number; t0: number; deflateT: number}
                     <rect x={-160} y={-152} width={320} height={30} rx={15} fill="#b88a4a" />
                     <rect x={-160} y={120} width={320} height={30} rx={15} fill="#b88a4a" />
                     <text x={0} y={-62} textAnchor="middle" fontFamily="Amiri" fontWeight={700} fontSize={46} fill="#8a1822" stroke="none" direction="rtl">
-                      معاهدة تروا
+                      تروا
                     </text>
                     <text x={0} y={-8} textAnchor="middle" fontFamily="Amiri" fontWeight={700} fontSize={46} fill={INK} stroke="none">
                       ١٤٢٠
@@ -631,7 +625,6 @@ const DauphinRage: React.FC<{f: number; t: number; t0: number; deflateT: number}
           </Art>
         </Layer>
       </StoneChamber>
-      <Hud>{!deflated && <TitleBanner y={108} title="هذا أغضب ولي العهد.. فماذا فعل؟" accent="#c8242e" scale={easeOutBack(prog(t, t0 + 0.1, t0 + 0.45))} />}</Hud>
     </>
   );
 };

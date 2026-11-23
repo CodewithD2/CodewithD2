@@ -2,7 +2,7 @@ import React from 'react';
 import {AbsoluteFill, useCurrentFrame} from 'remotion';
 import {extra, look} from '../../cast';
 import {Person} from '../../characters/Person';
-import {BigStamp, TitleBanner} from '../../lib/comicFx';
+import {TitleBanner} from '../../lib/comicFx';
 import {SpeechBubble} from '../../lib/dialogue';
 import {Halo} from '../../lib/fx';
 import {Art, Layer, camAt} from '../../lib/stage';
@@ -60,7 +60,6 @@ export const Scene07: React.FC = () => {
   const c6Speaking = t >= cC6.t0 - 0.05 && t <= cC6.t1 + 0.1;
   const c7Speaking = t >= cC7.t0 - 0.05 && t <= cC7.t1 + 0.1;
   const jawDropped = t >= JAW_T && t < cC7.t0;
-  const signedP = prog(t, STAMP_T, STAMP_T + 0.25);
   const crownSlide = easeOut(prog(t, c2.t0 + 0.8, c2.t0 + 2.4));
   const teasePop = easeOutBack(prog(t, TEASE_T, TEASE_T + 0.45));
   const gloom = easeOut(prog(t, TEASE_T, TEASE_T + 0.8));
@@ -160,7 +159,7 @@ export const Scene07: React.FC = () => {
                 <rect x={-262} y={-126} width={524} height={88} rx={14} fill="#fdfaf2" />
               </g>
               <text x={0} y={-66} textAnchor="middle" fontFamily="Amiri" fontWeight={700} fontSize={50} fill="#8a1822" direction="rtl">
-                معاهدة تروا — ١٤٢٠
+                تروا — ١٤٢٠
               </text>
               {/* الوثيقة والمحبرة والشمعدان */}
               <g stroke={INK} strokeWidth={4} strokeLinejoin="round">
@@ -189,12 +188,6 @@ export const Scene07: React.FC = () => {
                 </g>
                 <path transform={`translate(34 -58) scale(${0.7 + 0.4 * Math.sin(f / 5) ** 2})`} d="M 0 -20 L 5 -5 L 20 0 L 5 5 L 0 20 L -5 5 L -20 0 L -5 -5 Z" fill="#fffbe0" />
               </g>
-              {/* ختم «مُوقَّع!» */}
-              {signedP > 0 && t < cC6.t0 + 0.1 && (
-                <g transform="translate(-160 -260) scale(0.85)">
-                  <BigStamp x={0} y={0} text="مُوقَّع!" color="#c8242e" progress={signedP} rot={-10} />
-                </g>
-              )}
             </g>
           </Art>
         </Layer>
@@ -239,12 +232,7 @@ export const Scene07: React.FC = () => {
       <Hud>
         {c6Bub && <SpeechBubble text={c6Bub.text} style="shout" headX={head6.x} headTop={Math.max(250, head6.y)} s={1.1} age={c6Bub.age} left={c6Bub.left} side={1} />}
         {c7Bub && <SpeechBubble text={c7Bub.text} style="shout" headX={head7.x} headTop={Math.max(300, head7.y)} s={1.15} age={c7Bub.age} left={c7Bub.left} side={-1} />}
-        <TitleBanner
-          y={88}
-          title={teasePop > 0.05 ? 'لكن بعد عامين فقط.. مفاجأة درامية!' : 'معاهدة تروا — ١٤٢٠'}
-          accent={teasePop > 0.05 ? '#f2a620' : '#8e1b2a'}
-          scale={teasePop > 0.05 ? Math.max(0, teasePop) : 1}
-        />
+        <TitleBanner y={88} title="تروا — ١٤٢٠" accent="#8e1b2a" scale={teasePop > 0.05 ? 0 : 1} />
       </Hud>
       <SceneTrackAudio track={SCENE07_TRACK} sfx={sfx} />
       <SceneTrackSubtitles track={SCENE07_TRACK} hideDialogue />
