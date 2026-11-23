@@ -22,7 +22,7 @@ export const SceneOpen: React.FC<SceneProps> = ({t, f}) => {
     {f: F(t1), y: -120, z: 160, rz: 1},
   ]), t, 1.2);
   const u = prog(t, t0, t1);
-  const lead = {x: lerp(-160, 1180, u), y: lerp(1120, 560, easeInOut(u))};
+  const lead = {x: lerp(-160, 1800, u), y: lerp(1120, 420, easeInOut(u))};
   const tq = wordAt('s1_2', 'لماذا');
   const k = pop(t, tq - 0.08, 0.4);
   return (
@@ -321,7 +321,7 @@ export const SceneSpring: React.FC<SceneProps> = ({t, f}) => {
     {f: F(tNest + 0.9), x: 170, y: -160, z: 900},
     {f: F(t1), x: 180, y: -170, z: 980},
   ]), t, 1);
-  const flyIn = prog(t, t0, t0 + 3.2);
+  const flyIn = prog(t, t0, t0 + 4.6);
   const parentLand = prog(t, tNest + 0.5, tNest + 1.8);
   return (
     <AbsoluteFill style={{background: 'linear-gradient(#4aa6ec 0%, #a9dcf7 55%, #e9f7e2 100%)'}}>
@@ -392,8 +392,8 @@ export const SceneSpring: React.FC<SceneProps> = ({t, f}) => {
         <VLayer d={0}>
           <VArt>
             {/* السرب عائد للشمال */}
-            {vFormation(5, 100).map((p) => (
-              <Bird light={L} key={p.i} kind="swallow" x={lerp(-200, 1250, flyIn) + p.dx} y={lerp(1150, 380, flyIn) + p.dy - p.dx * 0.4} s={0.9} frame={f} seed={p.i} rot={-30} />
+            {flyIn < 1 && vFormation(5, 100).map((p) => (
+              <Bird light={L} key={p.i} kind="swallow" x={lerp(-250, 1750, flyIn) + p.dx} y={lerp(1150, 20, flyIn) + p.dy - p.dx * 0.4} s={0.9} frame={f} seed={p.i} rot={-30} />
             ))}
             {t > tMore - 0.3 && t < tNest + 0.5 &&
               Array.from({length: 14}, (_, i) => (
