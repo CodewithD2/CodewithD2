@@ -24,21 +24,21 @@ const SCENES: {from: number; C: React.FC<SceneProps>}[] = [
 
 /** مواضع المؤثرات الصوتية الحقيقية (تعمل تلقائياً حين تُضاف ملفاتها في sfx.json) */
 export const WHY_BIRDS_SFX: SfxCue[] = [
-  {at: 0.2, name: 'wings', vol: 0.45, dur: S('s2_2') - 0.4},
-  {at: 0.8, name: 'geese', vol: 0.4, dur: S('s2_2') - 1.2},
-  {at: wordAt('s1_2', 'لماذا') - 0.15, name: 'whoosh', vol: 0.5, dur: 1.2},
-  {at: S('s2_2') - 0.4, name: 'wind', vol: 0.55, dur: S('s3_1') - S('s2_2') + 0.6},
-  {at: wordAt('s2_2', 'تتجمد') - 0.1, name: 'ice', vol: 0.6, dur: 2.2},
-  {at: S('s3_1') - 0.35, name: 'whoosh', vol: 0.5, dur: 1.2},
-  {at: S('s3_1') + 0.6, name: 'waves', vol: 0.45, dur: 2.6},
-  {at: S('s3_1'), name: 'wings', vol: 0.4, dur: S('s4_1') - S('s3_1')},
-  {at: S('s4_1') - 0.3, name: 'spring', vol: 0.5, dur: S('s5_1') - S('s4_1') + 0.3},
-  {at: S('s4_2') + 0.2, name: 'chicks', vol: 0.55, dur: S('s5_1') - S('s4_2')},
-  {at: S('s5_1') - 0.3, name: 'crickets', vol: 0.4, dur: S('s6_1') - S('s5_1') + 0.3},
-  {at: wordAt('s5_2', 'المجال') - 0.2, name: 'whoosh', vol: 0.45, dur: 1.2},
-  {at: S('s6_1') - 0.3, name: 'whoosh', vol: 0.45, dur: 1.2},
-  {at: wordAt('s6_1', 'فتقطع'), name: 'wings', vol: 0.3, dur: 3},
-  {at: S('s7_1') - 0.3, name: 'geese', vol: 0.4, dur: TOTAL_S - S('s7_1') + 0.3},
+  {at: 0.2, name: 'wings', vol: 0.07, dur: S('s2_2') - 0.4},
+  {at: 0.8, name: 'geese', vol: 0.17, dur: S('s2_2') - 1.2},
+  {at: wordAt('s1_2', 'لماذا') - 0.15, name: 'whoosh', vol: 0.22, dur: 1.2},
+  {at: S('s2_2') - 0.4, name: 'wind', vol: 0.12, dur: S('s3_1') - S('s2_2') + 0.6},
+  {at: wordAt('s2_2', 'تتجمد') - 0.1, name: 'ice', vol: 0.5, dur: 2.2},
+  {at: S('s3_1') - 0.35, name: 'whoosh', vol: 0.22, dur: 1.2},
+  {at: S('s3_1') + 0.6, name: 'waves', vol: 0.18, dur: 2.6},
+  {at: S('s3_1'), name: 'wings', vol: 0.07, dur: S('s4_1') - S('s3_1')},
+  {at: S('s4_1') - 0.3, name: 'spring', vol: 0.4, dur: S('s5_1') - S('s4_1') + 0.3},
+  {at: S('s4_2') + 0.2, name: 'chicks', vol: 0.3, dur: S('s5_1') - S('s4_2')},
+  {at: S('s5_1') - 0.3, name: 'crickets', vol: 0.55, dur: S('s6_1') - S('s5_1') + 0.3},
+  {at: wordAt('s5_2', 'المجال') - 0.2, name: 'whoosh', vol: 0.22, dur: 1.2},
+  {at: S('s6_1') - 0.3, name: 'whoosh', vol: 0.22, dur: 1.2},
+  {at: wordAt('s6_1', 'فتقطع'), name: 'wings', vol: 0.07, dur: 3},
+  {at: S('s7_1') - 0.3, name: 'geese', vol: 0.2, dur: TOTAL_S - S('s7_1') + 0.3},
 ];
 
 export const WhyBirdsShort: React.FC = () => {
