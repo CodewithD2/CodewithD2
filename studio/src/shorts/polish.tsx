@@ -1,7 +1,7 @@
 import React from 'react';
 import {AbsoluteFill, random} from 'remotion';
-import type {Cam} from '../../lib/stage';
-import {INK} from '../../lib/util';
+import type {Cam} from '../lib/stage';
+import {INK} from '../lib/util';
 
 /* =====================================================================
  * اللمسات النهائية للشورت: كاميرا محمولة، تلوين لكل مشهد، إضاءة الطيور، جسيمات.

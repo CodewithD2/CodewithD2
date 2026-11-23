@@ -23,6 +23,8 @@ import {LightingCompare, LightingSheet} from './LightingSheet';
 import {CAMERA_TEST_FRAMES, CameraSheet, CameraTest} from './CameraTest';
 import {SFX_TEST_FRAMES, SfxTest} from './SfxTest';
 import {BirdSheet} from './episodes/whyBirds/BirdSheet';
+import {WallAssetSheet} from './episodes/whyWall/AssetSheet';
+import {WHY_WALL_FRAMES, WhyWallShort} from './episodes/whyWall/Short';
 import {WHY_BIRDS_FRAMES, WhyBirdsShort} from './episodes/whyBirds/Short';
 import {DIALOGUE_TEST_FRAMES, DialogueSheet, DialogueTest} from './DialogueTest';
 import {BackdropsSheetA, BackdropsSheetB, BackdropsSheetC, BuildingsSheetA, BuildingsSheetB, BuildingsSheetNight} from './WorldSheet';
@@ -86,6 +88,8 @@ export const Root: React.FC = () => (
     <Composition id="DialogueTest" component={DialogueTest} durationInFrames={DIALOGUE_TEST_FRAMES} fps={30} width={1920} height={1080} />
     {/* شورت «ليه ولماذا؟» — عمودي 9:16 */}
     <Composition id="WhyBirdsMigrate" component={WhyBirdsShort} durationInFrames={WHY_BIRDS_FRAMES} fps={30} width={1080} height={1920} />
+    <Composition id="WhyGreatWall" component={WhyWallShort} durationInFrames={WHY_WALL_FRAMES} fps={30} width={1080} height={1920} />
+    <Composition id="WallAssetSheet" component={WallAssetSheet} durationInFrames={30} fps={30} width={1920} height={1080} />
     <Composition id="BirdSheet" component={BirdSheet} durationInFrames={30} fps={30} width={1920} height={1080} />
     <Composition id="DialogueSheet" component={DialogueSheet} durationInFrames={60} fps={30} width={1920} height={1080} />
     {/* لوحات الأشياء في الأيدي */}

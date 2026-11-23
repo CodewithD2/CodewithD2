@@ -32,6 +32,10 @@ export type Hat =
   | 'mitre'
   | 'medievalHelmet'
   | 'scholarCap'
+  | 'mianguan'
+  | 'mingHelmet'
+  | 'nomadFur'
+  | 'strawHat'
   | 'none';
 export type Outfit = 'robe' | 'suit' | 'uniform' | 'dress' | 'skirt' | 'abaya' | 'armor' | 'royal' | 'peasant' | 'cleric' | 'baby';
 /** تسريحات الشعر */
@@ -533,6 +537,57 @@ const HatShape: React.FC<{hat: Hat; trim: string; cy?: number; sy?: number}> = (
           <Front>
             <path d="M -6 -270 L 0 -318 L 6 -270 Z" fill={trim} />
           </Front>
+        </g>
+      );
+    case 'mianguan':
+      // تاج الإمبراطور الصيني (ميان-قوان): لوح مستطيل فوق الرأس وخيوط خرز تتدلى أمامه وخلفه
+      return (
+        <g stroke={INK} strokeWidth={4} strokeLinejoin="round">
+          <path d="M -30 -262 L -26 -300 L 26 -300 L 30 -262 Z" fill="#1d1a20" />
+          <rect x={-22} y={-284} width={44} height={10} fill={trim} strokeWidth={2.5} />
+          <rect x={-92 + sy * 10} y={-312} width={184} height={16} rx={4} fill="#1d1a20" transform={`skewX(${-sy * 8})`} />
+          <rect x={-88 + sy * 10} y={-310} width={176} height={4} fill={trim} stroke="none" />
+          {[-80, -60, -40, 40, 60, 80].map((bx) => (
+            <g key={bx} transform={`translate(${(bx + sy * 10) * (0.55 + 0.45 * Math.abs(cy))} 0)`}>
+              <line x1={0} y1={-298} x2={0} y2={-246} stroke="#1d1a20" strokeWidth={2} />
+              {[-286, -272, -258].map((by) => (
+                <circle key={by} cx={0} cy={by} r={4} fill={by === -272 ? '#c9302c' : '#f0e2b0'} strokeWidth={1.5} />
+              ))}
+            </g>
+          ))}
+        </g>
+      );
+    case 'mingHelmet':
+      // خوذة جندي أسرة مينغ: قبة مستديرة بحافة وشوكة وشرّابة حمراء
+      return (
+        <g stroke={INK} strokeWidth={SW} strokeLinejoin="round">
+          <path d="M -66 -240 Q -66 -306 0 -310 Q 66 -306 66 -240 Z" fill="#6f6a5e" />
+          <path d="M -74 -244 Q 0 -232 74 -244 L 70 -232 Q 0 -222 -70 -232 Z" fill="#5a5448" />
+          <path d="M -4 -310 L 0 -346 L 4 -310 Z" fill="#c9a43a" strokeWidth={3} />
+          <path d="M 0 -332 Q -18 -318 -12 -296 Q 0 -308 10 -296 Q 16 -318 0 -332 Z" fill="#c9302c" strokeWidth={3} />
+          <Front>
+            <path d="M -40 -268 Q 0 -280 40 -268" fill="none" stroke="#c9a43a" strokeWidth={4} />
+          </Front>
+        </g>
+      );
+    case 'nomadFur':
+      // قبعة فرسان السهوب: قمة مخروطية بحافة فرو عريضة
+      return (
+        <g stroke={INK} strokeWidth={SW} strokeLinejoin="round">
+          <path d="M -50 -258 Q -40 -330 0 -340 Q 40 -330 50 -258 Z" fill={trim} />
+          <path d="M -76 -244 Q -80 -276 -50 -278 Q 0 -290 50 -278 Q 80 -276 76 -244 Q 0 -232 -76 -244 Z" fill="#8a6a46" />
+          {[-60, -36, -12, 12, 36, 60].map((x) => (
+            <path key={x} d={`M ${x} -276 q 4 14 0 26`} stroke="#5f4630" strokeWidth={3} fill="none" />
+          ))}
+          <circle cx={0} cy={-342} r={7} fill="#c9302c" strokeWidth={3} />
+        </g>
+      );
+    case 'strawHat':
+      // قبعة قش مخروطية للفلاحين
+      return (
+        <g stroke={INK} strokeWidth={SW} strokeLinejoin="round">
+          <path d="M -118 -236 L 0 -318 L 118 -236 Q 0 -222 -118 -236 Z" fill="#e2c27a" />
+          <path d="M -60 -276 L 60 -276 M -90 -254 L 90 -254" stroke="#b8954f" strokeWidth={3} />
         </g>
       );
     case 'hijab':
@@ -1088,7 +1143,8 @@ export const Person: React.FC<PersonProps> = ({
     hat === 'crown' ||
     hat === 'tiltedCrown' ||
     hat === 'oversizedCrown' ||
-    hat === 'mitre';
+    hat === 'mitre' ||
+    hat === 'strawHat';
   const hairKind: HairlineKind | null =
     hat === 'hijab'
       ? 'hijab'

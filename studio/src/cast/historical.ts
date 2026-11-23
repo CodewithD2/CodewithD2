@@ -280,6 +280,14 @@ export const baudricourt = defineCharacter({
   },
 });
 
+export const qinShiHuang = defineCharacter({
+  id: 'qinShiHuang',
+  name: 'تشين شي هوانغ',
+  era: '259–210 ق.م',
+  ref: 'أول إمبراطور للصين الموحدة: رداء أسود (لون أسرة تشين) بحواف حمراء وذهبية، تاج ميان-قوان بخيوط الخرز، شارب ولحية قصيرة',
+  look: {robe: '#1f1b22', trim: '#c9302c', outfit: 'royal', hat: 'mianguan', mustache: '#1a1512', beard: '#1a1512', skin: '#e3b48a', face: 'long', build: 'broad', seed: 23},
+});
+
 export const HISTORICAL = {
   mehmed2,
   halilPasha,
@@ -295,4 +303,5 @@ export const HISTORICAL = {
   laHire,
   pierreCauchon,
   baudricourt,
+  qinShiHuang,
 };

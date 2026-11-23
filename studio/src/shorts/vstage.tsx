@@ -1,6 +1,6 @@
 import React from 'react';
 import {AbsoluteFill} from 'remotion';
-import {Cam, REF_FOV} from '../../lib/stage';
+import {Cam, REF_FOV} from '../lib/stage';
 
 /* =====================================================================
  * محرك 2.5D عمودي (Shorts 1080×1920) — نفس رياضيات lib/stage.tsx تماماً

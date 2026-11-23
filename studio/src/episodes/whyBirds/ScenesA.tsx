@@ -4,9 +4,9 @@ import {camAt} from '../../lib/stage';
 import {Cloud, Halo, GodRays, Motes} from '../../lib/fx';
 import {INK, clamp, easeInOut, lerp, mixColor, prog, ridgePath} from '../../lib/util';
 import {Bird, Chick, FarBirds, Flock, bezier, vFormation} from './Bird';
-import {Hud, VArt, VLayer, VStage} from './vstage';
-import {BirdLight, Breath, Butterfly, Feathers, Fireflies, Grade, Petals, ShootingStar, WindStreaks, hand} from './polish';
-import {Bug, ChannelBadge, Cross, InfoCard, Seed, Snow, Thermo, Txt, fade, pop} from './common';
+import {Hud, VArt, VLayer, VStage} from '../../shorts/vstage';
+import {BirdLight, Breath, Butterfly, Feathers, Fireflies, Grade, Petals, ShootingStar, WindStreaks, hand} from '../../shorts/polish';
+import {Bug, ChannelBadge, Cross, InfoCard, Seed, Snow, Thermo, Txt, fade, pop} from '../../shorts/common';
 import {E, FPS, S, wordAt} from './track';
 
 export type SceneProps = {t: number; f: number};

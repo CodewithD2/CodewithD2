@@ -1,7 +1,7 @@
 import React from 'react';
 import {random} from 'remotion';
 import {INK} from '../../lib/util';
-import type {BirdLight} from './polish';
+import type {BirdLight} from '../../shorts/polish';
 
 /* =====================================================================
  * طائر كرتوني أصلي بأسلوب القناة: جسم مستدير، عين نقطية، خط أسود سميك، جناحان يرفرفان.

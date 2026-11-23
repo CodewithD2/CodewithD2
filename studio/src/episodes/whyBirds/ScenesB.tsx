@@ -6,9 +6,9 @@ import {INK, clamp, easeInOut, lerp, prog, ridgePath} from '../../lib/util';
 import type {LonLat} from '../../world/maps/europeData';
 import {Bird, FarBirds, Flock, vFormation} from './Bird';
 import {Globe, GlobeProj, densify, geoLine, gproj} from './Globe';
-import {Hud, VArt, VLayer, VStage} from './vstage';
-import {BirdLight, Breath, Butterfly, Feathers, Fireflies, Grade, Petals, ShootingStar, WindStreaks, hand} from './polish';
-import {ChannelBadge, Txt, fade, pop} from './common';
+import {Hud, VArt, VLayer, VStage} from '../../shorts/vstage';
+import {BirdLight, Breath, Butterfly, Feathers, Fireflies, Grade, Petals, ShootingStar, WindStreaks, hand} from '../../shorts/polish';
+import {ChannelBadge, Txt, fade, pop} from '../../shorts/common';
 import {FPS, S, wordAt} from './track';
 import type {SceneProps} from './ScenesA';
 

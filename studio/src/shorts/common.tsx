@@ -1,6 +1,6 @@
 import React from 'react';
 import {random} from 'remotion';
-import {INK, clamp, easeOutBack, prog} from '../../lib/util';
+import {INK, clamp, easeOutBack, prog} from '../lib/util';
 
 /** ظهور بقفزة: 0→1 مع تجاوز بسيط */
 export const pop = (t: number, t0: number, d = 0.35) => (t < t0 ? 0 : easeOutBack(prog(t, t0, t0 + d)));

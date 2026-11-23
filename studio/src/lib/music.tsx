@@ -14,6 +14,10 @@ export const MUSIC = {
   respect: 'music/emotional-respect.mp3',
   /** موسيقى استرخاء — 89.6ث */
   relax: 'music/relaxation-10.mp3',
+  /** قوجنغ صيني هادئ بطابع الجبال — 109ث (شورت سور الصين) */
+  karst: 'music/karst-mountains-guzheng.mp3',
+  /** قوجنغ صيني منفرد — 85ث */
+  guzheng: 'music/guzheng-solo.mp3',
 } as const;
 
 export type Span = {t0: number; t1: number};
