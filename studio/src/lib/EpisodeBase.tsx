@@ -2,6 +2,7 @@ import React from 'react';
 import {AbsoluteFill, Audio, Sequence, interpolate, staticFile, useCurrentFrame, useVideoConfig} from 'remotion';
 import {FilmLook} from '../shots/common';
 import {Cue, Subtitles, VOICE_DELAY} from '../Subtitles';
+import {OUTPUT} from './output';
 
 const XF = 14; // إطارات الانتقال بين اللقطات
 
@@ -36,12 +37,14 @@ export const EpisodeBase: React.FC<{shots: ShotDef[]; cues: Cue[]; voice: string
         );
       })}
       <FilmLook frame={frame} />
-      <Subtitles cues={cues} />
+      {OUTPUT.subtitles && <Subtitles cues={cues} />}
       <AbsoluteFill style={{background: '#000', opacity: fade}} />
-      <Sequence from={Math.round(VOICE_DELAY * fps)}>
-        <Audio src={staticFile(voice)} />
-      </Sequence>
-      {drone && <Audio src={staticFile(drone)} volume={droneVolume} />}
+      {OUTPUT.voice && (
+        <Sequence from={Math.round(VOICE_DELAY * fps)}>
+          <Audio src={staticFile(voice)} />
+        </Sequence>
+      )}
+      {OUTPUT.sfx && drone && <Audio src={staticFile(drone)} volume={droneVolume} />}
     </AbsoluteFill>
   );
 };

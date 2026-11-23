@@ -1,6 +1,7 @@
 import React from 'react';
 import {Audio, Sequence, staticFile} from 'remotion';
 import type {ActorState, Scene} from './script';
+import {OUTPUT} from './output';
 
 /**
  * المؤثرات الصوتية — ملفات `public/sfx/*.wav` مولّدة بـ `narrator/sfx_synth.py` (بلا حقوق).
@@ -47,7 +48,11 @@ export const footsteps = (id: string, frames: number, fps: number, at: (f: numbe
 };
 
 /** يشغّل كل أصوات المشهد — ضعه مرة واحدة في اللقطة (خارج <svg>) */
-export const SceneAudio: React.FC<{scene: Scene; volume?: number; steps?: number; voices?: number}> = ({scene, volume = 1, steps = 1, voices = 1}) => (
+export const SceneAudio: React.FC<{scene: Scene; volume?: number; steps?: number; voices?: number}> = ({scene, volume: volume0 = 1, steps = 1, voices: voices0 = 1}) => {
+  // المفتاح العام (lib/output.ts): المشاهد تُصدَّر صامتة
+  const voices = OUTPUT.voice ? voices0 : 0;
+  const volume = OUTPUT.sfx ? volume0 : 0;
+  return (
   <>
     {/* جمل الحوار (المولَّدة فقط — الناقص يولَّد بـ npm run dialogue) */}
     {scene
@@ -77,9 +82,11 @@ export const SceneAudio: React.FC<{scene: Scene; volume?: number; steps?: number
       );
     })}
   </>
-);
+  );
+};
 
 /** صوت محيطي متكرر طوال المشهد */
-export const AmbientLoop: React.FC<{name: string; volume: number}> = ({name, volume}) => (
+export const AmbientLoop: React.FC<{name: string; volume: number}> = ({name, volume}) =>
+  !OUTPUT.sfx ? null : (
   <Audio src={staticFile(`sfx/${name}.wav`)} loop volume={(f) => volume * Math.min(1, f / 20)} />
 );

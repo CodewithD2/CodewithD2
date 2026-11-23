@@ -2,6 +2,7 @@ import React from 'react';
 import {Audio, Sequence, staticFile, useCurrentFrame} from 'remotion';
 import AUDIO_RAW from './audio.json';
 import {ClipInfo, mouthAt} from '../../lib/dialogue';
+import {OUTPUT} from '../../lib/output';
 
 /* =====================================================================
  * محرك الصوت والترجمة والتزامن لحلقة جان دارك (قابل للتوسع لكل الدفعات)
@@ -19,12 +20,8 @@ export const JOAN_AUDIO = AUDIO_RAW as Record<string, AudioEntry>;
 
 export const FPS = 30;
 
-/**
- * مفاتيح الإخراج — قرار صاحب المشروع: سيسجّل التعليق بالمصري بنفسه ويضيف المؤثرات بنفسه.
- * التوقيت ما زال يُحسب من مدد audio.json (إيقاع المشاهد كما هو) لكن لا يُشغَّل أي صوت.
- * voice: مقاطع edge-tts · sfx: المؤثرات · subtitles: الترجمة أسفل الشاشة · bubbles: فقاعات كلام الشخصيات
- */
-export const JOAN_OUTPUT = {voice: false, sfx: false, subtitles: false, bubbles: false};
+/** مفاتيح الإخراج = المفتاح العام lib/output.ts (المشاهد صامتة؛ التوقيت من مدد audio.json الفصحى) */
+export const JOAN_OUTPUT = OUTPUT;
 
 export type TrackStep =
   | {kind: 'clip'; id: string; vol?: number; padAfter?: number}
