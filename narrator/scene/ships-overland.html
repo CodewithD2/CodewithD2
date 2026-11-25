@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>السفن فوق اليابسة</title>
+<style>
+  @font-face { font-family: 'Amiri'; font-weight: 400; src: url('fonts/amiri-arabic-400-normal.woff2') format('woff2'); }
+  @font-face { font-family: 'Amiri'; font-weight: 700; src: url('fonts/amiri-arabic-700-normal.woff2') format('woff2'); }
+  html, body { margin: 0; background: #000; }
+  canvas { display: block; }
+</style>
+</head>
+<body>
+<canvas id="c" width="1920" height="1080"></canvas>
+<script>
+// ===== إعدادات المشهد =====
+const W = 1920, H = 1080;
+const FONT = "'Amiri', 'Noto Naskh Arabic', 'DejaVu Sans', serif";
+// حدود اللقطات (بالثواني) مضبوطة على جمل التعليق الصوتي
+const SHOTS = [0, 10.1, 17.55, 24.0]; // + تأخير الصوت ٠٫٦ ث
+const END = 31;
+const XFADE = 0.7;
+let CUES = []; // تُحقن من ملف SRT
+
+const main = document.getElementById('c');
+const mctx = main.getContext('2d');
+const off = [0, 1].map(() => { const c = document.createElement('canvas'); c.width = W; c.height = H; return c; });
+
+// ===== أدوات =====
+const clamp = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const ease = t => t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+const prog = (t, a, b) => clamp((t - a) / (b - a));
+function rng(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
+
+const STARS = (() => { const r = rng(7); return Array.from({ length: 260 }, () => ({ x: r() * W, y: r() * 650, s: r() * 1.8 + .3, p: r() * 6.28, f: r() * 2 + .5 })); })();
+
+const GRAIN = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 512;
+  const g = c.getContext('2d'), d = g.createImageData(512, 512), r = rng(3);
+  for (let i = 0; i < d.data.length; i += 4) { const v = r() * 255; d.data[i] = d.data[i + 1] = d.data[i + 2] = v; d.data[i + 3] = 255; }
+  g.putImageData(d, 0, 0); return c;
+})();
+
+function stars(ctx, t, alpha = 1) {
+  for (const s of STARS) {
+    ctx.globalAlpha = alpha * (0.45 + 0.55 * Math.sin(t * s.f + s.p) ** 2);
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(s.x, s.y, s.s, 0, 6.283); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+function glow(ctx, x, y, r, color, a = 1) {
+  const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+  g.addColorStop(0, color); g.addColorStop(1, 'rgba(0,0,0,0)');
+  ctx.globalAlpha = a; ctx.fillStyle = g; ctx.fillRect(x - r, y - r, r * 2, r * 2); ctx.globalAlpha = 1;
+}
+
+// أفق المدينة: أسوار وأبراج وقباب
+function skyline(ctx, x0, base, scale, color) {
+  ctx.save(); ctx.translate(x0, base); ctx.scale(scale, scale); ctx.fillStyle = color;
+  // السور
+  ctx.fillRect(0, -70, 1400, 70);
+  for (let x = 0; x < 1400; x += 22) ctx.fillRect(x, -84, 12, 14);
+  // أبراج السور
+  for (const x of [40, 230, 430, 640, 880, 1100, 1320]) {
+    ctx.fillRect(x, -130, 60, 130);
+    for (let k = 0; k < 4; k++) ctx.fillRect(x + k * 16, -144, 10, 14);
+  }
+  // مبانٍ خلف السور
+  const r = rng(11);
+  for (let x = 0; x < 1400; x += 40) { const h = 60 + r() * 90; ctx.fillRect(x, -70 - h, 34, h); }
+  // القبة الكبرى
+  const dome = (cx, by, rw, rh) => { ctx.beginPath(); ctx.ellipse(cx, by, rw, rh, 0, Math.PI, 0); ctx.fill(); };
+  ctx.fillRect(520, -290, 300, 150);
+  dome(670, -290, 150, 110);
+  dome(545, -230, 60, 45); dome(795, -230, 60, 45);
+  ctx.fillRect(664, -420, 12, 30);
+  // قباب أصغر
+  ctx.fillRect(1000, -220, 140, 80); dome(1070, -220, 70, 55);
+  ctx.fillRect(200, -200, 120, 60); dome(260, -200, 60, 45);
+  ctx.restore();
+}
+
+// سفينة (غليون صغير بشراع مثلث ومجاديف)
+function ship(ctx, x, y, s, rot, color, sailColor, oars = true) {
+  ctx.save(); ctx.translate(x, y); ctx.rotate(rot); ctx.scale(s, s);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.moveTo(-120, -20); ctx.quadraticCurveTo(-130, -40, -150, -48);
+  ctx.lineTo(-100, -18); ctx.lineTo(100, -18); ctx.lineTo(140, -45);
+  ctx.quadraticCurveTo(130, -10, 95, 10); ctx.lineTo(-90, 10); ctx.closePath(); ctx.fill();
+  if (oars) { ctx.strokeStyle = color; ctx.lineWidth = 3; for (let i = -70; i <= 70; i += 20) { ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i - 14, 28); ctx.stroke(); } }
+  ctx.fillRect(-4, -170, 7, 155);
+  ctx.fillStyle = sailColor;
+  ctx.beginPath(); ctx.moveTo(-90, -40); ctx.lineTo(4, -175); ctx.quadraticCurveTo(60, -100, 70, -40); ctx.closePath(); ctx.fill();
+  // راية
+  ctx.fillStyle = '#8b1a1a'; ctx.beginPath(); ctx.moveTo(3, -170); ctx.lineTo(40, -160); ctx.lineTo(3, -150); ctx.fill();
+  ctx.restore();
+}
+
+function water(ctx, top, c1, c2, t, shimmer) {
+  const g = ctx.createLinearGradient(0, top, 0, H); g.addColorStop(0, c1); g.addColorStop(1, c2);
+  ctx.fillStyle = g; ctx.fillRect(0, top, W, H - top);
+  if (shimmer) {
+    ctx.strokeStyle = shimmer; ctx.lineWidth = 2;
+    const r = rng(5);
+    for (let i = 0; i < 90; i++) {
+      const y = top + 8 + r() * (H - top), x = (r() * W + t * 18 * (0.5 + r())) % W, w = 20 + r() * 80 * (y - top) / (H - top);
+      ctx.globalAlpha = 0.15 + 0.25 * r(); ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + w, y); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+}
+
+function text(ctx, str, x, y, size, color, align = 'center', weight = '700') {
+  ctx.font = `${weight} ${size}px ${FONT}`; ctx.textAlign = align; ctx.textBaseline = 'middle';
+  ctx.direction = 'rtl'; ctx.fillStyle = color; ctx.fillText(str, x, y);
+}
+
+// ===== اللقطة ١: ليل القسطنطينية والسلسلة =====
+function shot1(ctx, t, lt) {
+  const z = 1 + lt * 0.012;
+  ctx.save(); ctx.translate(W / 2, H / 2); ctx.scale(z, z); ctx.translate(-W / 2, -H / 2);
+  const g = ctx.createLinearGradient(0, 0, 0, 760); g.addColorStop(0, '#03060f'); g.addColorStop(1, '#16274a');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  stars(ctx, t);
+  glow(ctx, 1560, 190, 260, 'rgba(220,230,255,0.35)');
+  ctx.fillStyle = '#eef1ff'; ctx.beginPath(); ctx.arc(1560, 190, 58, 0, 6.283); ctx.fill();
+  skyline(ctx, 380, 760, 1.05, '#070b16');
+  water(ctx, 760, '#0d1830', '#02050c', t, 'rgba(190,205,255,0.6)');
+  // انعكاس القمر
+  for (let i = 0; i < 14; i++) { ctx.globalAlpha = 0.25 - i * 0.015; ctx.fillStyle = '#dfe6ff'; const w = 90 - i * 4 + Math.sin(t * 2 + i) * 14; ctx.fillRect(1560 - w / 2, 772 + i * 18, w, 3); }
+  ctx.globalAlpha = 1;
+  // السلسلة الحديدية على عوامات خشبية
+  const reveal = ease(prog(lt, 3, 7.5));
+  const n = 34;
+  for (let i = 0; i < n; i++) {
+    const x = -40 + i * (W + 80) / (n - 1);
+    if (x > -40 + reveal * (W + 80)) break;
+    const y = 900 + Math.sin(t * 1.4 + i * 0.6) * 6 + Math.sin(i / (n - 1) * Math.PI) * 25;
+    ctx.fillStyle = '#2b1d12'; ctx.beginPath(); ctx.ellipse(x, y + 10, 26, 9, 0, 0, 6.283); ctx.fill();
+    ctx.strokeStyle = '#7d8799'; ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.ellipse(x + 28, y, 18, 9, 0, 0, 6.283); ctx.stroke();
+    glow(ctx, x + 28, y - 6, 10, 'rgba(200,215,255,0.8)', 0.5 + 0.5 * Math.sin(t * 3 + i));
+  }
+  ctx.restore();
+  // عنوان افتتاحي
+  const a = prog(lt, 0.3, 1.5) * (1 - prog(lt, 5.2, 6.4));
+  if (a > 0) {
+    ctx.globalAlpha = a;
+    text(ctx, 'القسطنطينية', W / 2, 360, 150, '#f2e6c8');
+    text(ctx, 'ربيع ١٤٥٣م', W / 2, 480, 64, '#c9b98f', 'center', '400');
+    ctx.globalAlpha = 1;
+  }
+}
+
+// ===== اللقطة ٢: الخريطة =====
+const HORN_UP = [[1330, 470], [1000, 380], [720, 300], [470, 255]];
+const HORN_LO = [[1380, 585], [1010, 470], [730, 375], [470, 285]];
+function shot2(ctx, t, lt) {
+  const z = 1.04 + lt * 0.01;
+  ctx.save(); ctx.translate(W / 2, H / 2); ctx.scale(z, z); ctx.translate(-W / 2, -H / 2);
+  ctx.fillStyle = '#e6d3a3'; ctx.fillRect(0, 0, W, H);
+  // ماء
+  ctx.fillStyle = '#8ea7a8';
+  ctx.beginPath(); ctx.moveTo(1330, 0); ctx.bezierCurveTo(1300, 300, 1360, 500, 1330, 620); ctx.bezierCurveTo(1300, 800, 1200, 880, 1000, 900);
+  ctx.lineTo(0, 930); ctx.lineTo(0, H); ctx.lineTo(W, H); ctx.lineTo(W, 0); ctx.closePath(); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(...HORN_UP[0]);
+  ctx.bezierCurveTo(...HORN_UP[1], ...HORN_UP[2], ...HORN_UP[3]);
+  ctx.lineTo(...HORN_LO[3]); ctx.bezierCurveTo(...HORN_LO[2], ...HORN_LO[1], ...HORN_LO[0]); ctx.closePath(); ctx.fill();
+  // خطوط ساحلية
+  ctx.strokeStyle = '#5b4a2c'; ctx.lineWidth = 3; ctx.stroke();
+  // أسوار المدينة البرية
+  ctx.strokeStyle = '#7a2e1d'; ctx.lineWidth = 7; ctx.setLineDash([14, 8]);
+  ctx.beginPath(); ctx.moveTo(500, 290); ctx.quadraticCurveTo(430, 600, 470, 925); ctx.stroke(); ctx.setLineDash([]);
+  // أسماء الأماكن
+  text(ctx, 'القسطنطينية', 860, 660, 74, '#3d2a14');
+  text(ctx, 'غلطة', 1060, 290, 50, '#3d2a14');
+  text(ctx, 'البوسفور', 1560, 420, 46, '#2e3f44');
+  text(ctx, 'بحر مرمرة', 1680, 860, 46, '#2e3f44');
+  text(ctx, 'القرن الذهبي', 860, 400, 36, '#2e3f44', 'center', '400');
+  // السلسلة
+  const ca = ease(prog(lt, 0.8, 2));
+  if (ca > 0) {
+    ctx.globalAlpha = ca; ctx.strokeStyle = '#b3261e'; ctx.lineWidth = 9;
+    ctx.beginPath(); ctx.moveTo(1325, 470); ctx.lineTo(1325 + 55 * ca, 470 + 115 * ca); ctx.stroke();
+    text(ctx, 'السلسلة', 1490, 640, 40, '#b3261e');
+    ctx.globalAlpha = 1;
+  }
+  // مسار السفن فوق اليابسة
+  const P0 = [1420, 150], P1 = [1120, 60], P2 = [790, 372];
+  const bz = (u) => [(1 - u) ** 2 * P0[0] + 2 * (1 - u) * u * P1[0] + u * u * P2[0], (1 - u) ** 2 * P0[1] + 2 * (1 - u) * u * P1[1] + u * u * P2[1]];
+  const rp = ease(prog(lt, 2.8, 6.8));
+  if (rp > 0) {
+    ctx.strokeStyle = '#1f5130'; ctx.lineWidth = 8; ctx.setLineDash([22, 14]); ctx.lineDashOffset = -t * 40;
+    ctx.beginPath(); for (let u = 0; u <= rp; u += 0.01) { const [x, y] = bz(u); u === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); } ctx.stroke(); ctx.setLineDash([]);
+    const [sx, sy] = bz(rp);
+    ship(ctx, sx, sy + 8, 0.32, 0, '#1f3322', '#f1e7cf', false);
+    ctx.globalAlpha = prog(lt, 4, 5); text(ctx, 'طريق السفن', 1240, 230, 42, '#1f5130'); ctx.globalAlpha = 1;
+  }
+  // إطار قديم
+  ctx.strokeStyle = '#5b4a2c'; ctx.lineWidth = 6; ctx.strokeRect(40, 40, W - 80, H - 80);
+  ctx.restore();
+  // تعتيق الورق
+  const v = ctx.createRadialGradient(W / 2, H / 2, 300, W / 2, H / 2, 1150); v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(70,40,10,0.55)');
+  ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
+}
+
+// ===== اللقطة ٣: جرّ السفن فوق التل =====
+const hillY = x => 930 - 400 * Math.exp(-(((x - 960) / 560) ** 2));
+const hillSlope = x => (hillY(x + 1) - hillY(x - 1)) / 2;
+function shot3(ctx, t, lt) {
+  const pan = lt * 10;
+  ctx.save(); ctx.translate(-pan, 0);
+  const g = ctx.createLinearGradient(0, 0, 0, H); g.addColorStop(0, '#04060d'); g.addColorStop(1, '#1b2340');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W + 200, H);
+  stars(ctx, t, 0.8);
+  glow(ctx, 380, 170, 200, 'rgba(220,230,255,0.25)');
+  ctx.fillStyle = '#e8ecff'; ctx.beginPath(); ctx.arc(380, 170, 40, 0, 6.283); ctx.fill();
+  // تلال بعيدة
+  ctx.fillStyle = '#10162a'; ctx.beginPath(); ctx.moveTo(0, H);
+  for (let x = 0; x <= W + 200; x += 20) ctx.lineTo(x, 720 - 90 * Math.sin(x / 300) - 40 * Math.sin(x / 97)); ctx.lineTo(W + 200, H); ctx.fill();
+  // التل الرئيسي
+  ctx.fillStyle = '#0a0d17'; ctx.beginPath(); ctx.moveTo(-50, H);
+  for (let x = -50; x <= W + 250; x += 10) ctx.lineTo(x, hillY(x)); ctx.lineTo(W + 250, H); ctx.fill();
+  // الألواح المدهونة بالزيت
+  for (let x = -40; x <= W + 240; x += 34) {
+    const y = hillY(x), a = Math.atan(hillSlope(x));
+    ctx.save(); ctx.translate(x, y); ctx.rotate(a);
+    ctx.fillStyle = '#5a3a1e'; ctx.fillRect(-14, -4, 28, 8);
+    ctx.fillStyle = 'rgba(255,190,110,0.35)'; ctx.fillRect(-14, -4, 28, 2);
+    ctx.restore();
+  }
+  // مشاعل
+  for (let x = 60; x <= W + 200; x += 240) {
+    const y = hillY(x) - 70, f = 0.75 + 0.25 * Math.sin(t * 13 + x);
+    ctx.fillStyle = '#2a1a0d'; ctx.fillRect(x - 3, y, 6, 70);
+    glow(ctx, x, y - 6, 120 * f, 'rgba(255,150,50,0.55)');
+    ctx.fillStyle = '#ffcf6b'; ctx.beginPath(); ctx.ellipse(x, y - 8, 8 * f, 16 * f, 0, 0, 6.283); ctx.fill();
+  }
+  // السفن والرجال يجرّونها
+  for (let k = 0; k < 3; k++) {
+    const x = -260 + ((lt * 95 + k * 760) % (W + 700));
+    const y = hillY(x), a = Math.atan(hillSlope(x));
+    ship(ctx, x, y - 22, 0.95, a, '#05070d', '#1a2033');
+    // رجال
+    for (let m = 0; m < 6; m++) {
+      const mx = x + 190 + m * 42, my = hillY(mx), sw = Math.sin(t * 6 + m) * 4;
+      ctx.save(); ctx.translate(mx, my); ctx.rotate(Math.atan(hillSlope(mx)));
+      ctx.fillStyle = '#05070d'; ctx.strokeStyle = '#05070d'; ctx.lineWidth = 5; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.arc(10, -52, 8, 0, 6.283); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(6, -44); ctx.lineTo(-4, -18); ctx.lineTo(-12 + sw, 0); ctx.moveTo(-4, -18); ctx.lineTo(6 - sw, 0);
+      ctx.moveTo(4, -38); ctx.lineTo(-14, -34); ctx.stroke(); ctx.restore();
+    }
+    // حبل
+    ctx.strokeStyle = 'rgba(160,120,70,0.8)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(x + 135, y - 55); ctx.lineTo(x + 400, hillY(x + 400) - 34); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ===== اللقطة ٤: الفجر والسفن داخل الخليج =====
+function shot4(ctx, t, lt) {
+  const d = ease(prog(lt, 0, 5));
+  const z = 1.08 - lt * 0.008;
+  ctx.save(); ctx.translate(W / 2, H / 2); ctx.scale(z, z); ctx.translate(-W / 2, -H / 2);
+  const g = ctx.createLinearGradient(0, 0, 0, 720);
+  g.addColorStop(0, `rgb(${lerp(20, 58, d)},${lerp(22, 40, d)},${lerp(45, 70, d)})`);
+  g.addColorStop(0.6, `rgb(${lerp(70, 200, d)},${lerp(50, 105, d)},${lerp(80, 80, d)})`);
+  g.addColorStop(1, `rgb(${lerp(140, 250, d)},${lerp(90, 190, d)},${lerp(90, 120, d)})`);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+  stars(ctx, t, 1 - d);
+  const sunY = lerp(800, 690, d);
+  glow(ctx, 520, sunY, 520, 'rgba(255,190,110,0.7)', d);
+  ctx.fillStyle = '#ffe2a6'; ctx.beginPath(); ctx.arc(520, sunY, 70, 0, 6.283); ctx.fill();
+  skyline(ctx, 820, 720, 0.85, '#1c1220');
+  water(ctx, 720, `rgb(${lerp(40, 120, d)},${lerp(40, 70, d)},${lerp(60, 70, d)})`, '#120c14', t, 'rgba(255,200,140,0.7)');
+  for (let i = 0; i < 16; i++) { ctx.globalAlpha = (0.4 - i * 0.022) * d; ctx.fillStyle = '#ffd49a'; const w = 170 - i * 6 + Math.sin(t * 2 + i) * 20; ctx.fillRect(520 - w / 2, 732 + i * 20, w, 4); }
+  ctx.globalAlpha = 1;
+  // أسطول من السفن
+  const r = rng(21);
+  const fleet = Array.from({ length: 13 }, () => ({ x: 60 + r() * 1200, y: 760 + r() * 240, p: r() * 6 }));
+  fleet.sort((a, b) => a.y - b.y);
+  for (const f of fleet) {
+    const s = 0.35 + (f.y - 760) / 240 * 0.55;
+    ship(ctx, f.x + lt * 6 * s, f.y + Math.sin(t * 1.5 + f.p) * 4, s, Math.sin(t + f.p) * 0.02, '#140b10', '#3a2228');
+  }
+  ctx.restore();
+}
+
+const SHOT_FN = [shot1, shot2, shot3, shot4];
+
+// ===== الترجمة =====
+function subtitle(ctx, t) {
+  const cue = CUES.find(c => t >= c.s && t <= c.e + 0.15);
+  if (!cue) return;
+  const a = Math.min(prog(t, cue.s, cue.s + 0.25), 1 - prog(t, cue.e - 0.05, cue.e + 0.15));
+  ctx.font = `700 50px ${FONT}`; ctx.direction = 'rtl';
+  const words = cue.text.split(' '), lines = []; let line = '';
+  for (const w of words) { const test = line ? line + ' ' + w : w; if (ctx.measureText(test).width > 1500 && line) { lines.push(line); line = w; } else line = test; }
+  lines.push(line);
+  const lh = 74, y0 = H - 70 - (lines.length - 1) * lh;
+  ctx.globalAlpha = a * 0.55; ctx.fillStyle = '#000';
+  const bw = Math.max(...lines.map(l => ctx.measureText(l).width)) + 80;
+  ctx.fillRect(W / 2 - bw / 2, y0 - 50, bw, lines.length * lh + 26);
+  ctx.globalAlpha = a;
+  lines.forEach((l, i) => { ctx.shadowColor = '#000'; ctx.shadowBlur = 8; text(ctx, l, W / 2, y0 + i * lh, 50, '#fff6e0'); });
+  ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+}
+
+// ===== إطار كامل =====
+function renderShot(i, t, canvas) {
+  const ctx = canvas.getContext('2d'); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.globalAlpha = 1;
+  SHOT_FN[i](ctx, t, t - SHOTS[i]);
+}
+
+window.renderFrame = function (t) {
+  let i = SHOTS.length - 1; while (i > 0 && t < SHOTS[i] - XFADE / 2) i--;
+  renderShot(i, t, off[0]);
+  mctx.globalAlpha = 1; mctx.drawImage(off[0], 0, 0);
+  const next = SHOTS[i + 1];
+  if (next !== undefined && t > next - XFADE / 2) {
+    renderShot(i + 1, t, off[1]);
+    mctx.globalAlpha = ease(prog(t, next - XFADE / 2, next + XFADE / 2)); mctx.drawImage(off[1], 0, 0); mctx.globalAlpha = 1;
+  }
+  // حبيبات فيلم + إطار معتم
+  mctx.globalAlpha = 0.06; mctx.globalCompositeOperation = 'overlay';
+  const ox = (t * 977) % 512, oy = (t * 613) % 512;
+  for (let x = -ox; x < W; x += 512) for (let y = -oy; y < H; y += 512) mctx.drawImage(GRAIN, x, y);
+  mctx.globalCompositeOperation = 'source-over'; mctx.globalAlpha = 1;
+  const v = mctx.createRadialGradient(W / 2, H / 2, 450, W / 2, H / 2, 1200);
+  v.addColorStop(0, 'rgba(0,0,0,0)'); v.addColorStop(1, 'rgba(0,0,0,0.6)'); mctx.fillStyle = v; mctx.fillRect(0, 0, W, H);
+  subtitle(mctx, t);
+  // ظهور واختفاء
+  const fade = Math.max(1 - prog(t, 0, 0.8), prog(t, END - 1.6, END - 0.2));
+  if (fade > 0) { mctx.globalAlpha = fade; mctx.fillStyle = '#000'; mctx.fillRect(0, 0, W, H); mctx.globalAlpha = 1; }
+};
+
+window.setCues = c => { CUES = c; };
+window.fontsReady = Promise.all([document.fonts.load("700 50px Amiri"), document.fonts.load("400 50px Amiri")]);
+window.END = END;
+
+// معاينة مباشرة عند فتح الصفحة في المتصفح
+if (!navigator.webdriver) window.fontsReady.then(() => {
+  const t0 = performance.now();
+  const loop = () => { const t = ((performance.now() - t0) / 1000) % END; window.renderFrame(t); requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
+});
+</script>
+</body>
+</html>
